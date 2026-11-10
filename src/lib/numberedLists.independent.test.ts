@@ -330,7 +330,8 @@ describe("backspaceMarker: Rule 4 step 1", () => {
 
   it("preserves text verbatim including extra spaces, tags, and symbols", () => {
     const lines = ["1. a", "2.   spaced  #tag  @person"];
-    expect(backspaceMarker(lines, 1, 3)).toBe("     spaced  #tag  @person");
+    // The text starts after all the marker's whitespace (col 5); the tail is kept byte for byte.
+    expect(backspaceMarker(lines, 1, 5)).toBe("   spaced  #tag  @person");
   });
 
   it("returns null when caret is not right after the marker space", () => {

@@ -375,7 +375,8 @@ export function backspaceContinuation(lines: string[], idx: number, col: number)
   const textCol = indentLen(P.indent) + P.marker.length + 1;
   if (leadingSpaces !== textCol) return null;
 
-  return line.slice(leadingSpaces);
+  // Back to the indent of the item it continued, so an indented list keeps its place.
+  return P.indent + line.slice(leadingSpaces);
 }
 
 /** Rule 7: the replacement text for an empty sub-item's line on Enter, or null when unchanged behaviour applies. */

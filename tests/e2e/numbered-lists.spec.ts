@@ -402,6 +402,18 @@ test.describe("numbered lists: smarter nesting", () => {
     await seedApp(page, { seed: "empty" });
   });
 
+  test("Tab and Shift+Tab with the caret inside the text keep the caret on the same character", async ({ page }) => {
+    await setEditorText(page, "1. a\n2. bcd\n3. e");
+    await caretAtEndOfLine(page, 1);
+    await page.keyboard.press("ArrowLeft");
+    await page.keyboard.press("Tab");
+    await page.keyboard.type("X");
+    expect(await activeTabContent(page)).toBe("1. a\n   1. bcXd\n2. e");
+    await page.keyboard.press("Shift+Tab");
+    await page.keyboard.type("Y");
+    expect(await activeTabContent(page)).toBe("1. a\n2. bcXYd\n3. e");
+  });
+
   test("Tab indents under parent text and restarts numbering at 1", async ({ page }) => {
     await setEditorText(page, "1. a\n2. b");
     await caretAtEndOfLine(page, 1);

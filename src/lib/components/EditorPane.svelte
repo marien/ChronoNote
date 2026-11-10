@@ -49,7 +49,7 @@
     topicLineEnter,
     lineSectionRole,
   } from "../tokens";
-  import { numberedListKeymap, numberedListRenumberFilter, renumbered } from "../editor/numberedListKeys";
+  import { applyListEdit, numberedListKeymap, numberedListRenumberFilter } from "../editor/numberedListKeys";
   import { emptySubItemEnter, renumberLists } from "../numberedLists";
   import * as controller from "../controller";
   import { editorContextMenu, findMatch, findOpen, readableLineLength, spellCheck, wordWrap } from "../controller";
@@ -508,26 +508,8 @@
 
         const working = [...allLines];
         working[lineObj.number - 1] = subReplacement;
-        const edits = renumberLists(working, [lineObj.number - 1]);
-        for (const e of edits) working[e.line] = e.text;
-
-        const changes = [
-          { from: lineObj.from, to: lineObj.to, insert: working[lineObj.number - 1] },
-        ];
-        for (const e of edits) {
-          if (e.line !== lineObj.number - 1) {
-            const l = v.state.doc.line(e.line + 1);
-            changes.push({ from: l.from, to: l.to, insert: e.text });
-          }
-        }
-        v.dispatch({
-          changes,
-          selection: { anchor: lineObj.from + subReplacement.length },
-          userEvent: "input",
-          annotations: renumbered.of(true),
-          scrollIntoView: true,
-        });
-        return true;
+        for (const e of renumberLists(working, [lineObj.number - 1])) working[e.line] = e.text;
+        return applyListEdit(v, working, "input", lineObj.from + subReplacement.length);
       }
 
       // #208: `! - item` continues as `! - `.

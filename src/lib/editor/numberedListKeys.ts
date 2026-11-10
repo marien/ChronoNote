@@ -1,11 +1,4 @@
-import {
-  Annotation,
-  EditorSelection,
-  EditorState,
-  Prec,
-  Transaction,
-  type ChangeSpec,
-} from "@codemirror/state";
+import { Annotation, EditorState, Prec, Transaction, type ChangeSpec, type Text } from "@codemirror/state";
 import { EditorView, keymap } from "@codemirror/view";
 import {
   backspaceContinuation,
@@ -23,356 +16,172 @@ import {
 } from "../numberedLists";
 import { parseNumberedItem } from "../tokens";
 
+/** Marks a transaction whose numbering is already done, so the renumber filter leaves it alone. */
 export const renumbered = Annotation.define<boolean>();
 
+/** Only the part of a line that differs (common prefix and suffix kept), so a caret in the untouched text keeps its
+ * place when the selection is mapped through the change. */
+function lineChange(doc: Text, idx: number, text: string): ChangeSpec | null {
+  const l = doc.line(idx + 1);
+  const old = l.text;
+  if (old === text) return null;
+  let p = 0;
+  while (p < old.length && p < text.length && old[p] === text[p]) p++;
+  let s = 0;
+  while (s < old.length - p && s < text.length - p && old[old.length - 1 - s] === text[text.length - 1 - s]) s++;
+  return { from: l.from + p, to: l.to - s, insert: text.slice(p, text.length - s) };
+}
+
+function lineChanges(doc: Text, before: string[], after: string[]): ChangeSpec[] {
+  const out: ChangeSpec[] = [];
+  for (let i = 0; i < after.length; i++) {
+    if (after[i] === before[i]) continue;
+    const c = lineChange(doc, i, after[i]);
+    if (c) out.push(c);
+  }
+  return out;
+}
+
+/** Dispatch a list edit given as the document's lines after it (same line count), in one undo step. The selection
+ * is mapped through the change unless `anchor` (a position in the new document) is given. */
+export function applyListEdit(view: EditorView, after: string[], userEvent: string, anchor?: number): boolean {
+  const state = view.state;
+  const before = state.doc.toString().split("\n");
+  const cs = state.changes(lineChanges(state.doc, before, after));
+  view.dispatch({
+    changes: cs,
+    selection: anchor !== undefined ? { anchor } : state.selection.map(cs),
+    userEvent,
+    annotations: renumbered.of(true),
+    scrollIntoView: true,
+  });
+  return true;
+}
+
+/** `working` with its touched lists renumbered (rule 5); group starts carried over from `before`, the lines having
+ * the same indices on both sides. `extraStarts` overrides them. */
+function withRenumbering(before: string[], working: string[], touched: number[], extraStarts?: Map<number, number>): string[] {
+  const starts = matchGroupStarts(listGroups(before, touched), listGroups(working, touched), (first) => first);
+  for (const [k, v] of extraStarts ?? []) starts.set(k, v);
+  const out = [...working];
+  for (const e of renumberLists(working, touched, starts)) out[e.line] = e.text;
+  return out;
+}
+
+/** `line` with its leading whitespace replaced by `indent`; a numbered marker can be swapped in at the same time. */
+function reindent(line: string, indent: string, marker?: string): string {
+  const num = parseNumberedItem(line);
+  if (num) return indent + (marker ?? num.marker) + line.slice(num.markerEnd);
+  return indent + line.replace(/^\s*/, "");
+}
+
+/** The selected lines (0-based) and the first list line among them; null when the command should not apply. */
+function selectedLines(state: EditorState): { lines: string[]; first: number; last: number; firstList: number } | null {
+  if (state.selection.ranges.length > 1) return null;
+  const sel = state.selection.main;
+  const first = state.doc.lineAt(sel.from).number - 1;
+  const last = state.doc.lineAt(sel.to).number - 1;
+  const lines = state.doc.toString().split("\n");
+  for (let i = first; i <= last; i++) if (parseListItem(lines[i]) !== null) return { lines, first, last, firstList: i };
+  return null;
+}
+
+function groupsOf(lines: string[], idx: number): { first: number; indent: number; delimiter: "." | ")"; parent: number | null; size: number }[] {
+  const block = getBlockForLine(lines, idx);
+  return block ? getGroupsInBlock(lines, block).map((g) => ({ ...g, size: g.items.length })) : [];
+}
+
+/** Shift every selected line's indent by `delta` columns (never below 0). */
+function shiftLines(lines: string[], first: number, last: number, delta: number): string[] {
+  const out = [...lines];
+  for (let i = first; i <= last; i++) {
+    const cur = indentLen(lines[i].match(/^\s*/)![0]);
+    out[i] = " ".repeat(Math.max(0, cur + delta)) + lines[i].replace(/^\s*/, "");
+  }
+  return out;
+}
+
+/** Rules 1 and 2: Tab moves a list line under the text of the numbered item before it at the same indent. */
 function tabCommand(view: EditorView): boolean {
-  const state = view.state;
-  if (state.selection.ranges.length > 1) return false;
-  const sel = state.selection.main;
-  const doc = state.doc;
-  const lines = doc.toString().split(/\r?\n/);
-
-  const startLine = doc.lineAt(sel.from);
-  const endLine = doc.lineAt(sel.to);
-
-  // Single line selection (or empty)
-  if (startLine.number === endLine.number) {
-    const idx = startLine.number - 1;
-    const target = tabIndentTarget(lines, idx);
-    if (target === null) return false;
-
-    const oldLineText = lines[idx];
-    const parsedNum = parseNumberedItem(oldLineText);
-
-    let newLineText: string;
-    let explicitStart: number | undefined;
-
-    if (parsedNum) {
-      // Provisional line with new indent
-      const provLine = target + oldLineText.slice(parsedNum.indent.length);
-      const testLines = [...lines];
-      testLines[idx] = provLine;
-
-      const block = getBlockForLine(testLines, idx);
-      const parent = block ? findParentInBlock(testLines, block, idx) : null;
-      const parentIdx = parent ? parent.index : null;
-      const myIndent = indentLen(target);
-
-      // Check if group under parent with this indent and delimiter already has other items
-      let otherItem: { line: number; item: typeof parsedNum } | null = null;
-      if (block) {
-        for (let i = block.start; i <= block.end; i++) {
-          if (i === idx) continue;
-          const otherNum = parseNumberedItem(testLines[i]);
-          if (otherNum && indentLen(otherNum.indent) === myIndent && otherNum.delimiter === parsedNum.delimiter) {
-            const op = findParentInBlock(testLines, block, i);
-            if ((op ? op.index : null) === parentIdx) {
-              otherItem = { line: i, item: otherNum };
-              break;
-            }
-          }
-        }
-      }
-
-      if (!otherItem) {
-        // L is the group's only item: its number becomes 1 (plain style, L's own delimiter)
-        const rest = oldLineText.slice(parsedNum.markerEnd);
-        newLineText = `${target}1${parsedNum.delimiter}${rest}`;
-        explicitStart = 1;
-      } else {
-        const rest = oldLineText.slice(parsedNum.markerEnd);
-        newLineText = `${target}${parsedNum.marker}${rest}`;
-      }
-    } else {
-      const bulletMatch = oldLineText.match(/^(\s*)((?:! )?[-*].*)$/);
-      if (!bulletMatch) return false;
-      newLineText = target + bulletMatch[2];
-    }
-
-    const oldGroups = listGroups(lines, [idx]);
-    const workingLines = [...lines];
-    workingLines[idx] = newLineText;
-
-    const newGroups = listGroups(workingLines, [idx]);
-    const starts = matchGroupStarts(oldGroups, newGroups, (oldFirst) => oldFirst);
-    if (explicitStart !== undefined) {
-      starts.set(idx, explicitStart);
-    }
-
-    const edits = renumberLists(workingLines, [idx], starts);
-    for (const e of edits) {
-      workingLines[e.line] = e.text;
-    }
-
-    const changes: ChangeSpec[] = [
-      { from: startLine.from, to: startLine.to, insert: workingLines[idx] },
-    ];
-    for (const e of edits) {
-      if (e.line !== idx) {
-        const l = doc.line(e.line + 1);
-        changes.push({ from: l.from, to: l.to, insert: e.text });
-      }
-    }
-
-    const tr = state.update({
-      changes,
-      userEvent: "input.indent",
-      annotations: renumbered.of(true),
-    });
-    view.dispatch({
-      ...tr,
-      selection: sel.map(tr.changes),
-      scrollIntoView: true,
-    });
-    return true;
-  }
-
-  // Multi-line selection
-  let firstListIdx: number | null = null;
-  for (let n = startLine.number; n <= endLine.number; n++) {
-    if (parseListItem(lines[n - 1]) !== null) {
-      firstListIdx = n - 1;
-      break;
-    }
-  }
-  if (firstListIdx === null) return false;
-
-  const target = tabIndentTarget(lines, firstListIdx);
+  const s = selectedLines(view.state);
+  if (!s) return false;
+  const { lines, first, last, firstList } = s;
+  const target = tabIndentTarget(lines, firstList);
   if (target === null) return false;
 
-  const firstCurrentIndent = lines[firstListIdx].match(/^\s*/)?.[0] ?? "";
-  const delta = target.length - firstCurrentIndent.length;
+  if (first === last) {
+    const num = parseNumberedItem(lines[first]);
+    const working = [...lines];
+    working[first] = reindent(lines[first], target);
+    const extra = new Map<number, number>();
+    if (num) {
+      // Rule 2: first (or alone) in the group under its new parent, it starts again at 1; alone, also plain style.
+      const block = getBlockForLine(working, first);
+      const parent = block ? findParentInBlock(working, block, first)?.index ?? null : null;
+      const group = groupsOf(working, first).find(
+        (g) => g.indent === indentLen(target) && g.delimiter === num.delimiter && g.parent === parent,
+      );
+      if (group && group.first === first) {
+        if (group.size === 1) working[first] = reindent(lines[first], target, `1${num.delimiter}`);
+        extra.set(first, 1);
+      }
+    }
+    return applyListEdit(view, withRenumbering(lines, working, [first], extra), "input.indent");
+  }
+
+  const delta = indentLen(target) - indentLen(lines[firstList].match(/^\s*/)![0]);
   if (delta <= 0) return false;
-
-  const touched: number[] = [];
-  const changes: ChangeSpec[] = [];
-  const workingLines = [...lines];
-
-  for (let n = startLine.number; n <= endLine.number; n++) {
-    const idx = n - 1;
-    touched.push(idx);
-    const line = doc.line(n);
-    const newLine = " ".repeat(delta) + lines[idx];
-    workingLines[idx] = newLine;
-    changes.push({ from: line.from, to: line.to, insert: newLine });
-  }
-
-  const oldGroups = listGroups(lines, touched);
-  const newGroups = listGroups(workingLines, touched);
-  const starts = matchGroupStarts(oldGroups, newGroups, (oldFirst) => oldFirst);
-  const edits = renumberLists(workingLines, touched, starts);
-
-  for (const e of edits) {
-    workingLines[e.line] = e.text;
-    const l = doc.line(e.line + 1);
-    const existing = changes.findIndex((c: any) => c.from === l.from);
-    if (existing >= 0) {
-      changes[existing] = { from: l.from, to: l.to, insert: e.text };
-    } else {
-      changes.push({ from: l.from, to: l.to, insert: e.text });
-    }
-  }
-
-  const tr = state.update({
-    changes,
-    userEvent: "input.indent",
-    annotations: renumbered.of(true),
-  });
-  view.dispatch({
-    ...tr,
-    selection: sel.map(tr.changes),
-    scrollIntoView: true,
-  });
-  return true;
+  const touched = Array.from({ length: last - first + 1 }, (_, k) => first + k);
+  return applyListEdit(view, withRenumbering(lines, shiftLines(lines, first, last, delta), touched), "input.indent");
 }
 
+/** Rules 1 and 3: Shift+Tab moves a list line out to its parent's indent; the outer list continues. */
 function shiftTabCommand(view: EditorView): boolean {
-  const state = view.state;
-  if (state.selection.ranges.length > 1) return false;
-  const sel = state.selection.main;
-  const doc = state.doc;
-  const lines = doc.toString().split(/\r?\n/);
-
-  const startLine = doc.lineAt(sel.from);
-  const endLine = doc.lineAt(sel.to);
-
-  // Single line
-  if (startLine.number === endLine.number) {
-    const idx = startLine.number - 1;
-    const target = shiftTabIndentTarget(lines, idx);
-    if (target === null) return false;
-
-    const oldLineText = lines[idx];
-    const parsedNum = parseNumberedItem(oldLineText);
-
-    let newLineText: string;
-    if (parsedNum) {
-      const rest = oldLineText.slice(parsedNum.markerEnd);
-      newLineText = `${target}${parsedNum.marker}${rest}`;
-    } else {
-      const bulletMatch = oldLineText.match(/^(\s*)((?:! )?[-*].*)$/);
-      if (!bulletMatch) return false;
-      newLineText = target + bulletMatch[2];
-    }
-
-    const oldGroups = listGroups(lines, [idx]);
-    const workingLines = [...lines];
-    workingLines[idx] = newLineText;
-
-    const newGroups = listGroups(workingLines, [idx]);
-    const starts = matchGroupStarts(oldGroups, newGroups, (oldFirst) => oldFirst);
-    // Rule 3: items that followed L in its old group are now L's children: renumbered from 1
-    for (const ng of newGroups) {
-      if (ng.parent === idx) {
-        starts.set(ng.first, 1);
-      }
-    }
-
-    const edits = renumberLists(workingLines, [idx], starts);
-    for (const e of edits) workingLines[e.line] = e.text;
-
-    const changes: ChangeSpec[] = [
-      { from: startLine.from, to: startLine.to, insert: workingLines[idx] },
-    ];
-    for (const e of edits) {
-      if (e.line !== idx) {
-        const l = doc.line(e.line + 1);
-        changes.push({ from: l.from, to: l.to, insert: e.text });
-      }
-    }
-
-    const tr = state.update({
-      changes,
-      userEvent: "input.indent",
-      annotations: renumbered.of(true),
-    });
-    view.dispatch({
-      ...tr,
-      selection: sel.map(tr.changes),
-      scrollIntoView: true,
-    });
-    return true;
-  }
-
-  // Multi-line selection
-  let firstListIdx: number | null = null;
-  for (let n = startLine.number; n <= endLine.number; n++) {
-    if (parseListItem(lines[n - 1]) !== null) {
-      firstListIdx = n - 1;
-      break;
-    }
-  }
-  if (firstListIdx === null) return false;
-
-  const target = shiftTabIndentTarget(lines, firstListIdx);
+  const s = selectedLines(view.state);
+  if (!s) return false;
+  const { lines, first, last, firstList } = s;
+  const target = shiftTabIndentTarget(lines, firstList);
   if (target === null) return false;
 
-  const firstCurrentIndent = lines[firstListIdx].match(/^\s*/)?.[0] ?? "";
-  const delta = target.length - firstCurrentIndent.length;
+  if (first === last) {
+    const working = [...lines];
+    working[first] = reindent(lines[first], target);
+    // Rule 3: the items that followed it in its old group are now its children, numbered from 1.
+    const extra = new Map<number, number>();
+    for (const g of listGroups(working, [first])) if (g.parent === first) extra.set(g.first, 1);
+    return applyListEdit(view, withRenumbering(lines, working, [first], extra), "input.indent");
+  }
+
+  const delta = indentLen(target) - indentLen(lines[firstList].match(/^\s*/)![0]);
   if (delta >= 0) return false;
-
-  const touched: number[] = [];
-  const changes: ChangeSpec[] = [];
-  const workingLines = [...lines];
-
-  for (let n = startLine.number; n <= endLine.number; n++) {
-    const idx = n - 1;
-    touched.push(idx);
-    const line = doc.line(n);
-    const curInd = lines[idx].match(/^\s*/)?.[0].length ?? 0;
-    const newIndLen = Math.max(0, curInd + delta);
-    const newLine = " ".repeat(newIndLen) + lines[idx].slice(curInd);
-    workingLines[idx] = newLine;
-    changes.push({ from: line.from, to: line.to, insert: newLine });
-  }
-
-  const oldGroups = listGroups(lines, touched);
-  const newGroups = listGroups(workingLines, touched);
-  const starts = matchGroupStarts(oldGroups, newGroups, (oldFirst) => oldFirst);
-  const edits = renumberLists(workingLines, touched, starts);
-
-  for (const e of edits) {
-    workingLines[e.line] = e.text;
-    const l = doc.line(e.line + 1);
-    const existing = changes.findIndex((c: any) => c.from === l.from);
-    if (existing >= 0) {
-      changes[existing] = { from: l.from, to: l.to, insert: e.text };
-    } else {
-      changes.push({ from: l.from, to: l.to, insert: e.text });
-    }
-  }
-
-  const tr = state.update({
-    changes,
-    userEvent: "input.indent",
-    annotations: renumbered.of(true),
-  });
-  view.dispatch({
-    ...tr,
-    selection: sel.map(tr.changes),
-    scrollIntoView: true,
-  });
-  return true;
+  const touched = Array.from({ length: last - first + 1 }, (_, k) => first + k);
+  return applyListEdit(view, withRenumbering(lines, shiftLines(lines, first, last, delta), touched), "input.indent");
 }
 
+/** Rule 4: Backspace at a numbered item's text start removes the marker; a second one removes the continuation
+ * indent. Anywhere else it is the ordinary Backspace. */
 function backspaceCommand(view: EditorView): boolean {
   const state = view.state;
-  if (!state.selection.main.empty) return false;
   const sel = state.selection.main;
-  const doc = state.doc;
-  const lines = doc.toString().split(/\r?\n/);
-  const line = doc.lineAt(sel.head);
+  if (state.selection.ranges.length > 1 || !sel.empty) return false;
+  const line = state.doc.lineAt(sel.head);
   const idx = line.number - 1;
   const col = sel.head - line.from;
+  const lines = state.doc.toString().split("\n");
 
-  // Step 1: backspaceMarker
-  const markerNewText = backspaceMarker(lines, idx, col);
-  if (markerNewText !== null) {
-    const oldGroups = listGroups(lines, [idx]);
-    const workingLines = [...lines];
-    workingLines[idx] = markerNewText;
-
-    const newGroups = listGroups(workingLines, [idx]);
-    const starts = matchGroupStarts(oldGroups, newGroups, (oldFirst) => oldFirst);
-    const edits = renumberLists(workingLines, [idx], starts);
-    for (const e of edits) workingLines[e.line] = e.text;
-
-    const leadingWhitespace = markerNewText.match(/^\s*/)?.[0].length ?? 0;
-    const newHead = line.from + leadingWhitespace;
-
-    const changes: ChangeSpec[] = [
-      { from: line.from, to: line.to, insert: workingLines[idx] },
-    ];
-    for (const e of edits) {
-      if (e.line !== idx) {
-        const l = doc.line(e.line + 1);
-        changes.push({ from: l.from, to: l.to, insert: e.text });
-      }
-    }
-
-    view.dispatch({
-      changes,
-      selection: { anchor: newHead },
-      userEvent: "delete.backward",
-      annotations: renumbered.of(true),
-      scrollIntoView: true,
-    });
-    return true;
+  const withoutMarker = backspaceMarker(lines, idx, col);
+  if (withoutMarker !== null) {
+    const working = [...lines];
+    working[idx] = withoutMarker;
+    const anchor = line.from + withoutMarker.match(/^\s*/)![0].length;
+    return applyListEdit(view, withRenumbering(lines, working, [idx]), "delete.backward", anchor);
   }
-
-  // Step 2: backspaceContinuation
-  const contNewText = backspaceContinuation(lines, idx, col);
-  if (contNewText !== null) {
-    view.dispatch({
-      changes: { from: line.from, to: line.to, insert: contNewText },
-      selection: { anchor: line.from },
-      userEvent: "delete.backward",
-      annotations: renumbered.of(true),
-      scrollIntoView: true,
-    });
-    return true;
+  const outdented = backspaceContinuation(lines, idx, col);
+  if (outdented !== null) {
+    const working = [...lines];
+    working[idx] = outdented;
+    return applyListEdit(view, working, "delete.backward", line.from + outdented.match(/^\s*/)![0].length);
   }
-
   return false;
 }
 
@@ -384,60 +193,40 @@ export const numberedListKeymap = Prec.high(
   ]),
 );
 
+/** Rule 5: deleting, cutting, moving or pasting lines in a list renumbers it. Only user edits that add or remove a
+ * line break: typing a number by hand, or deleting a digit, never renumbers anything. */
 export const numberedListRenumberFilter = EditorState.transactionFilter.of((tr) => {
-  if (tr.annotation(renumbered)) return tr;
-  if (!tr.docChanged) return tr;
-
-  const userEvent = tr.annotation(Transaction.userEvent);
-  if (!userEvent) return tr;
-  const isDelete = userEvent.startsWith("delete");
-  const isMove = userEvent === "move.line";
-  const isPaste = userEvent === "input.paste";
-  const isDrop = userEvent === "input.drop";
-  if (!isDelete && !isMove && !isPaste && !isDrop) return tr;
-
-  let hasLineBreakChange = false;
-  tr.changes.iterChanges((fromA, toA, fromB, toB, inserted) => {
-    if (inserted.lines > 1) hasLineBreakChange = true;
-    if (tr.startState.doc.lineAt(fromA).number !== tr.startState.doc.lineAt(toA).number) hasLineBreakChange = true;
-  });
-  if (!hasLineBreakChange) return tr;
+  if (!tr.docChanged || tr.annotation(renumbered)) return tr;
+  const ev = tr.annotation(Transaction.userEvent);
+  if (!ev || !(ev.startsWith("delete") || ev === "move.line" || ev === "input.paste" || ev === "input.drop")) return tr;
 
   const oldDoc = tr.startState.doc;
   const newDoc = tr.newDoc;
-  const oldLines = oldDoc.toString().split(/\r?\n/);
-  const newLines = newDoc.toString().split(/\r?\n/);
-
+  let lineBreaks = false;
   const oldTouched: number[] = [];
   const newTouched: number[] = [];
-
-  tr.changes.iterChanges((fromA, toA, fromB, toB) => {
-    const lineAStart = oldDoc.lineAt(fromA).number - 1;
-    const lineAEnd = oldDoc.lineAt(toA).number - 1;
-    for (let i = lineAStart; i <= lineAEnd; i++) oldTouched.push(i);
-
-    const lineBStart = newDoc.lineAt(fromB).number - 1;
-    const lineBEnd = newDoc.lineAt(toB).number - 1;
-    for (let i = lineBStart; i <= lineBEnd; i++) newTouched.push(i);
+  tr.changes.iterChanges((fromA, toA, fromB, toB, inserted) => {
+    const a0 = oldDoc.lineAt(fromA).number - 1;
+    const a1 = oldDoc.lineAt(toA).number - 1;
+    if (inserted.lines > 1 || a1 !== a0) lineBreaks = true;
+    for (let i = a0; i <= a1; i++) oldTouched.push(i);
+    for (let i = newDoc.lineAt(fromB).number - 1; i <= newDoc.lineAt(toB).number - 1; i++) newTouched.push(i);
   });
+  if (!lineBreaks) return tr;
 
-  const oldGroups = listGroups(oldLines, oldTouched);
+  const oldLines = oldDoc.toString().split("\n");
+  const newLines = newDoc.toString().split("\n");
   const newGroups = listGroups(newLines, newTouched);
   if (newGroups.length === 0) return tr;
-
-  const starts = matchGroupStarts(oldGroups, newGroups, (oldFirst) => {
-    const oldPos = oldDoc.line(oldFirst + 1).from;
-    const mapped = tr.changes.mapPos(oldPos, 1);
+  const starts = matchGroupStarts(listGroups(oldLines, oldTouched), newGroups, (oldFirst) => {
+    // Backwards: a change that starts at the list's first line (a line moved, the first item deleted) must not
+    // carry the old first line past it, or the old start is lost.
+    const mapped = tr.changes.mapPos(oldDoc.line(oldFirst + 1).from, -1);
     return newDoc.lineAt(mapped).number - 1;
   });
-
-  const edits = renumberLists(newLines, newTouched, starts);
-  if (edits.length === 0) return tr;
-
-  const changes: ChangeSpec[] = edits.map((e) => {
-    const l = newDoc.line(e.line + 1);
-    return { from: l.from, to: l.to, insert: e.text };
-  });
-
+  const after = [...newLines];
+  for (const e of renumberLists(newLines, newTouched, starts)) after[e.line] = e.text;
+  const changes = lineChanges(newDoc, newLines, after);
+  if (changes.length === 0) return tr;
   return [tr, { changes, sequential: true, annotations: renumbered.of(true) }];
 });
