@@ -83,11 +83,11 @@ test.describe("rich-clipboard: pasting lists and copying out (#196)", () => {
     await expect.poll(async () => activeTabContent(page)).toBe("- One\n  - Sub A\n  - Sub B\n- Two");
   });
 
-  test("2. nested <ol> gives numbered items indented two spaces per level, numbered from 1 within list", async ({ page }) => {
+  test("2. nested <ol> gives numbered items indented under parent text column, numbered from 1 within list", async ({ page }) => {
     await editor(page).click();
     const html = "<ol><li>First</li><li>Second<ol><li>Inner</li></ol></li></ol>";
     await pasteHtml(page, html, "flat text");
-    await expect.poll(async () => activeTabContent(page)).toBe("1. First\n2. Second\n  1. Inner");
+    await expect.poll(async () => activeTabContent(page)).toBe("1. First\n2. Second\n   1. Inner");
   });
 
   test("3. <ol start='4'> starts numbering at 4", async ({ page }) => {
@@ -101,7 +101,7 @@ test.describe("rich-clipboard: pasting lists and copying out (#196)", () => {
     await editor(page).click();
     const html = "<ol><li>Step<ul><li>detail</li></ul></li></ol>";
     await pasteHtml(page, html, "flat text");
-    await expect.poll(async () => activeTabContent(page)).toBe("1. Step\n  - detail");
+    await expect.poll(async () => activeTabContent(page)).toBe("1. Step\n   - detail");
   });
 
   test("5. <br> inside an item continues on next line lined up under item text", async ({ page }) => {
@@ -124,7 +124,7 @@ test.describe("rich-clipboard: pasting lists and copying out (#196)", () => {
     const html =
       "<p class=MsoListParagraphCxSpFirst style='mso-list:l0 level1 lfo1'><![if !supportLists]><span style='mso-list:Ignore'>1.<span>&nbsp;&nbsp;</span></span><![endif]>Alpha</p><p class=MsoListParagraphCxSpLast style='mso-list:l0 level2 lfo1'><![if !supportLists]><span style='mso-list:Ignore'>a.<span>&nbsp;</span></span><![endif]>Beta</p>";
     await pasteHtml(page, html, "flat text");
-    await expect.poll(async () => activeTabContent(page)).toBe("1. Alpha\n  1. Beta");
+    await expect.poll(async () => activeTabContent(page)).toBe("1. Alpha\n   1. Beta");
   });
 
   test("7. HTML with no list pastes the text/plain text unchanged", async ({ page }) => {

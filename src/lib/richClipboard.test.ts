@@ -78,7 +78,7 @@ describe("richClipboard", () => {
         </ul>
       `;
       expect(htmlToNoteText(html)).toBe(
-        "1. Numbered one\n  - Bullet under numbered\n2. Numbered two\n  1. Numbered sub under numbered\n- Bullet item\n  1. Numbered under bullet"
+        "1. Numbered one\n   - Bullet under numbered\n2. Numbered two\n   1. Numbered sub under numbered\n- Bullet item\n  1. Numbered under bullet"
       );
     });
 
@@ -115,7 +115,7 @@ describe("richClipboard", () => {
         </ol>
       `;
       expect(htmlToNoteText(numberedHtml)).toBe(
-        "1. First numbered\n   numbered continuation\n12. Twelfth numbered\n    twelfth continuation\n  1. Nested numbered\n     nested continuation"
+        "1. First numbered\n   numbered continuation\n12. Twelfth numbered\n    twelfth continuation\n   1. Nested numbered\n      nested continuation"
       );
     });
 
@@ -152,7 +152,7 @@ describe("richClipboard", () => {
         </p>
       `;
       expect(htmlToNoteText(wordNumberedHtml)).toBe(
-        "1. First item\n  1. Sub item a\n  2. Sub item b\n2. Second item"
+        "1. First item\n   1. Sub item a\n   2. Sub item b\n2. Second item"
       );
     });
 
@@ -237,10 +237,31 @@ describe("richClipboard", () => {
         "1. First Roman\n2. Second Roman\nA non-list paragraph\n1. Letter item after interruption"
       );
     });
+
+    it("nested numbered paste gives 3-space children under 1.", () => {
+      const html = "<ol><li>One<ol><li>Sub</li></ol></li></ol>";
+      expect(htmlToNoteText(html)).toBe("1. One\n   1. Sub");
+    });
   });
 
   describe("noteTextToHtml", () => {
     const own = (inner: string) => `<div data-chrononote="">${inner}</div>`;
+
+    it("copy of a 3-space nested list gives nested <ol>", () => {
+      const text = "1. Parent\n   1. Nested child\n2. Sibling";
+      const html = noteTextToHtml(text);
+      expect(html).toBe(
+        own("<ol><li>Parent<ol><li>Nested child</li></ol></li><li>Sibling</li></ol>")
+      );
+    });
+
+    it("old 2-space input still nests", () => {
+      const text = "1. Parent\n  1. Old child\n2. Sibling";
+      const html = noteTextToHtml(text);
+      expect(html).toBe(
+        own("<ol><li>Parent<ol><li>Old child</li></ol></li><li>Sibling</li></ol>")
+      );
+    });
 
     it("returns null when no line is a bullet or numbered item", () => {
       expect(noteTextToHtml("")).toBeNull();
@@ -320,12 +341,12 @@ describe("richClipboard", () => {
         "- Bullet 1",
         "  1. Numbered 1",
         "  2. Numbered 2",
-        "    - Subsub bullet",
+        "     - Subsub bullet",
         "  3. Numbered 3",
         "- Bullet 2",
         "Plain text in between",
         "4. Numbered 4",
-        "  - Bullet under numbered 4",
+        "   - Bullet under numbered 4",
       ].join("\n");
 
       const html = noteTextToHtml(x);

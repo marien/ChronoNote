@@ -49,6 +49,8 @@
     topicLineEnter,
     lineSectionRole,
   } from "../tokens";
+  import { numberedListKeymap, numberedListRenumberFilter, renumbered } from "../editor/numberedListKeys";
+  import { emptySubItemEnter, renumberLists } from "../numberedLists";
   import * as controller from "../controller";
   import { editorContextMenu, findMatch, findOpen, readableLineLength, spellCheck, wordWrap } from "../controller";
   import { currentLineKind, editorFocused } from "../stores";
@@ -499,6 +501,35 @@
           return true;
         }
       }
+      function handleEmptySubItem(lineObj: { from: number; to: number; number: number }): boolean {
+        const allLines = v.state.doc.toString().split(/\r?\n/);
+        const subReplacement = emptySubItemEnter(allLines, lineObj.number - 1);
+        if (subReplacement === null) return false;
+
+        const working = [...allLines];
+        working[lineObj.number - 1] = subReplacement;
+        const edits = renumberLists(working, [lineObj.number - 1]);
+        for (const e of edits) working[e.line] = e.text;
+
+        const changes = [
+          { from: lineObj.from, to: lineObj.to, insert: working[lineObj.number - 1] },
+        ];
+        for (const e of edits) {
+          if (e.line !== lineObj.number - 1) {
+            const l = v.state.doc.line(e.line + 1);
+            changes.push({ from: l.from, to: l.to, insert: e.text });
+          }
+        }
+        v.dispatch({
+          changes,
+          selection: { anchor: lineObj.from + subReplacement.length },
+          userEvent: "input",
+          annotations: renumbered.of(true),
+          scrollIntoView: true,
+        });
+        return true;
+      }
+
       // #208: `! - item` continues as `! - `.
       const match = line.text.match(/^(\s*)((?:! )?[-*])\s/);
       if (!match) {
@@ -545,6 +576,7 @@
           const nextLine = line.number < v.state.doc.lines ? v.state.doc.line(line.number + 1).text : undefined;
           const step = numberedListEnter(line.text, pos - line.from, nextLine);
           if (step && "exit" in step) {
+            if (handleEmptySubItem(line)) return true;
             v.dispatch({ changes: { from: line.from, to: line.to, insert: "" }, selection: { anchor: line.from } });
           } else if (step && "insert" in step) {
             // #123: an item inserted in the middle of a list pushes the colliding numbers after it down by one.
@@ -588,6 +620,7 @@
       }
       const [, indent, marker] = match;
       if (insertBullet && line.text.trim() === marker) {
+        if (handleEmptySubItem(line)) return true;
         v.dispatch({ changes: { from: line.from, to: line.to, insert: "" }, selection: { anchor: line.from } });
         return true;
       }
@@ -761,6 +794,8 @@
           open: (target) => void controller.enterPeek(target),
         },
       ),
+      numberedListKeymap,
+      numberedListRenumberFilter,
       shortcuts,
       keymap.of([...defaultKeymap, ...historyKeymap, indentWithTab]),
       EditorView.updateListener.of((u) => {
