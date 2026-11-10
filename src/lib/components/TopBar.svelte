@@ -59,6 +59,7 @@
   } from "../controller";
 
   import type { NoteTab } from "../types";
+  import { devBuild } from "../stores";
   import Icon from "../icons/Icon.svelte";
   import AppIcon from "./AppIcon.svelte";
   import { formatCombo, formatShortcut, shortcutById } from "../shortcuts";
@@ -760,6 +761,10 @@
   {#if isMergedTitlebar}
     <span class="app-icon" aria-hidden="true"><AppIcon size={16} /></span>
   {/if}
+  {#if $devBuild}
+    <!-- §458: a debug build says so (the window title and icon do too, set in Rust). -->
+    <span class="dev-badge" data-testid="dev-badge" data-tauri-drag-region title="Debug build">DEV</span>
+  {/if}
   {#if !showHorizontalTabs}
     {#if showOpenTabsBtn}
       <button
@@ -1314,6 +1319,20 @@
    inherit `#top-bar`'s `align-items: flex-end` puts the icon on the
    same row the rest of the bar's icons sit on. */
 
+.dev-badge {
+  flex-shrink: 0;
+  align-self: center;
+  margin: 0 6px 0 2px;
+  padding: 1px 5px;
+  border-radius: 3px;
+  background: #f06a00;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 14px;
+  letter-spacing: 0.05em;
+  cursor: default;
+}
 .app-icon {
   display: flex;
   align-items: center;

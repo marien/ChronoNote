@@ -24,6 +24,8 @@ export interface SeedApp {
   /** Skip the wait for the app to finish booting — for specs that
    * deliberately break boot (e.g. a seeded `throwOnCommands`). */
   expectBootFailure?: boolean;
+  /** Extra query parameters after `?mock` (e.g. `"devbuild"`). */
+  query?: string;
 }
 
 export async function seedApp(page: Page, opts: SeedApp = {}): Promise<void> {
@@ -75,7 +77,7 @@ export async function seedApp(page: Page, opts: SeedApp = {}): Promise<void> {
     }
   }).catch(() => {});
 
-  await page.goto("/?mock");
+  await page.goto(opts.query ? `/?mock&${opts.query}` : "/?mock");
   if (opts.expectBootFailure) return;
   // `#top-bar` only renders once `controller.initApp()` resolves.
   await expect(page.locator("#top-bar")).toBeVisible({ timeout: 15_000 });

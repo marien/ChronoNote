@@ -40,6 +40,10 @@ body.peek-mode .cm-content {
   text-shadow: 0 0 3px var(--bg), 0 0 6px var(--bg);
   user-select: none;
 }
+/* §458: a debug build colours that border orange (same height, so Peek's sizing is unchanged). */
+.peek-bar.dev-build {
+  border-top-color: #f06a00;
+}
 /* The date takes the tab strip's colours: past = grey, today = blue, future = green. */
 .peek-bar .peek-date {
   font-family: var(--font-mono);

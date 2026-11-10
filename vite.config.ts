@@ -6,6 +6,8 @@ const host = process.env.TAURI_DEV_HOST;
 export default defineConfig(async () => ({
   plugins: [svelte()],
   clearScreen: false,
+  // §458: Tauri sets TAURI_ENV_DEBUG for the Vite it starts for `tauri dev` and `tauri build --debug`.
+  define: { __TAURI_DEBUG__: JSON.stringify(process.env.TAURI_ENV_DEBUG === "true") },
   server: {
     port: 1420,
     strictPort: true,

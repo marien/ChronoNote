@@ -11914,3 +11914,19 @@ of it are renumbered: it joins or splits them), and Tab/Shift+Tab on a non-item 
 list's columns, the indent and text column of the item above and its parents (`continuationStops`), renumbering
 around it. Typing a number or a digit still never renumbers. Tests: his case and the Tab stops in
 `tests/e2e/numbered-lists.spec.ts`, `continuationStops` in `src/lib/numberedLists.test.ts`.
+
+## 458. A debug build says it is one
+
+**Status: on main, not released yet.**
+
+Marien tests dev builds again with the official app on the same laptop and could not tell them apart. A debug
+build (`npm run tauri dev`, or `npm run tauri build -- --debug`) now shows three markers: a DEV badge at the start of
+the top bar (an orange top border on the Peek bar, whose height stays the same), "ChronoNote (dev)" as the window
+title (taskbar, Alt+Tab), and an orange version of the window/taskbar icon (Rust recolours the dark parts of the
+default icon at start; no new icon files). The Rust side is `#[cfg(debug_assertions)]`, so a release build has no
+code for it. The page side reads `TAURI_ENV_DEBUG`, which Tauri sets for the Vite it starts, through a Vite
+`define` (`__TAURI_DEBUG__`, main config only). It is ignored under the mock because Playwright may reuse the Vite of
+`tauri dev`. `?devbuild` turns it on under the mock for the test (`tests/e2e/dev-build-markers.spec.ts`).
+A separate identity for dev builds (own settings, side by side with the release) was offered and not wanted:
+the dev build still shares `com.chrononote.app`, so with the official app open, starting it brings the official
+window forward.

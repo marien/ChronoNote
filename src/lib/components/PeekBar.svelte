@@ -27,6 +27,7 @@
   } from "../controller";
   import Icon from "../icons/Icon.svelte";
   import { t } from "../i18n";
+  import { devBuild } from "../stores";
   import { formatShortcut } from "../shortcuts";
   import { todayISO } from "../date";
   import { adhocSubjectRange, findSectionRange } from "../peekSection";
@@ -253,6 +254,7 @@
     class="peek-bar {dateClass}"
     class:thin
     class:overlay
+    class:dev-build={$devBuild}
     data-tauri-drag-region
     role="toolbar"
     aria-label="Peek"

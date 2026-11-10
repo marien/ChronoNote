@@ -17,6 +17,7 @@ import {
   appVersion,
   autoCheckUpdates,
   backendKind,
+  devBuild,
   earlyUpdates,
   calendarSyncEnabled,
   chromeExpanded,
@@ -136,7 +137,7 @@ function wireWindowTitleSync() {
   notesDir.subscribe((dir) => {
     if (!dir) return;
     getCurrentWindow()
-      .setTitle(`ChronoNote - ${folderNameFromPath(dir)}`)
+      .setTitle(`ChronoNote${get(devBuild) ? " (dev)" : ""} - ${folderNameFromPath(dir)}`)
       .catch(() => {});
   });
 }

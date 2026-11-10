@@ -245,6 +245,9 @@ export const appVersion = writable<string>("");
  * status-bar badge; anything other than `"demo"` shows the Data
  * (export/import) section. */
 export const backendKind = writable<"desktop" | "demo" | "web">("desktop");
+/** §458: a debug build of the desktop app (`tauri dev` or `tauri build --debug`): the top bar shows a DEV badge, the
+ * Peek bar an orange stripe, and the window title "ChronoNote (dev)". Set once in `main.ts`; never in a release build. */
+export const devBuild = writable(false);
 
 /** Form-factor detection: whether the current viewport or device is
  * touch/mobile-oriented (< 600px or pointer: coarse). Drives the Mobile
