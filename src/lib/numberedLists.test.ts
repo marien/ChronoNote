@@ -238,3 +238,28 @@ describe("Rule 7: Enter on empty sub-item", () => {
     expect(emptySubItemEnter(lines, 1)).toBeNull();
   });
 });
+
+describe("review fixes", () => {
+  const apply = (lines: string[], touched: number[]) => {
+    const out = [...lines];
+    for (const e of renumberLists(lines, touched)) out[e.line] = e.text;
+    return out;
+  };
+
+  it("a top-level dotted list keeps its prefix when renumbered", () => {
+    expect(apply(["1.1. first", "1.3. third"], [0])).toEqual(["1.1. first", "1.2. third"]);
+  });
+
+  it("a dotted list under a bullet keeps its prefix", () => {
+    expect(apply(["- x", "  2.1. a", "  2.5. b"], [1])).toEqual(["- x", "  2.1. a", "  2.2. b"]);
+  });
+
+  it("the second Backspace works on a tab-indented continuation line", () => {
+    expect(backspaceContinuation(["\t1. first", "\t   cont"], 1, 4)).toBe("\tcont");
+  });
+
+  it("only the lists around the touched lines are renumbered", () => {
+    const lines = ["1. a", "3. b", "", "5. c", "9. d"];
+    expect(apply(lines, [0])).toEqual(["1. a", "2. b", "", "5. c", "9. d"]);
+  });
+});

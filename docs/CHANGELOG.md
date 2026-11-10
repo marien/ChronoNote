@@ -11899,3 +11899,9 @@ brief alone by a second Gemini run (`src/lib/numberedLists.independent.test.ts`,
 caret inside the marker's spaces (test fixed), one expected the second Backspace to go back to the item's indent
 rather than column 0 (better: the code was changed). Also `src/lib/numberedLists.test.ts`, the smarter-nesting
 describe in `tests/e2e/numbered-lists.spec.ts` (including the caret staying in place) and updated clipboard tests.
+Cross-model review (Gemini, of the reworked code): fixed Backspace on the first item's marker not renumbering the
+rest (the line without its marker ends the block), top-level or under-a-bullet dotted lists (`1.1.`) losing their
+prefix, a Shift+Down selection ending at a line start taking that line along, the second Backspace on tab-indented
+lines, and list edits scanning the whole note (now only the run of lines around the edit). A selection indented
+together also starts again at 1. Not taken: adopting a `)` group's delimiter when a `.` item joins it (the two stay
+separate lists, as designed).

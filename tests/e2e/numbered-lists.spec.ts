@@ -402,6 +402,24 @@ test.describe("numbered lists: smarter nesting", () => {
     await seedApp(page, { seed: "empty" });
   });
 
+  test("Backspace on the first item's marker renumbers the rest from 1", async ({ page }) => {
+    await setEditorText(page, "1. first\n2. second\n3. third");
+    await page.keyboard.press("ControlOrMeta+Home");
+    for (let i = 0; i < 3; i++) await page.keyboard.press("ArrowRight");
+    await page.keyboard.press("Backspace");
+    expect(await activeTabContent(page)).toBe("first\n1. second\n2. third");
+  });
+
+  test("Tab on a selection that ends at the start of a line leaves that line alone", async ({ page }) => {
+    await setEditorText(page, "1. a\n2. b\n3. c\n4. d");
+    await page.keyboard.press("ControlOrMeta+Home");
+    await page.keyboard.press("ArrowDown");
+    await page.keyboard.press("Shift+ArrowDown");
+    await page.keyboard.press("Shift+ArrowDown");
+    await page.keyboard.press("Tab");
+    expect(await activeTabContent(page)).toBe("1. a\n   1. b\n   2. c\n2. d");
+  });
+
   test("Tab and Shift+Tab with the caret inside the text keep the caret on the same character", async ({ page }) => {
     await setEditorText(page, "1. a\n2. bcd\n3. e");
     await caretAtEndOfLine(page, 1);

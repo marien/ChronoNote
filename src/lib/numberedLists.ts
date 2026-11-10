@@ -101,8 +101,18 @@ export function getAllListBlocks(lines: string[]): ListBlock[] {
   return blocks;
 }
 
+/** The list blocks in the run of non-blank lines around `idx` only, so a list edit never scans the whole note. */
+function blocksAround(lines: string[], idx: number): ListBlock[] {
+  if (idx < 0 || idx >= lines.length || lines[idx].trim() === "") return [];
+  let start = idx;
+  let end = idx;
+  while (start > 0 && lines[start - 1].trim() !== "") start--;
+  while (end < lines.length - 1 && lines[end + 1].trim() !== "") end++;
+  return findBlocksInRange(lines, start, end);
+}
+
 export function getBlockForLine(lines: string[], idx: number): ListBlock | null {
-  const blocks = getAllListBlocks(lines);
+  const blocks = blocksAround(lines, idx);
   for (const b of blocks) {
     if (idx >= b.start && idx <= b.end) return b;
   }
@@ -211,14 +221,13 @@ export function getGroupsInBlock(lines: string[], block: ListBlock): NumberedGro
 }
 
 function getTouchedBlocks(lines: string[], touched: number[]): ListBlock[] {
-  const allBlocks = getAllListBlocks(lines);
   const result: ListBlock[] = [];
-  for (const b of allBlocks) {
-    if (touched.some((t) => t >= b.start && t <= b.end)) {
-      result.push(b);
+  for (const t of new Set(touched)) {
+    for (const b of blocksAround(lines, t)) {
+      if (t >= b.start && t <= b.end && !result.some((r) => r.start === b.start)) result.push(b);
     }
   }
-  return result;
+  return result.sort((a, b) => a.start - b.start);
 }
 
 /** Each group in the blocks containing `touched`: its first item's line, indent length, delimiter, parent line
@@ -292,6 +301,8 @@ export function renumberLists(lines: string[], touched: number[], starts?: Map<n
       if (isDotted && g.parent !== null) {
         prefix = newNumbers.get(g.parent) ?? parseNumberedItem(lines[g.parent])?.numbers ?? [];
       }
+      // A dotted group with no numbered parent (`1.1.` at the top, or under a bullet) keeps its own prefix.
+      if (isDotted && prefix.length === 0) prefix = g.items[0].item.numbers.slice(0, -1);
 
       for (let j = 0; j < g.items.length; j++) {
         const lineIdx = g.items[j].line;
@@ -354,7 +365,8 @@ export function backspaceContinuation(lines: string[], idx: number, col: number)
   const line = lines[idx];
   if (parseListItem(line) !== null) return null;
 
-  const leadingSpaces = line.match(/^ */)?.[0].length ?? 0;
+  const leading = line.match(/^[ \t]*/)![0];
+  const leadingSpaces = leading.length;
   if (leadingSpaces === 0 || col !== leadingSpaces) return null;
 
   const block = getBlockForLine(lines, idx);
@@ -373,7 +385,7 @@ export function backspaceContinuation(lines: string[], idx: number, col: number)
   if (!P) return null;
 
   const textCol = indentLen(P.indent) + P.marker.length + 1;
-  if (leadingSpaces !== textCol) return null;
+  if (indentLen(leading) !== textCol) return null;
 
   // Back to the indent of the item it continued, so an indented list keeps its place.
   return P.indent + line.slice(leadingSpaces);

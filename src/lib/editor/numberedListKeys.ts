@@ -80,7 +80,10 @@ function selectedLines(state: EditorState): { lines: string[]; first: number; la
   if (state.selection.ranges.length > 1) return null;
   const sel = state.selection.main;
   const first = state.doc.lineAt(sel.from).number - 1;
-  const last = state.doc.lineAt(sel.to).number - 1;
+  // A selection ending at the very start of a line (Shift+Down) does not take that line along, as in CodeMirror's own
+  // indent commands.
+  const endAt = !sel.empty && state.doc.lineAt(sel.to).from === sel.to ? sel.to - 1 : sel.to;
+  const last = Math.max(first, state.doc.lineAt(endAt).number - 1);
   const lines = state.doc.toString().split("\n");
   for (let i = first; i <= last; i++) if (parseListItem(lines[i]) !== null) return { lines, first, last, firstList: i };
   return null;
@@ -132,7 +135,11 @@ function tabCommand(view: EditorView): boolean {
   const delta = indentLen(target) - indentLen(lines[firstList].match(/^\s*/)![0]);
   if (delta <= 0) return false;
   const touched = Array.from({ length: last - first + 1 }, (_, k) => first + k);
-  return applyListEdit(view, withRenumbering(lines, shiftLines(lines, first, last, delta), touched), "input.indent");
+  const working = shiftLines(lines, first, last, delta);
+  // Rule 2 for a selection: a group that now starts at a moved line starts again at 1.
+  const extra = new Map<number, number>();
+  for (const g of listGroups(working, touched)) if (g.first >= first && g.first <= last) extra.set(g.first, 1);
+  return applyListEdit(view, withRenumbering(lines, working, touched, extra), "input.indent");
 }
 
 /** Rules 1 and 3: Shift+Tab moves a list line out to its parent's indent; the outer list continues. */
@@ -174,7 +181,10 @@ function backspaceCommand(view: EditorView): boolean {
     const working = [...lines];
     working[idx] = withoutMarker;
     const anchor = line.from + withoutMarker.match(/^\s*/)![0].length;
-    return applyListEdit(view, withRenumbering(lines, working, [idx]), "delete.backward", anchor);
+    // The next line too: without its marker the first item's text ends the list block, and the rest of the
+    // list is a block of its own.
+    const touched = idx + 1 < lines.length ? [idx, idx + 1] : [idx];
+    return applyListEdit(view, withRenumbering(lines, working, touched), "delete.backward", anchor);
   }
   const outdented = backspaceContinuation(lines, idx, col);
   if (outdented !== null) {
