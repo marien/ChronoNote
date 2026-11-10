@@ -323,6 +323,29 @@ export function renumberLists(lines: string[], touched: number[], starts?: Map<n
   return edits.sort((a, b) => a.line - b.line);
 }
 
+/** Tab stops for a line that is not a list item but sits under one (a continuation, a line whose number was removed,
+ * or text right below the list): the indent and text column of the nearest item above and of each of its parents,
+ * ascending. Empty when the line is not under a list (a blank line or unindented text comes first). */
+export function continuationStops(lines: string[], idx: number): number[] {
+  if (idx <= 0 || idx >= lines.length || parseListItem(lines[idx]) !== null) return [];
+  const stops = new Set<number>();
+  let limit = Infinity;
+  for (let i = idx - 1; i >= 0 && limit > 0; i--) {
+    if (lines[i].trim() === "") break;
+    const ind = indentLen(lines[i].match(/^\s*/)![0]);
+    const item = parseListItem(lines[i]);
+    if (!item) {
+      if (ind === 0) break;
+      continue;
+    }
+    if (ind >= limit) continue;
+    stops.add(ind);
+    stops.add(ind + item.marker.length + 1);
+    limit = ind;
+  }
+  return [...stops].sort((a, b) => a - b);
+}
+
 /** Rule 4, first Backspace: the line's new text, or null when it does not apply. `col` = caret column. */
 export function backspaceMarker(lines: string[], idx: number, col: number): string | null {
   if (idx < 0 || idx >= lines.length) return null;

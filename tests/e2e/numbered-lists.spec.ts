@@ -402,6 +402,41 @@ test.describe("numbered lists: smarter nesting", () => {
     await seedApp(page, { seed: "empty" });
   });
 
+  test("removing an empty item's number splits the list; typing on that line joins it again", async ({ page }) => {
+    // Marien on a dev build: 1) 2) 3), the second emptied and its number removed: the third became 1); typing on
+    // the second line must make it 2) again.
+    await setEditorText(page, "1) a\n2) \n3) c");
+    await caretAtEndOfLine(page, 1);
+    await page.keyboard.press("Backspace");
+    expect(await activeTabContent(page)).toBe("1) a\n   \n1) c");
+    await page.keyboard.type("more about a");
+    expect(await activeTabContent(page)).toBe("1) a\n   more about a\n2) c");
+    // Deleting that text again splits the list once more.
+    for (let i = 0; i < "more about a".length; i++) await page.keyboard.press("Backspace");
+    expect(await activeTabContent(page)).toBe("1) a\n   \n1) c");
+  });
+
+  test("Tab on text under a list item lines it up with the item's text, then with deeper items", async ({ page }) => {
+    await setEditorText(page, "1. a\n   - x\nb\n2. c");
+    await caretAtEndOfLine(page, 2);
+    await page.keyboard.press("Tab");
+    expect(await activeTabContent(page)).toBe("1. a\n   - x\n   b\n2. c");
+    await page.keyboard.press("Tab");
+    expect(await activeTabContent(page)).toBe("1. a\n   - x\n     b\n2. c");
+    await page.keyboard.press("Shift+Tab");
+    await page.keyboard.press("Shift+Tab");
+    // Back at the margin, the text ends the list again: the item after it starts a list of its own.
+    expect(await activeTabContent(page)).toBe("1. a\n   - x\nb\n1. c");
+  });
+
+  test("Tab on unindented text below a list joins it: the items after it continue the numbering", async ({ page }) => {
+    await setEditorText(page, "1. a\nnote\n1. b");
+    await caretAtEndOfLine(page, 1);
+    await page.keyboard.press("Tab");
+    await page.keyboard.type("!");
+    expect(await activeTabContent(page)).toBe("1. a\n   note!\n2. b");
+  });
+
   test("Backspace on the first item's marker renumbers the rest from 1", async ({ page }) => {
     await setEditorText(page, "1. first\n2. second\n3. third");
     await page.keyboard.press("ControlOrMeta+Home");

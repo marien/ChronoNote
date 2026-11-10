@@ -4,6 +4,7 @@ import {
   backspaceContinuation,
   backspaceMarker,
   findParentInBlock,
+  continuationStops,
   getBlockForLine,
   getGroupsInBlock,
   indentLen,
@@ -104,8 +105,33 @@ function shiftLines(lines: string[], first: number, last: number, delta: number)
   return out;
 }
 
+/** Tab / Shift+Tab on a line under a list item that is not one itself: to the next (or previous) of the list's
+ * columns, so it lines up with the items' text or indent; the lists around it are renumbered, since an indented line
+ * can join two of them. */
+function continuationIndent(view: EditorView, forward: boolean): boolean {
+  const state = view.state;
+  if (state.selection.ranges.length > 1) return false;
+  const sel = state.selection.main;
+  const line = state.doc.lineAt(sel.from);
+  if (state.doc.lineAt(sel.to).number !== line.number) return false;
+  const idx = line.number - 1;
+  const lines = state.doc.toString().split("\n");
+  const stops = continuationStops(lines, idx);
+  const lead = line.text.match(/^\s*/)![0];
+  const cur = indentLen(lead);
+  const target = forward ? stops.find((s) => s > cur) : [...stops].reverse().find((s) => s < cur);
+  if (target === undefined) return false;
+  const working = [...lines];
+  working[idx] = " ".repeat(target) + line.text.slice(lead.length);
+  const touched = [idx - 1, idx, idx + 1].filter((i) => i >= 0 && i < lines.length);
+  // A caret in the indent (or on an empty line) goes to where the text starts.
+  const anchor = sel.empty && sel.head - line.from <= lead.length ? line.from + target : undefined;
+  return applyListEdit(view, withRenumbering(lines, working, touched), "input.indent", anchor);
+}
+
 /** Rules 1 and 2: Tab moves a list line under the text of the numbered item before it at the same indent. */
 function tabCommand(view: EditorView): boolean {
+  if (continuationIndent(view, true)) return true;
   const s = selectedLines(view.state);
   if (!s) return false;
   const { lines, first, last, firstList } = s;
@@ -144,6 +170,7 @@ function tabCommand(view: EditorView): boolean {
 
 /** Rules 1 and 3: Shift+Tab moves a list line out to its parent's indent; the outer list continues. */
 function shiftTabCommand(view: EditorView): boolean {
+  if (continuationIndent(view, false)) return true;
   const s = selectedLines(view.state);
   if (!s) return false;
   const { lines, first, last, firstList } = s;
@@ -203,39 +230,50 @@ export const numberedListKeymap = Prec.high(
   ]),
 );
 
-/** Rule 5: deleting, cutting, moving or pasting lines in a list renumbers it. Only user edits that add or remove a
- * line break: typing a number by hand, or deleting a digit, never renumbers anything. */
+/** Rule 5: deleting, cutting, moving or pasting lines in a list renumbers it (user edits that add or remove a line
+ * break), and so does typing or deleting that turns a line from blank (only spaces) into text or back, since that
+ * joins two lists or splits one: a line whose number was removed rejoins the list once you type on it. Typing a
+ * number by hand, or deleting a digit, never renumbers anything. */
 export const numberedListRenumberFilter = EditorState.transactionFilter.of((tr) => {
   if (!tr.docChanged || tr.annotation(renumbered)) return tr;
   const ev = tr.annotation(Transaction.userEvent);
-  if (!ev || !(ev.startsWith("delete") || ev === "move.line" || ev === "input.paste" || ev === "input.drop")) return tr;
+  if (!ev) return tr;
+  const typing = ev === "input" || ev.startsWith("input.type") || ev.startsWith("input.complete");
+  if (!(typing || ev.startsWith("delete") || ev === "move.line" || ev === "input.paste" || ev === "input.drop")) return tr;
 
   const oldDoc = tr.startState.doc;
   const newDoc = tr.newDoc;
   let lineBreaks = false;
+  let blankChanged = false;
   const oldTouched: number[] = [];
   const newTouched: number[] = [];
   tr.changes.iterChanges((fromA, toA, fromB, toB, inserted) => {
     const a0 = oldDoc.lineAt(fromA).number - 1;
     const a1 = oldDoc.lineAt(toA).number - 1;
     if (inserted.lines > 1 || a1 !== a0) lineBreaks = true;
+    else if ((oldDoc.line(a0 + 1).text.trim() === "") !== (newDoc.lineAt(fromB).text.trim() === "")) blankChanged = true;
     for (let i = a0; i <= a1; i++) oldTouched.push(i);
     for (let i = newDoc.lineAt(fromB).number - 1; i <= newDoc.lineAt(toB).number - 1; i++) newTouched.push(i);
   });
-  if (!lineBreaks) return tr;
+  if (lineBreaks ? typing : !blankChanged) return tr;
+  // A line that joined or split lists: the lists on both sides of it.
+  const around = (list: number[], max: number) =>
+    [...new Set(list.flatMap((i) => (lineBreaks ? [i] : [i - 1, i, i + 1])))].filter((i) => i >= 0 && i < max);
+  const touchedOld = around(oldTouched, oldDoc.lines);
+  const touchedNew = around(newTouched, newDoc.lines);
 
   const oldLines = oldDoc.toString().split("\n");
   const newLines = newDoc.toString().split("\n");
-  const newGroups = listGroups(newLines, newTouched);
+  const newGroups = listGroups(newLines, touchedNew);
   if (newGroups.length === 0) return tr;
-  const starts = matchGroupStarts(listGroups(oldLines, oldTouched), newGroups, (oldFirst) => {
+  const starts = matchGroupStarts(listGroups(oldLines, touchedOld), newGroups, (oldFirst) => {
     // Backwards: a change that starts at the list's first line (a line moved, the first item deleted) must not
     // carry the old first line past it, or the old start is lost.
     const mapped = tr.changes.mapPos(oldDoc.line(oldFirst + 1).from, -1);
     return newDoc.lineAt(mapped).number - 1;
   });
   const after = [...newLines];
-  for (const e of renumberLists(newLines, newTouched, starts)) after[e.line] = e.text;
+  for (const e of renumberLists(newLines, touchedNew, starts)) after[e.line] = e.text;
   const changes = lineChanges(newDoc, newLines, after);
   if (changes.length === 0) return tr;
   return [tr, { changes, sequential: true, annotations: renumbered.of(true) }];

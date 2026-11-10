@@ -11905,3 +11905,12 @@ prefix, a Shift+Down selection ending at a line start taking that line along, th
 lines, and list edits scanning the whole note (now only the run of lines around the edit). A selection indented
 together also starts again at 1. Not taken: adopting a `)` group's delimiter when a `.` item joins it (the two stay
 separate lists, as designed).
+Marien, on a dev build (2026-11-10): lines under a list item that are not items themselves did not follow the list.
+In `1) 2) 3)` with the second item empty, removing its number left a line of spaces, which ends a list like a blank
+line, so the third item became `1)`; typing on that line did not bring it back to `2)` (typing never renumbered), and
+Tab on such a line, or on text right below a list, added two spaces instead of lining up with the list. Now the
+renumber filter also runs when typing or deleting turns a line from blank into text or back (the lists on both sides
+of it are renumbered: it joins or splits them), and Tab/Shift+Tab on a non-item line under an item step through the
+list's columns, the indent and text column of the item above and its parents (`continuationStops`), renumbering
+around it. Typing a number or a digit still never renumbers. Tests: his case and the Tab stops in
+`tests/e2e/numbered-lists.spec.ts`, `continuationStops` in `src/lib/numberedLists.test.ts`.

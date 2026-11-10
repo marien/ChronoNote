@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   backspaceContinuation,
   backspaceMarker,
+  continuationStops,
   emptySubItemEnter,
   listGroups,
   renumberLists,
@@ -261,5 +262,24 @@ describe("review fixes", () => {
   it("only the lists around the touched lines are renumbered", () => {
     const lines = ["1. a", "3. b", "", "5. c", "9. d"];
     expect(apply(lines, [0])).toEqual(["1. a", "2. b", "", "5. c", "9. d"]);
+  });
+});
+
+describe("continuationStops: Tab stops for a line under a list item", () => {
+  it("text right below an item lines up with its text, then with deeper items", () => {
+    expect(continuationStops(["1. a", "b"], 1)).toEqual([0, 3]);
+    expect(continuationStops(["1. a", "   - x", "b"], 2)).toEqual([0, 3, 5]);
+    expect(continuationStops(["10. a", "    cont", "more"], 2)).toEqual([0, 4]);
+  });
+
+  it("a line whose number was removed (only spaces) has the same stops", () => {
+    expect(continuationStops(["1) a", "   "], 1)).toEqual([0, 3]);
+  });
+
+  it("no stops for a list item, after a blank line, or under unindented text", () => {
+    expect(continuationStops(["1. a", "2. b"], 1)).toEqual([]);
+    expect(continuationStops(["1. a", "", "b"], 2)).toEqual([]);
+    expect(continuationStops(["1. a", "text", "b"], 2)).toEqual([]);
+    expect(continuationStops(["b"], 0)).toEqual([]);
   });
 });
