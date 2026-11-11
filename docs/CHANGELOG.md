@@ -11864,7 +11864,7 @@ size of the other buttons'. Test: `tests/e2e/peek-bar-layout.spec.ts` (a layout 
 
 ## 457. Smarter numbered lists: nesting under the text, renumbering, sub-bullets
 
-**Status: on main, not released yet.**
+**Status: released in v0.37.2.**
 
 Marien (2026-11-10): numbered lists should behave like a word processor's. Sub-items belong three spaces in (under the
 text of `1. `), not two; indenting an item should start its numbering again; removing a number should renumber the
@@ -11917,7 +11917,7 @@ around it. Typing a number or a digit still never renumbers. Tests: his case and
 
 ## 458. A debug build says it is one
 
-**Status: on main, not released yet.**
+**Status: released in v0.37.2.**
 
 Marien tests dev builds again with the official app on the same laptop and could not tell them apart. A debug
 build (`npm run tauri dev`, or `npm run tauri build -- --debug`) now shows three markers: a DEV badge at the start of
