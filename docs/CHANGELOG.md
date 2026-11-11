@@ -11930,3 +11930,12 @@ code for it. The page side reads `TAURI_ENV_DEBUG`, which Tauri sets for the Vit
 A separate identity for dev builds (own settings, side by side with the release) was offered and not wanted:
 the dev build still shares `com.chrononote.app`, so with the official app open, starting it brings the official
 window forward.
+
+## 459. Dev-dependency batch (Dependabot #211, #212)
+
+**Status: on main, not released yet.**
+
+Taken together on one branch (dependency batch method): `@playwright/test` 1.65.0, `jsdom` 31.0.0, `svelte-check`
+4.7.8, `vite` 8.3.8 (newer than the 8.3.6 the PR named) and `vitest` 5.1.0, and `taiki-e/install-action` 2.90.2 in the
+Test and Security Audit workflows. All dev-only or CI: nothing in the shipped app changes, so no beta round. Local
+gates: verify, the full Playwright suite (1371 passed) and the Windows layout suite (321 passed).
