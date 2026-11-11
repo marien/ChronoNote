@@ -362,7 +362,7 @@ fn show_window_without_flash(app: &tauri::App) {
 }
 
 /// §458: a debug build (`npm run tauri dev`, `npm run tauri build -- --debug`) says so in its window title and turns
-/// the dark parts of its window and taskbar icon orange, so it can't be mistaken for the installed release. The page
+/// the white parts of its window and taskbar icon orange, so it can't be mistaken for the installed release. The page
 /// adds the title's folder part and a DEV badge (`devBuild` in stores.ts). Not compiled into a release build.
 #[cfg(debug_assertions)]
 fn mark_dev_build(app: &tauri::App, window: &tauri::WebviewWindow) {
@@ -373,11 +373,10 @@ fn mark_dev_build(app: &tauri::App, window: &tauri::WebviewWindow) {
     let mut rgba = icon.rgba().to_vec();
     for px in rgba.as_chunks_mut::<4>().0 {
         let luma = (px[0] as u32 * 299 + px[1] as u32 * 587 + px[2] as u32 * 114) / 1000;
-        if luma < 128 {
-            px[0] = 0xF0;
-            px[1] = 0x6A;
-            px[2] = 0x00;
-        }
+        // White becomes orange and black stays black; the smoothed edges between them scale along.
+        px[0] = (0xF0 * luma / 255) as u8;
+        px[1] = (0x6A * luma / 255) as u8;
+        px[2] = 0;
     }
     let _ = window.set_icon(tauri::image::Image::new_owned(rgba, icon.width(), icon.height()));
 }

@@ -11922,7 +11922,7 @@ around it. Typing a number or a digit still never renumbers. Tests: his case and
 Marien tests dev builds again with the official app on the same laptop and could not tell them apart. A debug
 build (`npm run tauri dev`, or `npm run tauri build -- --debug`) now shows three markers: a DEV badge at the start of
 the top bar (an orange top border on the Peek bar, whose height stays the same), "ChronoNote (dev)" as the window
-title (taskbar, Alt+Tab), and an orange version of the window/taskbar icon (Rust recolours the dark parts of the
+title (taskbar, Alt+Tab), and an orange version of the window/taskbar icon (Rust recolours the white parts of the
 default icon at start; no new icon files). The Rust side is `#[cfg(debug_assertions)]`, so a release build has no
 code for it. The page side reads `TAURI_ENV_DEBUG`, which Tauri sets for the Vite it starts, through a Vite
 `define` (`__TAURI_DEBUG__`, main config only). It is ignored under the mock because Playwright may reuse the Vite of

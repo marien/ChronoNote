@@ -1320,17 +1320,20 @@
    same row the rest of the bar's icons sit on. */
 
 .dev-badge {
+  /* On the row the app icon, tabs and buttons share: a 16px pill centred in the bar's bottom-anchored 32px (see
+     `.app-icon`); centring it in the full 40px put it 4px too high. */
   flex-shrink: 0;
-  align-self: center;
-  margin: 0 6px 0 2px;
-  padding: 1px 5px;
-  border-radius: 3px;
-  background: #f06a00;
-  color: #fff;
+  box-sizing: border-box;
+  height: 16px;
+  margin: 0 8px 8px 0;
+  padding: 0 4px;
+  border: 1px solid currentColor;
+  border-radius: 4px;
+  color: #e06400;
   font-size: 10px;
-  font-weight: 700;
+  font-weight: 600;
   line-height: 14px;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.04em;
   cursor: default;
 }
 .app-icon {

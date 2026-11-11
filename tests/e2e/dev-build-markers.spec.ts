@@ -10,6 +10,15 @@ test.describe("dev build markers (§458)", () => {
     await expect(page).toHaveTitle(/^ChronoNote \(dev\) - /);
   });
 
+  test("the badge sits on the row of the app icon", async ({ page }) => {
+    await seedApp(page, { seed: "busy-week", query: "devbuild" });
+    const centre = async (selector: string) => {
+      const box = (await page.locator(selector).first().boundingBox())!;
+      return box.y + box.height / 2;
+    };
+    expect(Math.abs((await centre(".dev-badge")) - (await centre(".app-icon")))).toBeLessThanOrEqual(0.5);
+  });
+
   test("an ordinary build shows neither", async ({ page }) => {
     await seedApp(page, { seed: "busy-week" });
     await expect(page.getByTestId("dev-badge")).toHaveCount(0);
