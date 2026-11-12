@@ -173,6 +173,27 @@ test.describe("word wrap (§80)", () => {
     }
   });
 
+  test("#215: a URL that wraps gets one arrow per broken line, none where the URL ends", async ({ page }) => {
+    await page.setViewportSize({ width: 700, height: 600 });
+    await seedApp(page, { seed: { notes: {}, wordWrap: true } });
+    await setEditorText(
+      page,
+      "Some words before the link https://example.com/path/to/a/page?query=one&other=two&third=three&fourth=four&fifth=five&sixth=six after it",
+    );
+    await expect(page.locator(".cm-link")).toHaveCount(1);
+    await expect.poll(() => page.evaluate(() => document.querySelectorAll(".cm-wrap-indicator").length)).toBeGreaterThan(0);
+    const { indicators, visualLines } = await page.evaluate(() => {
+      const line = document.querySelector<HTMLElement>(".cm-line")!;
+      const lineHeight = parseFloat(getComputedStyle(line).lineHeight);
+      return {
+        indicators: document.querySelectorAll(".cm-wrap-indicator").length,
+        visualLines: Math.round(line.getBoundingClientRect().height / lineHeight),
+      };
+    });
+    expect(visualLines).toBeGreaterThan(1);
+    expect(indicators).toBe(visualLines - 1);
+  });
+
   test("no wrap indicators or indent classes when word wrap is disabled", async ({ page }) => {
     await seedApp(page, { seed: { notes: {}, wordWrap: false } });
     await setEditorText(page, "  # " + LONG_LINE);

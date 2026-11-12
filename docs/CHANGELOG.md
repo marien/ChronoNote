@@ -11939,3 +11939,14 @@ Taken together on one branch (dependency batch method): `@playwright/test` 1.65.
 4.7.8, `vite` 8.3.8 (newer than the 8.3.6 the PR named) and `vitest` 5.1.0, and `taiki-e/install-action` 2.90.2 in the
 Test and Security Audit workflows. All dev-only or CI: nothing in the shipped app changes, so no beta round. Local
 gates: verify, the full Playwright suite (1371 passed) and the Windows layout suite (321 passed).
+
+## 460. A wrapped link no longer gets a second wrap arrow where it ends (#215)
+
+**Status: on main, not released yet.**
+
+Marien (#215, 0.37.2): when a line wrapped inside a URL, the wrap arrow showed at the break and another one at the
+end of the URL. The wrap-arrow layer groups the line's client rects into visual lines, but compared each rect only
+with the last group. The rects are not in visual order: the link's mark span (`.cm-link`) lists its own box on each
+visual line before the text inside it, so the groups went line 1, line 2, line 1, line 2 and every group but the last
+got an arrow. A rect now joins whichever visual line it lines up with, and the lines are sorted by position. This
+applies to any inline element that wraps, not only links. Test: `tests/e2e/word-wrap.spec.ts` (#215).

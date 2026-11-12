@@ -218,21 +218,25 @@ export const wrapArrowLayer = layer({
       const visualLines: { top: number; bottom: number; right: number }[] = [];
       const threshold = (view.defaultLineHeight || 20) * 0.5;
 
+      // #215: the rects are not in visual order. An inline element that wraps (a link's mark span) lists its own
+      // boxes for each visual line before the text inside it, so a rect can belong to any earlier visual line, not
+      // only the last one; matching only the last one made extra "lines" and an arrow where the link ended.
       for (const rect of clientRects) {
         if (rect.width === 0 && rect.height === 0) continue;
-        const last = visualLines[visualLines.length - 1];
-        if (!last || Math.abs(rect.top - last.top) > threshold) {
+        const same = visualLines.find((vl) => Math.abs(rect.top - vl.top) <= threshold);
+        if (!same) {
           visualLines.push({
             top: rect.top,
             bottom: rect.bottom,
             right: rect.right,
           });
         } else {
-          last.right = Math.max(last.right, rect.right);
-          last.bottom = Math.max(last.bottom, rect.bottom);
-          last.top = Math.min(last.top, rect.top);
+          same.right = Math.max(same.right, rect.right);
+          same.bottom = Math.max(same.bottom, rect.bottom);
+          same.top = Math.min(same.top, rect.top);
         }
       }
+      visualLines.sort((a, b) => a.top - b.top);
 
       // If only 1 visual line was detected, the line did not actually wrap
       if (visualLines.length <= 1) continue;
