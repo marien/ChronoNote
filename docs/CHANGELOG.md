@@ -11952,3 +11952,14 @@ got an arrow. A rect now joins whichever visual line it lines up with, and the l
 applies to any inline element that wraps, not only links: Marien also saw it on a long line where `=> v`, `=> x`,
 `=> >`, `=> .` or `=> ,` mutes the rest of the line (the muted part is a mark span too). Tests: `tests/e2e/word-wrap.spec.ts`
 (#215), the link and five muted cases fail on the old code; arrow lines without a span (`=> @name`, `=> #`) never did.
+
+## 461. `npm run dev:app`: the debug app without the dev server
+
+**Status: on main, not released yet.**
+
+Marien asked how to run only the app in dev mode: `npm run tauri dev` always starts Vite, because a dev run loads
+its pages from `localhost:1420`. `npm run dev:app` (`scripts/dev-app.mjs`) builds the debug app with its pages built in
+(`tauri build --debug --no-bundle`) and starts it detached, so it shows the §458 dev markers and needs no server.
+It always builds: cargo only redoes what changed, and `npm run test:native` writes its own build, with the
+`com.chrononote.nativetest` identifier, to the same `chrononote.exe`. `-- --no-start` only builds. Developer tooling
+only; the shipped app is unchanged.
