@@ -194,6 +194,37 @@ test.describe("word wrap (§80)", () => {
     expect(indicators).toBe(visualLines - 1);
   });
 
+  for (const [name, text] of [
+    ["a delegated arrow line", "=> @dana " + LONG_LINE],
+    ["a consequence arrow line", "=> # " + LONG_LINE],
+    ["an arrow in the middle", "Words before " + "=> @dana " + LONG_LINE],
+    ["a topic and a name mid-line", "Talk about (budget) with @dana " + LONG_LINE + " (planning) @erik end"],
+    ["a dated arrow line", "# " + LONG_LINE + " => 2026-11-20 and some words after the date to wrap again"],
+    // Marien's case: `=> v`, `=> x`, `=> >`, `=> .`, `=> ,` mute the rest of the line (a mark span, like a link's).
+    ["a muted consequence (=> v)", "Some words first => v " + LONG_LINE],
+    ["a muted consequence (=> x)", "Some words first => x " + LONG_LINE],
+    ["a muted consequence (=> >)", "Some words first => > " + LONG_LINE],
+    ["a muted consequence (=> .)", "Some words first => . " + LONG_LINE],
+    ["a muted consequence (=> ,)", "Some words first => , " + LONG_LINE],
+  ] as const) {
+    test(`#215: ${name} gets one arrow per broken line`, async ({ page }) => {
+      await page.setViewportSize({ width: 700, height: 600 });
+      await seedApp(page, { seed: { notes: {}, wordWrap: true } });
+      await setEditorText(page, text);
+      await expect.poll(() => page.evaluate(() => document.querySelectorAll(".cm-wrap-indicator").length)).toBeGreaterThan(0);
+      const { indicators, visualLines } = await page.evaluate(() => {
+        const line = document.querySelector<HTMLElement>(".cm-line")!;
+        const lineHeight = parseFloat(getComputedStyle(line).lineHeight);
+        return {
+          indicators: document.querySelectorAll(".cm-wrap-indicator").length,
+          visualLines: Math.round(line.getBoundingClientRect().height / lineHeight),
+        };
+      });
+      expect(visualLines).toBeGreaterThan(1);
+      expect(indicators).toBe(visualLines - 1);
+    });
+  }
+
   test("no wrap indicators or indent classes when word wrap is disabled", async ({ page }) => {
     await seedApp(page, { seed: { notes: {}, wordWrap: false } });
     await setEditorText(page, "  # " + LONG_LINE);

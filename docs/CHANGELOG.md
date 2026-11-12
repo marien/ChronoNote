@@ -11949,4 +11949,6 @@ end of the URL. The wrap-arrow layer groups the line's client rects into visual 
 with the last group. The rects are not in visual order: the link's mark span (`.cm-link`) lists its own box on each
 visual line before the text inside it, so the groups went line 1, line 2, line 1, line 2 and every group but the last
 got an arrow. A rect now joins whichever visual line it lines up with, and the lines are sorted by position. This
-applies to any inline element that wraps, not only links. Test: `tests/e2e/word-wrap.spec.ts` (#215).
+applies to any inline element that wraps, not only links: Marien also saw it on a long line where `=> v`, `=> x`,
+`=> >`, `=> .` or `=> ,` mutes the rest of the line (the muted part is a mark span too). Tests: `tests/e2e/word-wrap.spec.ts`
+(#215), the link and five muted cases fail on the old code; arrow lines without a span (`=> @name`, `=> #`) never did.
