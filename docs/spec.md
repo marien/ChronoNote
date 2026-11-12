@@ -53,6 +53,9 @@ follow-up is the one exception: it's styled as a badge but stays real,
 live, editable text, not part of the replaced/atomic span — fix a typo in
 it directly, or backspace immediately after the arrow glyph to remove the
 whole `=> ` token in one step, as if un-delegating the line.
+A token the caret sits inside (between its symbol and its space) stays plain text and is not atomic until the
+caret leaves it (§463). That only happens while typing in front of a space that was already there, on a line
+that looked empty: `=> v` typed there is not drawn as done, so the word it starts (`very`) stays whole.
 
 | Raw Plain Text | Visual Presentation | Semantic Meaning | Lifecycle & Closing Impact |
 | :--- | :--- | :--- | :--- |

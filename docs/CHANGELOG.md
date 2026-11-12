@@ -11978,3 +11978,19 @@ a new group under a numbered parent makes it dotted (the parent's numbers, then 
 command only (`dottedFirstMarker` in `src/lib/editor/numberedListKeys.ts`, also for a selection), not in renumbering,
 which runs on every edit and would restyle existing plain sub-lists. Shift+Tab already turned `2.1.` back into a plain
 next number. Tests: the "keeps that style (§462)" describe in `tests/e2e/numbered-lists.spec.ts`.
+
+## 463. A symbol typed before an existing space stays text while the caret is behind it
+
+**Status: on main, not released yet.**
+
+Marien (2026-11-13): on a line he thought was empty he typed `=> `, then a word starting with `v`, and the `v` turned
+into the done glyph before he could finish the word; `x`, `>` and the other symbols did the same. Reproduced: the
+line held spaces after the caret, so the `v` completed `=> v ` at once. Worse than it looked: the glyph is an atomic
+range that includes the space, so the caret was pushed past it and the file got `=> v ery`. A glyph depended only on
+the text, never on the caret. Now a replaced token with an empty caret strictly inside it (between symbol and space)
+stays text and is not atomic until the caret leaves it (`heldCarets` and the `held` argument of
+`buildGlyphDecorations` in `src/lib/editor/glyphs.ts`; a caret move re-tokenizes only its own line and redraws only
+when that state changes). The same holds for a symbol at the start of a line of spaces (`x-ray`). Atomic ranges keep
+the caret out of tokens otherwise, so only typing gets there. As with `(topic)` parentheses (§422), the caret decides
+how the text is drawn; the file is unchanged. Tests: `tests/e2e/glyph-caret-hold.spec.ts` (8 of its 9 fail without
+the fix; the ninth checks a really empty line still draws the glyph as the space is typed).

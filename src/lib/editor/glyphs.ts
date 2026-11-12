@@ -1,6 +1,6 @@
 import { get } from "svelte/store";
 import { t } from "../i18n";
-import { RangeSetBuilder } from "@codemirror/state";
+import { RangeSetBuilder, type EditorState } from "@codemirror/state";
 import { Decoration, DecorationSet, EditorView, ViewPlugin, ViewUpdate, WidgetType } from "@codemirror/view";
 import { lineSectionRole, symbolAfterClick, toggleOpenClosedAtIndex } from "../tokens";
 import { ARROW_GLYPH, GLYPHS, glyphSpecForSymbol } from "../grammar/glyphs";
@@ -228,8 +228,14 @@ const ATOMIC = Decoration.replace({});
  * (src/lib/grammar/tokenize.ts), in a single pass so no line is tokenized twice. The document always
  * matches the file: replaced tokens are only drawn differently; `@name`, `(topic)` and the `! ` line are
  * marked in place and stay editable. Atomic = exactly the replaced tokens (the arrow and a consequence
- * symbol each their own range, so the cursor can land between them). */
-export function buildGlyphDecorations(view: EditorView): { decorations: DecorationSet; atomic: DecorationSet } {
+ * symbol each their own range, so the cursor can land between them).
+ * §463: a token a caret in `held` sits strictly inside stays text and is not atomic. That only happens right after
+ * typing: `v` typed in front of a space that was already there (a line that looked empty) completes `v ` with the
+ * caret between them, and drawing it would hide the letter and push the caret past the space, mid-word. */
+export function buildGlyphDecorations(
+  view: EditorView,
+  held: readonly number[] = [],
+): { decorations: DecorationSet; atomic: DecorationSet } {
   const deco = new RangeSetBuilder<Decoration>();
   const atomic = new RangeSetBuilder<Decoration>();
   const doc = view.state.doc;
@@ -246,6 +252,7 @@ export function buildGlyphDecorations(view: EditorView): { decorations: Decorati
         afterEmphasis = t.kind === "emphasis";
         const a = line.from + t.from;
         const b = line.from + t.to;
+        if (t.replaced && held.some((h) => h > a && h < b)) continue;
         if (t.replaced) atomic.add(a, b, ATOMIC);
         switch (t.kind) {
           case "emphasis":
@@ -285,16 +292,35 @@ export function buildGlyphDecorations(view: EditorView): { decorations: Decorati
   return { decorations: deco.finish(), atomic: atomic.finish() };
 }
 
+/** §463: the carets (empty selections) that sit strictly inside a replaced token, which then stays text. Only the
+ * caret's own line is tokenized, so a caret move costs one line. */
+function heldCarets(state: EditorState): number[] {
+  const out: number[] = [];
+  for (const r of state.selection.ranges) {
+    if (!r.empty) continue;
+    const line = state.doc.lineAt(r.head);
+    const col = r.head - line.from;
+    if (col === 0 || col === line.length) continue;
+    if (tokenizeLine(line.text).some((t) => t.replaced && t.from < col && t.to > col)) out.push(r.head);
+  }
+  return out;
+}
+
 export const liveGlyphs = ViewPlugin.fromClass(
   class {
     decorations: DecorationSet;
     atomicDecorations: DecorationSet;
+    held: number[];
     constructor(view: EditorView) {
-      ({ decorations: this.decorations, atomic: this.atomicDecorations } = buildGlyphDecorations(view));
+      this.held = heldCarets(view.state);
+      ({ decorations: this.decorations, atomic: this.atomicDecorations } = buildGlyphDecorations(view, this.held));
     }
     update(update: ViewUpdate) {
-      if (update.docChanged || update.viewportChanged) {
-        ({ decorations: this.decorations, atomic: this.atomicDecorations } = buildGlyphDecorations(update.view));
+      const held = update.docChanged || update.selectionSet ? heldCarets(update.state) : this.held;
+      const heldChanged = held.length !== this.held.length || held.some((h, i) => h !== this.held[i]);
+      this.held = held;
+      if (update.docChanged || update.viewportChanged || heldChanged) {
+        ({ decorations: this.decorations, atomic: this.atomicDecorations } = buildGlyphDecorations(update.view, held));
       }
     }
   },
