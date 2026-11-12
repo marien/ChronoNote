@@ -11963,3 +11963,18 @@ its pages from `localhost:1420`. `npm run dev:app` (`scripts/dev-app.mjs`) build
 It always builds: cargo only redoes what changed, and `npm run test:native` writes its own build, with the
 `com.chrononote.nativetest` identifier, to the same `chrononote.exe`. `-- --no-start` only builds. Developer tooling
 only; the shipped app is unchanged.
+
+## 462. A numbered list with `1.1.` sub-items keeps that style when you indent
+
+**Status: on main, not released yet.**
+
+Marien (2026-11-12): support lists whose first level is `1.` and second level `1.1.`. Dotted markers already
+parsed, continued on Enter (`1.1.` gives `1.2.`), followed their parent's number when renumbered and kept their style
+when an item joined a dotted group (§457), but Tab on the first sub-item under a parent always made a plain `1.`.
+Offered three ways to choose the style (follow the list, a setting, both); he chose "follow the list": Tab that starts
+a new group under a numbered parent makes it dotted (the parent's numbers, then `1`: `2.` under `3.` gives `3.1.`,
+`1.2.` under `1.1.` gives `1.1.1.`) when another item in the same list block already has a dotted marker. So typing
+`1.1.` once sets the style for that list; other lists, and lists under a bullet, keep plain numbers. Done in the Tab
+command only (`dottedFirstMarker` in `src/lib/editor/numberedListKeys.ts`, also for a selection), not in renumbering,
+which runs on every edit and would restyle existing plain sub-lists. Shift+Tab already turned `2.1.` back into a plain
+next number. Tests: the "keeps that style (§462)" describe in `tests/e2e/numbered-lists.spec.ts`.

@@ -522,3 +522,50 @@ test.describe("numbered lists: smarter nesting", () => {
     expect(await activeTabContent(page)).toBe("1. a\n   - b");
   });
 });
+
+test.describe("numbered lists: a list with 1.1. sub-items keeps that style (§462)", () => {
+  test.beforeEach(async ({ page }) => {
+    await seedApp(page, { seed: "empty" });
+  });
+
+  test("Enter then Tab under the next item starts a dotted sub-list with that item's number", async ({ page }) => {
+    await setEditorText(page, "1. Plan\n   1.1. Scope\n2. Build");
+    await caretAtEndOfLine(page, 2);
+    await page.keyboard.press("Enter");
+    await page.keyboard.press("Tab");
+    await page.keyboard.type("Frontend");
+    expect(await activeTabContent(page)).toBe("1. Plan\n   1.1. Scope\n2. Build\n   2.1. Frontend");
+  });
+
+  test("Tab on an item in a dotted list makes it the parent's first dotted sub-item, also a level deeper", async ({ page }) => {
+    await setEditorText(page, "1. a\n   1.1. x\n   1.2. y\n2. b\n3. c");
+    await caretAtEndOfLine(page, 4);
+    await page.keyboard.press("Tab");
+    expect(await activeTabContent(page)).toBe("1. a\n   1.1. x\n   1.2. y\n2. b\n   2.1. c");
+    await caretAtEndOfLine(page, 2);
+    await page.keyboard.press("Tab");
+    expect(await activeTabContent(page)).toBe("1. a\n   1.1. x\n        1.1.1. y\n2. b\n   2.1. c");
+  });
+
+  test("Shift+Tab on a dotted sub-item makes it the outer list's next plain number", async ({ page }) => {
+    await setEditorText(page, "1. a\n   1.1. x\n2. b\n   2.1. c\n   2.2. d\n3. e");
+    await caretAtEndOfLine(page, 3);
+    await page.keyboard.press("Shift+Tab");
+    expect(await activeTabContent(page)).toBe("1. a\n   1.1. x\n2. b\n3. c\n   3.1. d\n4. e");
+  });
+
+  test("Tab on a selection starts a dotted sub-list", async ({ page }) => {
+    await setEditorText(page, "1. a\n   1.1. x\n2. b\n3. c\n4. d");
+    await caretAtEndOfLine(page, 3);
+    await page.keyboard.press("Shift+ArrowDown");
+    await page.keyboard.press("Tab");
+    expect(await activeTabContent(page)).toBe("1. a\n   1.1. x\n2. b\n   2.1. c\n   2.2. d");
+  });
+
+  test("a dotted list elsewhere in the note does not change a plain list", async ({ page }) => {
+    await setEditorText(page, "1. a\n   1.1. x\n\n1. b\n2. c");
+    await caretAtEndOfLine(page, 4);
+    await page.keyboard.press("Tab");
+    expect(await activeTabContent(page)).toBe("1. a\n   1.1. x\n\n1. b\n   1. c");
+  });
+});

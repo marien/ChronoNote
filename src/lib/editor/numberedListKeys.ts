@@ -95,6 +95,21 @@ function groupsOf(lines: string[], idx: number): { first: number; indent: number
   return block ? getGroupsInBlock(lines, block).map((g) => ({ ...g, size: g.items.length })) : [];
 }
 
+/** §462: the marker for line `idx` as the first item of a new group under a numbered parent, when its list already
+ * numbers sub-items in the dotted style (`1.1.`): the parent's numbers and 1 (`2.` under `3.` gives `3.1.`). Null
+ * for a plain list, or a parent that is a bullet or missing. */
+function dottedFirstMarker(lines: string[], idx: number, delimiter: "." | ")"): string | null {
+  const block = getBlockForLine(lines, idx);
+  if (!block) return null;
+  const parent = findParentInBlock(lines, block, idx);
+  if (!parent || parent.item.kind !== "numbered") return null;
+  for (let i = block.start; i <= block.end; i++) {
+    if (i === idx) continue;
+    if ((parseNumberedItem(lines[i])?.numbers.length ?? 0) > 1) return [...parent.item.numbers, 1].join(".") + delimiter;
+  }
+  return null;
+}
+
 /** Shift every selected line's indent by `delta` columns (never below 0). */
 function shiftLines(lines: string[], first: number, last: number, delta: number): string[] {
   const out = [...lines];
@@ -151,7 +166,9 @@ function tabCommand(view: EditorView): boolean {
         (g) => g.indent === indentLen(target) && g.delimiter === num.delimiter && g.parent === parent,
       );
       if (group && group.first === first) {
-        if (group.size === 1) working[first] = reindent(lines[first], target, `1${num.delimiter}`);
+        // §462: in a list that numbers its sub-items `1.1.`, a new sub-list does too.
+        if (group.size === 1)
+          working[first] = reindent(lines[first], target, dottedFirstMarker(working, first, num.delimiter) ?? `1${num.delimiter}`);
         extra.set(first, 1);
       }
     }
@@ -164,7 +181,14 @@ function tabCommand(view: EditorView): boolean {
   const working = shiftLines(lines, first, last, delta);
   // Rule 2 for a selection: a group that now starts at a moved line starts again at 1.
   const extra = new Map<number, number>();
-  for (const g of listGroups(working, touched)) if (g.first >= first && g.first <= last) extra.set(g.first, 1);
+  for (const g of listGroups(working, touched)) {
+    if (g.first < first || g.first > last) continue;
+    extra.set(g.first, 1);
+    // §462: a plain group that starts here takes the list's dotted style (renumbering then follows its first item).
+    const num = parseNumberedItem(working[g.first]);
+    const dotted = num && num.numbers.length === 1 ? dottedFirstMarker(working, g.first, g.delimiter) : null;
+    if (dotted) working[g.first] = reindent(working[g.first], working[g.first].match(/^\s*/)![0], dotted);
+  }
   return applyListEdit(view, withRenumbering(lines, working, touched, extra), "input.indent");
 }
 
