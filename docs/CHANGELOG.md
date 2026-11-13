@@ -11933,7 +11933,7 @@ window forward.
 
 ## 459. Dev-dependency batch (Dependabot #211, #212)
 
-**Status: on main, not released yet.**
+**Status: released in v0.37.3.**
 
 Taken together on one branch (dependency batch method): `@playwright/test` 1.65.0, `jsdom` 31.0.0, `svelte-check`
 4.7.8, `vite` 8.3.8 (newer than the 8.3.6 the PR named) and `vitest` 5.1.0, and `taiki-e/install-action` 2.90.2 in the
@@ -11942,7 +11942,7 @@ gates: verify, the full Playwright suite (1371 passed) and the Windows layout su
 
 ## 460. A wrapped link no longer gets a second wrap arrow where it ends (#215)
 
-**Status: on main, not released yet.**
+**Status: released in v0.37.3.**
 
 Marien (#215, 0.37.2): when a line wrapped inside a URL, the wrap arrow showed at the break and another one at the
 end of the URL. The wrap-arrow layer groups the line's client rects into visual lines, but compared each rect only
@@ -11955,7 +11955,7 @@ applies to any inline element that wraps, not only links: Marien also saw it on 
 
 ## 461. `npm run dev:app`: the debug app without the dev server
 
-**Status: on main, not released yet.**
+**Status: released in v0.37.3.**
 
 Marien asked how to run only the app in dev mode: `npm run tauri dev` always starts Vite, because a dev run loads
 its pages from `localhost:1420`. `npm run dev:app` (`scripts/dev-app.mjs`) builds the debug app with its pages built in
@@ -11966,7 +11966,7 @@ only; the shipped app is unchanged.
 
 ## 462. A numbered list with `1.1.` sub-items keeps that style when you indent
 
-**Status: on main, not released yet.**
+**Status: released in v0.37.3.**
 
 Marien (2026-11-12): support lists whose first level is `1.` and second level `1.1.`. Dotted markers already
 parsed, continued on Enter (`1.1.` gives `1.2.`), followed their parent's number when renumbered and kept their style
@@ -11981,7 +11981,7 @@ next number. Tests: the "keeps that style (§462)" describe in `tests/e2e/number
 
 ## 463. A symbol typed before an existing space stays text while the caret is behind it
 
-**Status: on main, not released yet.**
+**Status: released in v0.37.3.**
 
 Marien (2026-11-13): on a line he thought was empty he typed `=> `, then a word starting with `v`, and the `v` turned
 into the done glyph before he could finish the word; `x`, `>` and the other symbols did the same. Reproduced: the
