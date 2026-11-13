@@ -476,7 +476,7 @@ The above copyright notice and this permission notice shall be included in all c
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 ================================================================================
-svelte-check 4.7.7
+svelte-check 4.7.8
 MIT
 
 Copyright (c) 2020-Present [these people](https://github.com/sveltejs/language-tools/graphs/contributors) 
@@ -4877,7 +4877,7 @@ SOFTWARE.
 ================================================================================
 MIT License
 
-chrononote 0.37.2
+chrononote 0.37.3
 brotli-decompressor 6.0.1
 chrono-tz 0.10.4
 chrono 0.4.45
