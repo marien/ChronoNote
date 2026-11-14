@@ -2,6 +2,7 @@ import { test, expect } from "@playwright/test";
 import {
   seedApp,
   editor,
+  activeTabContent,
   currentModal,
   todayFilename,
 } from "./helpers";
@@ -165,11 +166,12 @@ test.describe("Section History docked pane (Proposal C1)", () => {
     await expect(page.locator(".history-pane .modal-title")).toContainText("Other");
     // A caret move while the pane is open records the caret's section ("Other").
     await editor(page).locator(".cm-line", { hasText: "o2" }).click();
-    await page.waitForTimeout(400);
+    await expect(active).toContainText(today.replace(".txt", ""));
     await page.keyboard.press("Escape");
     await editor(page).locator(".cm-line", { hasText: "first" }).click();
     await page.keyboard.press("ControlOrMeta+Shift+H");
     await expect(active).toContainText(today.replace(".txt", ""));
+    // Deliberate: asserts nothing happens for 800 ms (stale caret section does not trigger a 250 ms rebuild switching the active tab)
     await page.waitForTimeout(800);
     await expect(active).toContainText(today.replace(".txt", ""));
     await page.keyboard.press("Escape");
@@ -178,6 +180,7 @@ test.describe("Section History docked pane (Proposal C1)", () => {
     await editor(page).locator(".cm-line", { hasText: "old c" }).click();
     await page.keyboard.press("ControlOrMeta+Shift+H");
     await expect(active).toContainText("2026-09-04");
+    // Deliberate: asserts nothing happens for 800 ms (stale caret section does not switch active date tab on other note)
     await page.waitForTimeout(800);
     await expect(active).toContainText("2026-09-04");
   });
@@ -266,7 +269,7 @@ test.describe("Section History docked pane (Proposal C1)", () => {
     await editor(page).click();
     await page.keyboard.press("ControlOrMeta+A");
     await page.keyboard.insertText(ungroupedLines.join("\n"));
-    await page.waitForTimeout(300);
+    await expect.poll(() => activeTabContent(page)).toBe(ungroupedLines.join("\n"));
 
     await page.keyboard.press("ControlOrMeta+Shift+H");
     await expect(page.locator(".history-pane")).toBeVisible();

@@ -28,8 +28,10 @@ test("every frame after a tab switch shows the editor at its own size and paddin
     }, true);
   });
   for (const label of ["2026-09-04", "2026-09-07", "2026-09-04"]) {
+    const prev = await page.evaluate(() => (window as any).__frames.length as number);
     await page.locator("#tab-bar .tab", { hasText: label }).click();
-    await page.waitForTimeout(400);
+    await expect(page.locator("#tab-bar .tab.active")).toContainText(label);
+    await expect.poll(() => page.evaluate(() => (window as any).__frames.length as number)).toBeGreaterThanOrEqual(prev + 15);
   }
   const frames: string[] = await page.evaluate(() => (window as any).__frames);
   expect(frames.length).toBeGreaterThan(20);

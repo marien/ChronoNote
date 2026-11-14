@@ -97,6 +97,7 @@ test.describe("per-tab undo history (§86 / #9)", () => {
     await tab(page, "2026-09-03.txt").click();
     await editor(page).click();
     await page.keyboard.press("ControlOrMeta+z");
+    // Deliberate: asserts nothing happens for 200 ms (Ctrl+Z in source tab after deferred paste is a clean no-op)
     await page.waitForTimeout(200);
     expect(await activeTabContent(page)).toContain("> ship the thing");
     expect(await activeTabContent(page)).not.toContain("# ship the thing");

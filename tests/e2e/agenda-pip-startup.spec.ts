@@ -190,7 +190,9 @@ test.describe("startup tab: Last note on a later start the same day (§430)", ()
     // restart: before §430 the restart added today's tab.
     await seedApp(page, { seed: { ...seed([PAST]), session: { openTabs: [PAST], activeTab: PAST, lastOpenedDate: "2026-09-01" } } });
     expect(await tabLabels(page)).toEqual(["2026-09-01"]);
-    await page.waitForTimeout(400); // the tab session is saved 150ms after a change
+    await expect
+      .poll(() => page.evaluate(() => window.__CHRONO_MOCK__!.invokeLog.some((e) => e.cmd === "write_tab_session")))
+      .toBe(true);
     await page.reload();
     await expect(activeTabLabel(page)).toContainText("2026-09-01");
     expect(await tabLabels(page)).toEqual(["2026-09-01"]);

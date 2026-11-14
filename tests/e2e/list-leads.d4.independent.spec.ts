@@ -17,48 +17,6 @@ test.describe("D4 independent E2E: list keys behind a state symbol", () => {
     await seedApp(page, { seed: "empty" });
   });
 
-  test("Tab indents '# 2. book hotel' under '# 1. plan trip', renumbers '# 3. pack', and Ctrl+Z undoes", async ({
-    page,
-  }) => {
-    await setEditorText(page, "# 1. plan trip\n# 2. book hotel\n# 3. pack");
-    await caretAtEndOfLine(page, 1);
-    await page.keyboard.press("Tab");
-    expect(await activeTabContent(page)).toBe("# 1. plan trip\n     # 1. book hotel\n# 2. pack");
-
-    await page.keyboard.press("ControlOrMeta+z");
-    expect(await activeTabContent(page)).toBe("# 1. plan trip\n# 2. book hotel\n# 3. pack");
-  });
-
-  test("Enter at the end of 'v 2. x' continues with '# 3. ' and Ctrl+Z undoes in one step", async ({ page }) => {
-    await setEditorText(page, "# 1. a\nv 2. x");
-    await caretAtEndOfLine(page, 1);
-    await page.keyboard.press("Enter");
-    expect(await activeTabContent(page)).toBe("# 1. a\nv 2. x\n# 3. ");
-
-    await page.keyboard.press("ControlOrMeta+z");
-    expect(await activeTabContent(page)).toBe("# 1. a\nv 2. x");
-  });
-
-  test("Backspace at text start of '# 2. b' aligns under '# 1. a', second Backspace keeps lead, and Ctrl+Z undoes each", async ({
-    page,
-  }) => {
-    await setEditorText(page, "# 1. a\n# 2. b\n# 3. c");
-    // A glyph is one ArrowRight step, so reach the text start with smart Home (from column 0 it goes there).
-    await caretAtLineStart(page, 1);
-    await page.keyboard.press("Home"); // "# 2. |b"
-    await page.keyboard.press("Backspace");
-    expect(await activeTabContent(page)).toBe("# 1. a\n#    b\n# 2. c");
-
-    await page.keyboard.press("Backspace");
-    expect(await activeTabContent(page)).toBe("# 1. a\n# b\n# 1. c");
-
-    await page.keyboard.press("ControlOrMeta+z");
-    expect(await activeTabContent(page)).toBe("# 1. a\n#    b\n# 2. c");
-
-    await page.keyboard.press("ControlOrMeta+z");
-    expect(await activeTabContent(page)).toBe("# 1. a\n# 2. b\n# 3. c");
-  });
-
   test("Ctrl+1 and right-click line menu on '1. task\\n2. next' keep the item in the list without renumbering", async ({
     page,
   }) => {

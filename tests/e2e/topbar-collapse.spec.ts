@@ -247,7 +247,8 @@ test.describe("top bar: tab-id collisions and resize flicker (#61)", () => {
 
     const newScratchpad = page.getByTitle(/^New Scratchpad/);
     for (let i = 0; i < 9; i++) await newScratchpad.click();
-    await page.waitForTimeout(200);
+    await expect(page.locator("#tab-bar .tab")).toHaveCount(10);
+    await expect(page.getByTitle(/^Actions /)).toBeVisible();
 
     const states: boolean[] = [];
     for (let width = 2200; width >= 700; width -= 20) {
@@ -283,7 +284,8 @@ test.describe("top bar: tab-id collisions and resize flicker (#61)", () => {
 
     const newScratchpad = page.getByTitle(/^New Scratchpad/);
     for (let i = 0; i < 9; i++) await newScratchpad.click();
-    await page.waitForTimeout(200);
+    await expect(page.locator("#tab-bar .tab")).toHaveCount(10);
+    await expect(page.getByTitle(/^Actions /)).toBeHidden();
 
     const states: boolean[] = [];
     for (let width = 700; width <= 2200; width += 20) {

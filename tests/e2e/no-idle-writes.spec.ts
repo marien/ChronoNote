@@ -21,6 +21,7 @@ test.describe("saving only what changed", () => {
       await tab(page, B).click();
       await tab(page, A).click();
     }
+    // Deliberate: asserts nothing happens for 600 ms (no idle write after tab switches)
     await page.waitForTimeout(600);
     expect(await noteWrites(page, A)).toEqual([]);
     expect(await noteWrites(page, B)).toEqual([]);
@@ -30,7 +31,7 @@ test.describe("saving only what changed", () => {
     await seedApp(page, { seed });
     await typeInEditor(page, "typed");
     await tab(page, B).click(); // flushes A
-    await page.waitForTimeout(600);
+    await expect.poll(async () => (await noteWrites(page, A)).at(-1) ?? "").toContain("typed");
     const writes = await noteWrites(page, A);
     expect(writes.length).toBeGreaterThanOrEqual(1);
     expect(writes[writes.length - 1]).toContain("typed");
@@ -39,6 +40,7 @@ test.describe("saving only what changed", () => {
     await tab(page, A).click();
     await tab(page, B).click();
     await tab(page, A).click();
+    // Deliberate: asserts nothing happens for 600 ms (switching tabs after flush triggers no extra writes)
     await page.waitForTimeout(600);
     expect((await noteWrites(page, A)).length).toBe(before);
   });
@@ -49,6 +51,7 @@ test.describe("saving only what changed", () => {
     await page.evaluate((f) => window.__CHRONO_MOCK__!.setNote(f, "edited on the phone\n"), A);
 
     await tab(page, B).click(); // used to flush A's stale text over the phone's edit
+    // Deliberate: asserts nothing happens for 600 ms (tab switch does not overwrite newer external note)
     await page.waitForTimeout(600);
     expect(await noteWrites(page, A)).toEqual([]);
     expect(await mockNote(page, A)).toBe("edited on the phone\n");

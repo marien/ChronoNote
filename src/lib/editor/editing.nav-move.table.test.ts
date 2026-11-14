@@ -219,6 +219,19 @@ describe("editing table: Home, Shift-Home & Alt-ArrowUp/Down", () => {
     { label: "Alt-ArrowDown on single line is no-op", input: "only|", key: "Alt-ArrowDown", expected: "only|" },
     { label: "Alt-ArrowUp swaps numbered items and renumbers", input: "1. a\n2. b|\n3. c", key: "Alt-ArrowUp", expected: "1. b|\n2. a\n3. c" },
     { label: "Alt-ArrowDown swaps numbered items and renumbers", input: "1. a|\n2. b\n3. c", key: "Alt-ArrowDown", expected: "1. b\n2. a|\n3. c" },
+    { label: "Alt-ArrowDown from col 0 of numbered item renumbers consecutively", input: "|1. a\n2. b\n3. c", key: "Alt-ArrowDown", expected: "1. b\n|2. a\n3. c" },
+    {
+      label: "Alt-ArrowDown moves text into numbered list and splits numbering",
+      input: "|text\n1. a\n2. b\n3. c",
+      key: "Alt-ArrowDown",
+      expected: "1. a\n|text\n1. b\n2. c",
+    },
+    {
+      label: "Alt-ArrowUp moves separating text out and joins lists keeping start at 4",
+      input: "4. a\n|text\n1. b\n2. c",
+      key: "Alt-ArrowUp",
+      expected: "|text\n4. a\n5. b\n6. c",
+    },
     {
       label: "Alt-ArrowUp moves prose into numbered list and splits numbering",
       input: "1. a\n2. b\nprose|",

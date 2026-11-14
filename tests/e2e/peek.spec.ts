@@ -72,7 +72,7 @@ test.describe("peek mode", () => {
 
   test("the shortcut again brings the full note back", async ({ page }) => {
     await enterOnWeeklySync(page);
-    await page.waitForTimeout(300);
+    await expect(page.locator("body.peek-mode")).toBeVisible();
     await page.keyboard.press("ControlOrMeta+Shift+KeyP");
     await expect(page.locator("body.peek-mode")).toHaveCount(0);
     expect(await editor(page).innerText()).toContain("Standup");
@@ -163,6 +163,7 @@ test.describe("peek mode: tests with their own seed", () => {
     await page.keyboard.press("ControlOrMeta+Shift+KeyP");
     await expect(page.locator("body.peek-mode")).toBeVisible();
     await page.evaluate(() => { (document.querySelector(".cm-scroller") as HTMLElement).scrollTop = 1000; });
+    // Deliberate: asserts nothing happens for 500 ms (overview ruler stays hidden even after scrolling in Peek mode)
     await page.waitForTimeout(500);
     await expect(page.locator(".cm-overview-ruler")).toHaveCSS("display", "none");
     // And nothing makes the editor's container scroll on its own.
@@ -249,12 +250,14 @@ test.describe("peek mode: tests with their own seed", () => {
     await page.keyboard.type("y");
     await expect(bar).toHaveCount(0);
     await move(50, 50);
+    // Deliberate: asserts nothing happens for 300 ms (tiny or identical mouse move after typing does not bring header bar back)
     await page.waitForTimeout(300);
     await expect(bar).toHaveCount(0);
     await move(60, 52);
     await expect(bar).toBeVisible();
     // A shortcut is not typing.
     await page.keyboard.press("ControlOrMeta+KeyJ");
+    // Deliberate: asserts nothing happens for 200 ms (shortcut does not hide header bar)
     await page.waitForTimeout(200);
     await expect(bar).toBeVisible();
   });
@@ -279,11 +282,13 @@ test.describe("peek mode: tests with their own seed", () => {
     // Resizing the window moves it under a still pointer, which makes the browser report a leave and an enter.
     await fire("mouseleave");
     await fire("mouseenter");
+    // Deliberate: asserts nothing happens for 400 ms (immediate leave+enter does not collapse bar)
     await page.waitForTimeout(400);
     await expect(bar).toBeVisible();
     // A leave followed by movement over the window is not a real leave either.
     await fire("mouseleave");
     await fire("mousemove");
+    // Deliberate: asserts nothing happens for 400 ms (leave followed by mousemove does not collapse bar)
     await page.waitForTimeout(400);
     await expect(bar).toBeVisible();
     // A real leave collapses it after a short delay.
@@ -419,6 +424,7 @@ test.describe("peek mode: tests with their own seed", () => {
     test("Ctrl+Alt+P (AltGr+P, an o with a diaeresis on US-International) is not a Peek shortcut", async ({ page }) => {
       await editor(page).click();
       await page.keyboard.press("ControlOrMeta+Alt+KeyP");
+      // Deliberate: asserts nothing happens for 300 ms (Ctrl+Alt+P does not enter Peek mode)
       await page.waitForTimeout(300);
       await expect(page.locator("body.peek-mode")).toHaveCount(0);
     });
@@ -460,7 +466,8 @@ test.describe("peek mode: tests with their own seed", () => {
     await openPeekSettings(page);
     await expect(peekRange(page, "Background opacity, out of focus")).toHaveValue("35");
     await expect(page.getByLabel("Fit the window height to the section", { exact: true })).not.toBeChecked();
-    await page.waitForTimeout(700); // longer than the save debounce
+    // Deliberate: asserts nothing happens for 700 ms (stored settings are not overwritten after the save debounce)
+    await page.waitForTimeout(700);
     expect(await page.evaluate(() => window.__CHRONO_MOCK__!.peek)).toMatchObject({ opacity: 35, lines: 4 });
   });
 });
@@ -504,6 +511,7 @@ test.describe("peek feedback round 3 (#126)", () => {
     await expect.poll(() => vars(page)).toEqual({ bg: "95", bar: "100" });
     // the pointer leaving does not fade it by itself: the countdown just runs on
     await page.locator("html").dispatchEvent("mouseleave");
+    // Deliberate: asserts nothing happens for 300 ms (mouseleave alone does not immediately fade Peek)
     await page.waitForTimeout(300);
     expect(await vars(page)).toEqual({ bg: "95", bar: "100" });
     await expect.poll(() => vars(page), { timeout: 8000 }).toEqual({ bg: "50", bar: "55" });
@@ -516,6 +524,7 @@ test.describe("peek feedback round 3 (#126)", () => {
       seed: { ...today(), peek: { header: "always", fadeSeconds: 0 } },
     });
     await enterOnWeeklySync(page);
+    // Deliberate: asserts nothing happens for 1500 ms (fade time 0 never fades out)
     await page.waitForTimeout(1500);
     expect(await vars(page)).toEqual({ bg: "95", bar: "100" });
   });
@@ -550,6 +559,7 @@ test.describe("peek feedback round 3 (#126)", () => {
     await expect.poll(() => mockNote(page, "2026-09-07.txt")).toContain("- todayQ\n\n\nOther");
     // Delete at the end of the last line cannot pull an empty line (or the next section) in either
     await page.keyboard.press("Delete");
+    // Deliberate: asserts nothing happens for 200 ms (Delete at section end cannot pull empty line or next section)
     await page.waitForTimeout(200);
     expect(await mockNote(page, "2026-09-07.txt")).toContain("- todayQ\n\n\nOther");
     // Enter at the end opens a new line to type on (a list item continues the list)
@@ -562,7 +572,7 @@ test.describe("peek feedback round 3 (#126)", () => {
     await enterOnWeeklySync(page);
     await page.keyboard.press("Alt+ArrowLeft");
     await expect(page.locator("#peek-bar")).toContainText("2026-09-01");
-    await page.waitForTimeout(300);
+    await expect(editor(page)).toContainText("last month");
     await page.keyboard.press("Escape");
     await expect(page.locator("body.peek-mode")).toHaveCount(0);
     await expect(activeTabLabel(page)).toContainText("2026-09-07");
@@ -574,7 +584,9 @@ test.describe("peek feedback round 3 (#126)", () => {
     await enterOnWeeklySync(page);
     await page.keyboard.press("ArrowDown");
     await page.keyboard.press("End");
-    await page.waitForTimeout(300);
+    await expect
+      .poll(() => page.evaluate(() => window.getSelection()?.focusNode?.parentElement?.closest(".cm-line")?.textContent ?? ""))
+      .toContain("today");
     await page.keyboard.press("Escape");
     await expect(page.locator("body.peek-mode")).toHaveCount(0);
     await page.keyboard.type("Z");

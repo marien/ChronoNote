@@ -12297,3 +12297,19 @@ Step 6: the Windows layout CI job (`E2E_WINDOWS_LAYOUT=1`) also runs five pill a
 forward-link pill, find bar alignment, due flag, action tree lines) at 100/125/150 % with Windows fonts; they are not
 added to the reduced-motion, scale and contrast projects, where they add nothing. Native tests stay on main (the
 review's recommendation).
+
+## 474. Editing review, test plan step 5: no fixed sleeps, key tests folded into the tables
+
+**Status: on main, not released yet.**
+
+Step 5 of the editor review's test plan (`docs/design/editor-review.html`), done by Gemini 4 Hydrogen and reviewed
+here. Tests only; no app code changed.
+
+- Fixed sleeps (`waitForTimeout`) in the browser specs: 42 replaced by waiting for the state the test needs (a visible
+  element, an attribute, the note text, finished animations). The 46 that stay are there on purpose (for example a
+  debounce or a timer that must not fire yet) and each carries a `// Deliberate:` comment saying why.
+- Browser tests that only press keys and compare text (113 of them, mostly numbered lists, list leads and batch 3) now
+  live as rows in the Vitest editing tables (`src/lib/editor/editing.*.table.test.ts`), which run in milliseconds. Tests
+  that need a real browser stay: clipboard, the context menu, the phone bar, the 3,000-line speed checks.
+  `numbered-lists-smart.independent.spec.ts` became empty and was removed. The full browser suite dropped from about
+  14 to 13 minutes.

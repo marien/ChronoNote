@@ -13,7 +13,6 @@ import {
   tab,
   modalCard,
   MODAL_LABELS,
-  cursorLine,
 } from "./helpers";
 import { REFERENCE_TODAY } from "../../src/lib/testing/scenarios";
 
@@ -68,6 +67,7 @@ test.describe("Editor batch 1 — independent tests", () => {
 
       expect(await activeTabContent(page)).toBe("EXTERNAL change\n");
       // Nothing of the user's is left to save, so the file keeps the outside version.
+      // Deliberate: asserts nothing happens for 800 ms (no autosave overwrites the external version after Ctrl+Z)
       await page.waitForTimeout(800);
       expect(await mockNote(page, file)).toBe("EXTERNAL change\n");
     });
@@ -97,6 +97,7 @@ test.describe("Editor batch 1 — independent tests", () => {
       await page.keyboard.press("ControlOrMeta+z");
 
       expect(await activeTabContent(page)).toBe("EXTERNAL change\n");
+      // Deliberate: asserts nothing happens for 800 ms (no autosave overwrites the external version after Ctrl+Z)
       await page.waitForTimeout(800);
       expect(await mockNote(page, file)).toBe("EXTERNAL change\n");
     });
@@ -168,6 +169,7 @@ test.describe("Editor batch 1 — independent tests", () => {
 
       // One extra undo must not touch the outside change "B2".
       await page.keyboard.press("ControlOrMeta+z");
+      // Deliberate: asserts nothing happens for 200 ms (extra Ctrl+Z does not undo outside change)
       await page.waitForTimeout(200);
       expect(await activeTabContent(page)).toBe("A\nB2\n");
 
@@ -211,6 +213,7 @@ test.describe("Editor batch 1 — independent tests", () => {
 
       await editor(page).click();
       await page.keyboard.press("ControlOrMeta+z");
+      // Deliberate: asserts nothing happens for 200 ms (Ctrl+Z does not undo phone companion line)
       await page.waitForTimeout(200);
 
       expect(await activeTabContent(page)).toContain("# from phone");
@@ -264,6 +267,7 @@ test.describe("Editor batch 1 — independent tests", () => {
 
       // Further Ctrl+Z must not undo the phone companion line.
       await page.keyboard.press("ControlOrMeta+z");
+      // Deliberate: asserts nothing happens for 200 ms (extra Ctrl+Z does not undo phone companion line)
       await page.waitForTimeout(200);
       expect(await activeTabContent(page)).toContain("# from phone");
     });
@@ -297,6 +301,7 @@ test.describe("Editor batch 1 — independent tests", () => {
 
       await editor(page).click();
       await page.keyboard.press("ControlOrMeta+z");
+      // Deliberate: asserts nothing happens for 200 ms (Ctrl+Z does not undo dropped-file resolution)
       await page.waitForTimeout(200);
       expect(await activeTabContent(page)).toBe("dropped version\n");
     });
@@ -450,99 +455,6 @@ test.describe("Editor batch 1 — independent tests", () => {
     });
   });
 
-  test.describe("Rule 2: Enter with the caret right after a leading symbol is a plain line break", () => {
-    test.beforeEach(async ({ page }) => {
-      await seedApp(page, { seed: "empty" });
-    });
-
-    test("2.1: '# hello' with caret after '#' breaks into '#\\n hello' with caret at start of line 2", async ({
-      page,
-    }) => {
-      await setEditorText(page, " hello");
-      await page.keyboard.press("ControlOrMeta+Home");
-      await page.keyboard.type("#");
-      await page.keyboard.press("Enter");
-
-      expect(await activeTabContent(page)).toBe("#\n hello");
-      expect(await cursorLine(page)).toBe(2);
-      await page.keyboard.type("Z");
-      expect(await activeTabContent(page)).toBe("#\nZ hello");
-    });
-
-    for (const sym of ["x", "o", "-", "v", ">"]) {
-      test(`2.2 / 2.3: '${sym}' typed at column 0 before two spaces breaks into '${sym}\\n  ' with caret at start of line 2`, async ({
-        page,
-      }) => {
-        await setEditorText(page, "  ");
-        await page.keyboard.press("ControlOrMeta+Home");
-        await page.keyboard.type(sym);
-        await page.keyboard.press("Enter");
-
-        expect(await activeTabContent(page)).toBe(`${sym}\n  `);
-        expect(await cursorLine(page)).toBe(2);
-        await page.keyboard.type("Z");
-        expect(await activeTabContent(page)).toBe(`${sym}\nZ  `);
-      });
-    }
-
-    for (const sym of ["#", "x", "o", "-", "v", ">", "=>", "!", "1."]) {
-      for (const spaces of [" ", "   "]) {
-        test(`every listed symbol '${sym}' with ${spaces.length} trailing space(s) breaks without deleting or continuing`, async ({
-          page,
-        }) => {
-          await setEditorText(page, spaces);
-          await page.keyboard.press("ControlOrMeta+Home");
-          await page.keyboard.type(sym);
-          await page.keyboard.press("Enter");
-
-          expect(await activeTabContent(page)).toBe(`${sym}\n${spaces}`);
-          expect(await cursorLine(page)).toBe(2);
-          await page.keyboard.type("Z");
-          expect(await activeTabContent(page)).toBe(`${sym}\nZ${spaces}`);
-        });
-      }
-    }
-
-    for (const { sym, rest } of [
-      { sym: "=>", rest: "hello" },
-      { sym: "-", rest: "item" },
-      { sym: "o", rest: "topic" },
-      { sym: "!", rest: "urgent" },
-      { sym: "1.", rest: "first" },
-      { sym: "v", rest: "done" },
-      { sym: ">", rest: "deferred" },
-      { sym: "x", rest: "wont" },
-    ]) {
-      test(`2.4 / 2.5: '${sym} ${rest}' with caret after '${sym}' breaks into '${sym}\\n ${rest}'`, async ({ page }) => {
-        await setEditorText(page, ` ${rest}`);
-        await page.keyboard.press("ControlOrMeta+Home");
-        await page.keyboard.type(sym);
-        await page.keyboard.press("Enter");
-
-        expect(await activeTabContent(page)).toBe(`${sym}\n ${rest}`);
-        expect(await cursorLine(page)).toBe(2);
-        await page.keyboard.type("Z");
-        expect(await activeTabContent(page)).toBe(`${sym}\nZ ${rest}`);
-      });
-    }
-
-    test("2.6: unchanged Enter at end of '# hello', on empty '# ', and at column 0 of '# hello'", async ({ page }) => {
-      await typeInEditor(page, "# hello");
-      await page.keyboard.press("Enter");
-      expect(await activeTabContent(page)).toBe("# hello\n# ");
-
-      // Enter on empty '# ' exits the list / removes the symbol.
-      await page.keyboard.press("Enter");
-      expect(await activeTabContent(page)).toBe("# hello\n");
-
-      // Enter at column 0 pushes the marker line down.
-      await setEditorText(page, "# hello");
-      await page.keyboard.press("ControlOrMeta+Home");
-      await page.keyboard.press("Enter");
-      expect(await activeTabContent(page)).toBe("\n# hello");
-    });
-  });
-
   test.describe("Rule 3: Closing a tab never overwrites a newer file", () => {
     const OTHER = "2026-09-03.txt";
 
@@ -578,6 +490,7 @@ test.describe("Editor batch 1 — independent tests", () => {
       expect(copyBody).toContain("unsaved edit");
 
       // Ensure no delayed autosave fires later to clobber the external file.
+      // Deliberate: asserts nothing happens for 600 ms (no delayed autosave clobbers external file after tab close)
       await page.waitForTimeout(600);
       expect(await mockNote(page, file)).toBe("Today\n=====\nEXTERNAL newer\n");
     });
@@ -752,9 +665,7 @@ test.describe("Editor batch 1 — independent tests", () => {
       await expect
         .poll(() => page.evaluate(() => window.__CHRONO_MOCK__!.invokeLog.some((e) => e.cmd === "write_note")))
         .toBe(true);
-      await page.waitForTimeout(300);
-
-      expect(await activeTabContent(page)).toBe(initial);
+      await expect.poll(() => activeTabContent(page)).toBe(initial);
       expect(await mockNote(page, file)).toBe(initial);
     });
 
@@ -815,6 +726,7 @@ test.describe("Editor batch 1 — independent tests", () => {
       await setEditorText(page, "ok");
 
       // Wait past both the 1200ms in-flight response and the subsequent recheck.
+      // Deliberate: asserts nothing happens for 1800 ms (in-flight stale spell check never applies underline after note replacement)
       await page.waitForTimeout(1800);
 
       expect(pageErrors).toEqual([]);
@@ -883,6 +795,7 @@ test.describe("Editor batch 1 — independent tests", () => {
       expect(await activeTabContent(page)).toBe("hello helo");
 
       // Wait until the 1st (stale) check has resolved (~1400ms) while the 2nd is still pending.
+      // Deliberate: asserts nothing happens for 1600 ms (stale 1st check resolves without underlining shifted 'hello')
       await page.waitForTimeout(1600);
       await expect(page.locator(".cm-misspelled")).toHaveCount(0);
 

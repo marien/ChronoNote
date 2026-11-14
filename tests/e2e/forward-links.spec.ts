@@ -68,19 +68,18 @@ test.describe("forward links navigation and modals (§428)", () => {
       });
     await page.locator(".cm-line").first().click();
     await page.mouse.move(0, 0);
-    await page.waitForTimeout(300);
+    await expect.poll(() => look(date)).toEqual(await look(dueDate));
     const idle = await look(date);
-    expect(idle).toEqual(await look(dueDate));
     expect(idle.line).toBe("underline");
     await date.hover();
-    await page.waitForTimeout(300);
+    await expect.poll(async () => (await look(date)).lineColor).not.toBe(idle.lineColor);
+    await date.evaluate((el) => Promise.all(el.getAnimations().map((a) => a.finished)));
     const hovered = await look(date);
     expect(hovered.line).toBe("underline");
     expect(hovered.color).toBe(idle.color);
     expect(hovered.lineColor).not.toBe(idle.lineColor);
     await page.mouse.move(0, 0);
-    await page.waitForTimeout(300);
-    expect(await look(date)).toEqual(idle);
+    await expect.poll(() => look(date)).toEqual(idle);
     // ...and it is still a date link.
     await date.click({ modifiers: ["ControlOrMeta"] });
     await expect(activeTabLabel(page)).toHaveText("2026-09-03");

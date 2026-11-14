@@ -58,6 +58,7 @@ test.describe("demo ?try= links", () => {
 
   test("an unknown feature is ignored", async ({ page }) => {
     await openDemo(page, "?try=nonsense");
+    // Deliberate: asserts nothing happens for 300 ms (unknown ?try parameter opens no modal)
     await page.waitForTimeout(300);
     expect(await currentModal(page)).toBe("none");
   });
