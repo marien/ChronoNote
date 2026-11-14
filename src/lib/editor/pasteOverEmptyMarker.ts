@@ -2,7 +2,7 @@ import { EditorState } from "@codemirror/state";
 import { get } from "svelte/store";
 import { ACTION_CLASS, BULLET_CLASS, TOPIC_CLASS } from "../grammar/symbols";
 import { rewriteDueWords, stateFirst } from "../tokens";
-import { OPEN_ACTION_LINE, takePendingPasteFrom, withFromLink } from "../paste";
+import { OPEN_ACTION_LINE, takePendingPasteFrom, updatePasteDeferPastedBlock, withFromLink } from "../paste";
 import { currentDateISO } from "../stores";
 import { locale, t } from "../i18n";
 import { dueWordExtra } from "../date";
@@ -90,5 +90,6 @@ export const pasteOverEmptyMarker = EditorState.transactionFilter.of((tr) => {
   const spec = specs.length === 1 ? specs[0] : null;
   if (!spec) return tr;
   const { from, to, insert } = spec;
+  if (fromSuffixes) updatePasteDeferPastedBlock(insert);
   return { changes: { from, to, insert }, selection: { anchor: from + insert.length }, userEvent: "input.paste", scrollIntoView: true };
 });

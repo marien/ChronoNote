@@ -5,11 +5,11 @@
  * v0.5.0 refactor — depends only on `./stores`, `./persistence`, `./date`
  * and types. `tabs.ts` calls `notifyTabClosed` from `closeTab`. */
 import { get } from "svelte/store";
-import { editorApi, showToast, tabs } from "./stores";
+import { currentDateISO, editorApi, showToast, tabs } from "./stores";
 import { writeTabContent } from "./persistence";
-import { todayISO } from "./date";
-import { getSectionHeaderForLine } from "./tokens";
-import { t } from "./i18n";
+import { dueWordExtra, todayISO } from "./date";
+import { getSectionHeaderForLine, rewriteDueWords, stateFirst } from "./tokens";
+import { locale, t } from "./i18n";
 
 let lastCopiedAction: { text: string; sourceTabId: string; sourceOffset?: number } | null = null;
 
@@ -131,6 +131,13 @@ let pasteDeferLink: PasteDeferLink | null = null;
 /** Test-only view of the link state. */
 export function _pasteDeferLinkForTest(): Readonly<PasteDeferLink> | null {
   return pasteDeferLink;
+}
+
+/** Keeps the stored target-tab text aligned with what `pasteOverEmptyMarker` actually inserted (after `by:` rewriting or empty-marker merging). */
+export function updatePasteDeferPastedBlock(text: string): void {
+  if (pasteDeferLink && !pasteDeferLink.reverted) {
+    pasteDeferLink.pastedBlock = text;
+  }
 }
 
 /** Called by `tabs.ts`'s `closeTab`: a paste-defer undo link that points
@@ -318,11 +325,20 @@ export function handlePasteIntoTab(
     }
     tabs.set(writeTabContent(srcTab.id, newSrcContent, list));
 
+    const today = get(currentDateISO);
+    const loc = get(locale);
+    const translate = get(t);
+    const extra = dueWordExtra(
+      translate("dueDate.words.today", undefined) ?? "",
+      translate("dueDate.words.tomorrow", undefined) ?? "",
+    );
     const pastedBlock = copied.text
       .split("\n")
       .map((line, i) => {
-        if (!OPEN_ACTION_LINE.test(line) || !fromSuffixes[i]) return line;
-        return withFromLink(line, fromSuffixes[i]);
+        let l = stateFirst(line) ?? line;
+        l = rewriteDueWords(l, today, loc, extra) ?? l;
+        if (!OPEN_ACTION_LINE.test(l) || !fromSuffixes[i]) return l;
+        return withFromLink(l, fromSuffixes[i]);
       })
       .join("\n");
 
