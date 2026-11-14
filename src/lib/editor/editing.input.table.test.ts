@@ -149,7 +149,7 @@ describe("editing table: typing & pasting (1-line and 2-line)", () => {
     expect(ed.caret()).toBe("# task by|:2026-10-30");
     ed.press("Backspace");
     expect(ed.caret()).toBe("# task b|:2026-10-30");
-    expect(ed.undo()).toBe(true);
+    // The typing and the Backspace right after it are one undo step.
     expect(ed.undo()).toBe(true);
     expect(ed.caret()).toBe("# task |:2026-10-30");
   });
