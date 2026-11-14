@@ -91,6 +91,7 @@ test.describe("keyboard commands change the symbol at the caret", () => {
     // Action line: caret in the middle of the line (between 'buy ' and 'groceries')
     await setEditorText(page, "# buy groceries");
     await page.keyboard.press("Home");
+    await page.keyboard.press("Home");
     // Move into text after '# buy '
     for (let i = 0; i < 5; i++) {
       await page.keyboard.press("ArrowRight");

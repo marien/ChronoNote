@@ -197,7 +197,8 @@ test.describe("glyph line layout", () => {
     await page.waitForTimeout(250);
     expect((await measure()).parenColor).toBe("rgba(0, 0, 0, 0)");
 
-    // Caret right before the pill (one step past the atomic `# ` glyph): the parentheses show, and nothing moved.
+    // Caret right before the pill (two Home presses to reach col 0, then one step past the atomic `# ` glyph): the parentheses show, and nothing moved.
+    await page.keyboard.press("Home");
     await page.keyboard.press("Home");
     await page.keyboard.press("ArrowRight");
     await expect.poll(async () => (await measure()).editing).toBe(true);

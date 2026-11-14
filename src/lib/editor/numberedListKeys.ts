@@ -581,6 +581,12 @@ export const numberedListRenumberFilter = EditorState.transactionFilter.of((tr) 
     const b1 = newDoc.lineAt(toB).number - 1;
     if (inserted.lines > 1 || a1 !== a0) {
       lineBreaks = true;
+      if (typing && a0 === a1 && fromA === toA) {
+        const lineObj = oldDoc.line(a0 + 1);
+        const oldItem = parseNumberedItem(lineObj.text);
+        const col = fromA - lineObj.from;
+        if (oldItem && col > oldItem.indent.length && col < oldItem.markerEnd) digitEdit = true;
+      }
     } else {
       const oldLine = oldDoc.line(a0 + 1).text;
       const newLine = newDoc.line(b0 + 1).text;

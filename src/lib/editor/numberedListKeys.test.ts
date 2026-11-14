@@ -171,6 +171,12 @@ describe("Rule 4 & Rule 5: splitting, joining, and digit edits", () => {
     view.dispatch({ changes: { from: pos, to: pos, insert: "x" }, selection: { anchor: pos + 1 }, userEvent: "input.type" });
     expect(view.state.doc.toString()).toBe("1. a\n   x\n2. c");
   });
+
+  it("splitting inside a numbered marker with a newline does not renumber the split remainder back", () => {
+    const view = createView("12. twelve", { anchor: 1 });
+    view.dispatch({ changes: { from: 1, to: 1, insert: "\n" }, selection: { anchor: 2 }, userEvent: "input" });
+    expect(view.state.doc.toString()).toBe("1\n2. twelve");
+  });
 });
 
 describe("Rule 6, 7, 8, 9: Backspace, empty sub-items, and selection Shift+Tab", () => {

@@ -74,6 +74,7 @@ test.describe("numbered lists: Enter", () => {
   test("Enter in the middle of an item splits it; the tail becomes the next item", async ({ page }) => {
     await setEditorText(page, "1. hello world");
     await page.keyboard.press("Home");
+    await page.keyboard.press("Home");
     for (let i = 0; i < 8; i++) await page.keyboard.press("ArrowRight"); // after "1. hello"
     await page.keyboard.press("Enter");
     expect(await activeTabContent(page)).toBe("1. hello\n2.  world");
@@ -82,12 +83,14 @@ test.describe("numbered lists: Enter", () => {
   test("with the caret before the marker, Enter is a plain newline and the marker is not duplicated", async ({ page }) => {
     await setEditorText(page, "1. one");
     await page.keyboard.press("Home");
+    await page.keyboard.press("Home");
     await page.keyboard.press("Enter");
     expect(await activeTabContent(page)).toBe("\n1. one");
   });
 
   test("with the caret inside the marker, Enter is a plain newline", async ({ page }) => {
     await setEditorText(page, "12. twelve");
+    await page.keyboard.press("Home");
     await page.keyboard.press("Home");
     await page.keyboard.press("ArrowRight"); // between the 1 and the 2
     await page.keyboard.press("Enter");
