@@ -36,6 +36,9 @@ export type WriteGuard =
 
 /** Writes to one filename run in order, so each reads its expected hash after the previous one landed. */
 const writeChains = new Map<string, Promise<unknown>>();
+/** The hash of the last write that succeeded in a filename's current chain. A write whose tab was closed while it
+ * waited has no clean hash to read; this is what the file holds by then (unless someone else changed it). */
+const chainHashes = new Map<string, string>();
 
 /** Set from boot.ts (persistence can't import drift.ts: drift imports persistence). */
 let onWriteConflict: ((filename: string) => Promise<void>) | null = null;
@@ -154,7 +157,8 @@ function persistTab(tabId: string): Promise<void> {
     // write moves the filename into `inFlightFilenames` synchronously, so
     // there's no "saved" flicker in between.
     pendingSaveTabIds.delete(tabId);
-    if (unchanged) {
+    // Closed meanwhile: the close saved it (`persistClosingTab`), with the right guard.
+    if (unchanged || !get(tabs).some((x) => x.id === tabId)) {
       recomputeSaveState();
       return;
     }
@@ -428,15 +432,18 @@ function writeNoteRaw(
   options?: { keepVersion?: boolean },
 ): Promise<void> {
   const previous = writeChains.get(filename) ?? Promise.resolve();
+  const tabNow = guard.kind === "tabBaseline" ? get(tabs).find((t) => !t.isScratchpad && t.filename === filename) : undefined;
+  const baselineNow = tabNow ? getTabCleanHash(tabNow.id) : undefined;
   const p = previous
-    .catch(() => undefined)
-    .then((previousHash) => {
+    .catch(() => {})
+    .then(() => {
       let expected: string | undefined;
       if (guard.kind === "hash") expected = guard.hash;
-      else if (guard.kind === "closing") expected = (typeof previousHash === "string" ? previousHash : undefined) ?? guard.baseline;
+      else if (guard.kind === "closing") expected = chainHashes.get(filename) ?? guard.baseline;
       else if (guard.kind === "tabBaseline") {
         const tab = get(tabs).find((t) => !t.isScratchpad && t.filename === filename);
-        expected = tab ? getTabCleanHash(tab.id) : undefined;
+        // Closed while this write waited: never unguarded, use what the chain or the tab last knew.
+        expected = tab ? getTabCleanHash(tab.id) : (chainHashes.get(filename) ?? baselineNow);
       }
       return options ? api.writeNote(filename, content, expected, options) : api.writeNote(filename, content, expected);
     });
@@ -449,11 +456,12 @@ function writeNoteRaw(
       inFlightWrites.delete(p);
       inFlightFilenames.delete(filename);
       recomputeSaveState();
-      // §94: the disk now matches this content; re-baseline the tab.
+      if (meta?.contentHash) chainHashes.set(filename, meta.contentHash);
+      // §94: the disk now matches this content; re-baseline the tab. Not for a closed tab's save: a tab open on the
+      // same file now was read before it landed, and its text is not this content.
       const tab = get(tabs).find((t) => !t.isScratchpad && t.filename === filename);
-      if (tab) markTabClean(tab.id, meta?.contentHash);
+      if (tab && guard.kind !== "closing") markTabClean(tab.id, meta?.contentHash);
       scheduleCloudPush();
-      return meta?.contentHash; // read by the next write in this chain (the `closing` guard)
     },
     async (err) => {
       inFlightWrites.delete(p);
@@ -474,9 +482,12 @@ function writeNoteRaw(
   void done
     .catch(() => {})
     .finally(() => {
-      if (writeChains.get(filename) === done) writeChains.delete(filename);
+      if (writeChains.get(filename) === done) {
+        writeChains.delete(filename);
+        chainHashes.delete(filename);
+      }
     });
-  return done.then(() => undefined);
+  return done;
 }
 
 /** Saves a tab that is being closed (its store entry is gone by the time the write runs). Registered as in flight at
@@ -489,7 +500,7 @@ export function persistClosingTab(
   onConflict: (filename: string, content: string) => Promise<void>,
 ): void {
   const p: Promise<void> = (async () => {
-    if (baseline && !inFlightFilenames.has(filename) && (await sha256Hex(content)) === baseline) return;
+    if (baseline && !writeChains.has(filename) && (await sha256Hex(content)) === baseline) return;
     await writeNoteAndInvalidateCache(filename, content, { kind: "closing", baseline });
   })()
     .catch(async (e) => {

@@ -12065,7 +12065,10 @@ fixes the five that could lose text or break the editor:
 3. **Closing a tab never overwrites a newer file.** `closeTab` started the save without waiting and cleared the tab's
    baseline hash first, so the save ran without its on-disk check. The close-time save is now `persistClosingTab`
    with a `closing` write guard that carries the baseline; a save of the same file still running at close counts as
-   the tab's own (its hash is passed down the write chain), so it is not mistaken for someone else's change. A refused
+   the tab's own (the chain of writes to one file remembers the hash of its last successful write), so it is not
+   mistaken for someone else's change. A `tabBaseline` write whose tab closed while it waited in the chain falls back
+   to that hash or the baseline it saw when queued, instead of writing without a check; a closed tab's save does not
+   re-baseline a tab reopened on the file meanwhile; a pending autosave of a closed tab leaves the save to the close. A refused
    save keeps the text as a conflict copy, as for a background tab. Registered as in flight at once, so quitting right
    after a close waits for it.
 4. **A failed phone-companion write keeps what was typed meanwhile.** `writeTabContentAndWait` reset the tab to the
@@ -12078,6 +12081,7 @@ Built by Gemini 4 Hydrogen from a behaviour file (`agent-tools/briefs/b1-behavio
 browser tests written from the same file by a second Hydrogen run (`tests/e2e/editor-batch1.independent.spec.ts`, 55
 tests; one `fixme`: the test backend cannot hold a save and then fail it, covered by the unit test). Reviewed here.
 Changes of mine: rule 3 as described (the first version fixed the expected hash at close, so a running autosave made
-the close-time save fail and the last typing went to a conflict copy; new unit test), and seven of the independent
+the close-time save fail and the last typing went to a conflict copy; a Hydrogen review of my version found four
+more orderings of overlapping saves that went wrong, now each a unit test in `tabs.test.ts` that fails without the fix), and seven of the independent
 tests that read the behaviour file too literally (the toast says "Saved your version as", the app's own last write
 vs. the file, undo grouping of typing at one spot, the spell-check mark held back for the word being typed).

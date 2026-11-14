@@ -126,6 +126,87 @@ describe("Rule 3: Closing a tab never overwrites a newer file", () => {
     expect(apiMock.writeConflictCopy).not.toHaveBeenCalled();
   });
 
+  /** The next call of writeNote waits until `release()` (its expected hash is already decided by then). */
+  function holdNextWrite(fail?: Error): () => void {
+    let release!: () => void;
+    const held = new Promise<void>((r) => (release = r));
+    const realWrite = apiMock.writeNote.getMockImplementation()!;
+    apiMock.writeNote.mockImplementationOnce(async (...args) => {
+      await held;
+      if (fail) throw fail;
+      return realWrite(...args);
+    });
+    return release;
+  }
+  const flush = () => new Promise((r) => setTimeout(r, 0));
+
+  async function openTab(content: string, onDisk: string): Promise<string> {
+    const meta = await invoke("write_note", { filename: FILE, content: onDisk, expectedHash: null });
+    tabs.set([makeTab({ id: "tab-1", filename: FILE, content })]);
+    activeTabId.set("tab-1");
+    markTabClean("tab-1", meta.contentHash!);
+    return meta.contentHash!;
+  }
+
+  it("a queued save of a tab closed meanwhile keeps its on-disk check", async () => {
+    await openTab("A\n", "initial\n");
+    const release1 = holdNextWrite();
+    const first = writeNoteAndInvalidateCache(FILE, "A\n", { kind: "tabBaseline" });
+    const release2 = holdNextWrite();
+    const second = writeNoteAndInvalidateCache(FILE, "B\n", { kind: "tabBaseline" }).catch(() => {});
+    tabs.set([makeTab({ id: "tab-1", filename: FILE, content: "B\n" })]);
+    closeTab("tab-1");
+    release1();
+    await first;
+    await flush();
+    backend.setNote(FILE, "EXTERNAL\n"); // someone else, after the first save landed
+    release2();
+    await second;
+    await vi.waitFor(() => expect(apiMock.writeConflictCopy).toHaveBeenCalled());
+    expect(backend.getNote(FILE)).toBe("EXTERNAL\n");
+  });
+
+  it("a failed save between a landed save and the close is not a conflict", async () => {
+    await openTab("A\n", "initial\n");
+    const release1 = holdNextWrite();
+    const first = writeNoteAndInvalidateCache(FILE, "A\n", { kind: "tabBaseline" });
+    const release2 = holdNextWrite(new Error("disk hiccup"));
+    const second = writeNoteAndInvalidateCache(FILE, "B\n", { kind: "tabBaseline" }).catch(() => {});
+    tabs.set([makeTab({ id: "tab-1", filename: FILE, content: "C\n" })]);
+    closeTab("tab-1");
+    release1();
+    release2();
+    await first;
+    await second;
+    await vi.waitFor(() => expect(backend.getNote(FILE)).toBe("C\n"));
+    expect(apiMock.writeConflictCopy).not.toHaveBeenCalled();
+  });
+
+  it("closing with the text of a landed save still writes when another save is queued", async () => {
+    await openTab("X\n", "initial\n");
+    const release1 = holdNextWrite();
+    const first = writeNoteAndInvalidateCache(FILE, "X\n", { kind: "tabBaseline" });
+    const second = writeNoteAndInvalidateCache(FILE, "Y\n", { kind: "tabBaseline" });
+    release1();
+    await first; // the tab is now clean at "X"; "Y" is still queued
+    closeTab("tab-1");
+    await second;
+    await vi.waitFor(() => expect(backend.getNote(FILE)).toBe("X\n"));
+  });
+
+  it("a tab reopened while the close-time save runs keeps its own baseline", async () => {
+    const h0 = await openTab("closing text\n", "old\n");
+    const release = holdNextWrite();
+    closeTab("tab-1");
+    await flush();
+    tabs.set([makeTab({ id: "tab-2", filename: FILE, content: "old\n" })]); // read before the save landed
+    markTabClean("tab-2", h0);
+    release();
+    await vi.waitFor(() => expect(backend.getNote(FILE)).toBe("closing text\n"));
+    await flush();
+    expect(getTabCleanHash("tab-2")).toBe(h0);
+  });
+
   it("writes normally once when closing a tab with unsaved typing and disk did not change", async () => {
     const initial = "initial text\n";
     const localUnsaved = "unsaved local typing\n";
