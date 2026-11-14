@@ -12277,3 +12277,23 @@ independent tests from the same file by a second Hydrogen run (`src/lib/editor/w
 after the text is not a topic tag, `@dana.k` is `@dana` and `.k` (the app's name characters), an indent is its own
 Ctrl+Delete step as in CodeMirror, and `by:fri` is rewritten to a date before a double-click can reach it. Reviewed
 here.
+
+## 473. Editing review, test plan steps 4 and 6: browser-only tests, a phone tap fix, Windows layout specs
+
+**Status: on main, not released yet.**
+
+Step 4 of the editor review's test plan (`docs/design/editor-review.html`): `tests/e2e/editor-browser-only.spec.ts`,
+22 tests for what Vitest cannot show, written by Gemini 4 Hydrogen from the spec: composition and US-International
+dead keys while typing `# `, `by:` and Enter; touch on the phone layout; right-click Paste with HTML; drag and drop;
+spell check while typing.
+
+They found one bug, fixed here: on the phone each action or topic glyph had an invisible 44x44px tap area centred on
+it, but a note line is about 21px tall, so the line below's tap area covered the lower half of a glyph and tapping a
+checkbox could toggle the line below. The tap area keeps its 44px width and now spans only its own line
+(`src/styles/03-editor.css`). One test was corrected: the word the caret is in is never marked as misspelled (#167),
+so the test's misspelling may not sit at the caret.
+
+Step 6: the Windows layout CI job (`E2E_WINDOWS_LAYOUT=1`) also runs five pill and alignment specs (drawer pills,
+forward-link pill, find bar alignment, due flag, action tree lines) at 100/125/150 % with Windows fonts; they are not
+added to the reduced-motion, scale and contrast projects, where they add nothing. Native tests stay on main (the
+review's recommendation).
