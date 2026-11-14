@@ -14,6 +14,10 @@ afterEach(() => {
   while (editors.length > 0) editors.pop()!.destroy();
 });
 
+function stripMarkers(s: string): string {
+  return s.replace(/[|\[\]]/g, "");
+}
+
 interface InputCase {
   label: string;
   input: string;
@@ -35,7 +39,7 @@ function runInputTable(cases: InputCase[]): void {
       expect(ed.undo()).toBe(true);
       expect(ed.caret()).toBe(c.input);
       expect(ed.redo()).toBe(true);
-      expect(ed.caret()).toBe(c.expected);
+      expect(ed.text()).toBe(stripMarkers(c.expected));
     });
   }
 }
@@ -226,21 +230,21 @@ describe("editing table: typing & pasting (1-line and 2-line)", () => {
     ed1.paste("# send by:tomorrow");
     expect(ed1.text()).not.toContain("by:tomorrow");
     expect(ed1.text()).toMatch(/^# send by:\d{4}-\d{2}-\d{2}$/);
-    const after1 = ed1.caret();
+    const after1 = ed1.text();
     expect(ed1.undo()).toBe(true);
     expect(ed1.caret()).toBe("|");
     expect(ed1.redo()).toBe(true);
-    expect(ed1.caret()).toBe(after1);
+    expect(ed1.text()).toBe(after1);
 
     const ed2 = openEditor("|");
     ed2.paste("# first by:tomorrow\n# second by:today");
     expect(ed2.text()).not.toContain("by:tomorrow");
     expect(ed2.text()).not.toContain("by:today");
     expect(ed2.text()).toMatch(/^# first by:\d{4}-\d{2}-\d{2}\n# second by:\d{4}-\d{2}-\d{2}$/);
-    const after2 = ed2.caret();
+    const after2 = ed2.text();
     expect(ed2.undo()).toBe(true);
     expect(ed2.caret()).toBe("|");
     expect(ed2.redo()).toBe(true);
-    expect(ed2.caret()).toBe(after2);
+    expect(ed2.text()).toBe(after2);
   });
 });

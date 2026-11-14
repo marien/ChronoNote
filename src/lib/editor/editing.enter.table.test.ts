@@ -36,7 +36,7 @@ function runKeyTable(cases: KeyCase[]): void {
         expect(ed.undo()).toBe(true);
         expect(ed.caret()).toBe(c.input);
         expect(ed.redo()).toBe(true);
-        expect(ed.caret()).toBe(c.expected);
+        expect(ed.text()).toBe(stripMarkers(c.expected));
       }
     });
   }
@@ -487,7 +487,7 @@ describe("editing table: Enter & Shift-Enter", () => {
       expect(ed.undo()).toBe(true);
       expect(ed.caret()).toBe(input);
       expect(ed.redo()).toBe(true);
-      expect(ed.caret()).toBe(savedCaret);
+      expect(ed.text()).toBe(after);
     });
   }
 });

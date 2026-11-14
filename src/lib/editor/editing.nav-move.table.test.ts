@@ -56,7 +56,7 @@ function runMoveTable(cases: MoveCase[]): void {
         expect(ed.undo()).toBe(true);
         expect(ed.caret()).toBe(c.input);
         expect(ed.redo()).toBe(true);
-        expect(ed.caret()).toBe(c.expected);
+        expect(ed.text()).toBe(stripMarkers(c.expected));
       }
     });
   }

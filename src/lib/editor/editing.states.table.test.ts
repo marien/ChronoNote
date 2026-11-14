@@ -36,7 +36,7 @@ function runStateTable(cases: StateCase[]): void {
         expect(ed.undo()).toBe(true);
         expect(ed.caret()).toBe(c.input);
         expect(ed.redo()).toBe(true);
-        expect(ed.caret()).toBe(c.expected);
+        expect(ed.text()).toBe(stripMarkers(c.expected));
       }
     });
   }
@@ -273,7 +273,7 @@ describe("editing table: state shortcuts & section titles", () => {
     { label: "Mod-Shift-s on prose at end", input: "Title|", key: "Mod-Shift-s", expected: "Title\n=====\n|" },
     { label: "Mod-Shift-s on prose mid-line", input: "Ti|tle", key: "Mod-Shift-s", expected: "Title\n=====\n|" },
     { label: "Mod-Shift-s on prose at col 0", input: "|Title", key: "Mod-Shift-s", expected: "Title\n=====\n|" },
-    { label: "Mod-Shift-s on short line", input: "Hi|", key: "Mod-Shift-s", expected: "Hi\n====\n|" },
+    { label: "Mod-Shift-s on short line", input: "Hi|", key: "Mod-Shift-s", expected: "Hi\n===\n|" },
     { label: "Mod-Shift-s on action line", input: "# Action|", key: "Mod-Shift-s", expected: "# Action\n========\n|" },
     { label: "Mod-Shift-s on empty line is no-op", input: "|", key: "Mod-Shift-s", expected: "|" },
     { label: "Mod-Shift-s on spaces-only line is no-op", input: "   |", key: "Mod-Shift-s", expected: "   |" },

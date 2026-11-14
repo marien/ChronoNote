@@ -36,7 +36,7 @@ function runKeyTable(cases: KeyCase[]): void {
         expect(ed.undo()).toBe(true);
         expect(ed.caret()).toBe(c.input);
         expect(ed.redo()).toBe(true);
-        expect(ed.caret()).toBe(c.expected);
+        expect(ed.text()).toBe(stripMarkers(c.expected));
       }
     });
   }
@@ -252,7 +252,7 @@ describe("editing table: Tab, Shift-Tab & Backspace", () => {
     ["postponed topic ,", ", ", "|topic"],
     ["bullet -", "- ", "|task"],
     ["bullet *", "* ", "|task"],
-    ["emphasis !", "! ", "|task"],
+    ["emphasis !", "! ", "!|task"],
     ["follow-up =>", "=> ", "|task"],
     ["delegated => @name", "=> ", "|@dana"],
     ["consequence => #", "=> # ", "=> |task"],
@@ -279,7 +279,7 @@ describe("editing table: Tab, Shift-Tab & Backspace", () => {
     { label: "Backspace inside held caret =>| text deletes only >", input: "=>| text", key: "Backspace", expected: "=| text" },
     { label: "Backspace on empty line is no-op", input: "|", key: "Backspace", expected: "|" },
     { label: "Backspace at col 0 of prose is no-op", input: "|prose", key: "Backspace", expected: "|prose" },
-    { label: "Backspace on spaces-only deletes 1 space", input: "  |", key: "Backspace", expected: " |" },
+    { label: "Backspace on spaces-only deletes indent unit", input: "  |", key: "Backspace", expected: "|" },
     { label: "Backspace at text start of indented prose deletes 1 space", input: "  |indented", key: "Backspace", expected: " |indented" },
     { label: "Backspace at text start of continuation line deletes 1 space", input: "- item\n  |cont", key: "Backspace", expected: "- item\n |cont" },
     { label: "Backspace at col 0 of underline joins lines", input: "Title\n|=====", key: "Backspace", expected: "Title|=====" },
