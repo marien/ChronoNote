@@ -565,15 +565,15 @@ export const numberedListRenumberFilter = EditorState.transactionFilter.of((tr) 
   const touchedNew = around(newTouched, newDoc.lines);
   if (touchedNew.length === 0) return tr;
 
-  const newMin = Math.min(...touchedNew);
-  const newMax = Math.max(...touchedNew);
+  // A loop, not Math.min(...list): a select-all delete of a very long note would overflow the argument stack.
+  const span = (list: number[]) => list.reduce((r, i) => [Math.min(r[0], i), Math.max(r[1], i)], [Infinity, -Infinity]);
+  const [newMin, newMax] = span(touchedNew);
   const { offset: newOffset, lines: newLines } = readRunSlice(newDoc, newMin, newMax);
   const localNewTouched = touchedNew.map((t) => t - newOffset);
   const newGroups = listGroups(newLines, localNewTouched);
   if (newGroups.length === 0) return tr;
 
-  const oldMin = touchedOld.length > 0 ? Math.min(...touchedOld) : 0;
-  const oldMax = touchedOld.length > 0 ? Math.max(...touchedOld) : 0;
+  const [oldMin, oldMax] = touchedOld.length > 0 ? span(touchedOld) : [0, 0];
   const { offset: oldOffset, lines: oldLines } =
     touchedOld.length > 0 ? readRunSlice(oldDoc, oldMin, oldMax) : { offset: 0, lines: [] as string[] };
   const localOldTouched = touchedOld.map((t) => t - oldOffset);
