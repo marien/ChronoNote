@@ -694,6 +694,16 @@ body.peek-mode .cm-overview-ruler {
     min-height: 44px;
     z-index: 5;
   }
+  /* In the note a line is about 21px tall: a 44px-high target reached into the lines above and below, and the lower
+     line's target won, so tapping the lower half of a checkbox toggled the line below (§473). Keep the 44px width but
+     only the glyph's own line height. */
+  .cm-line .glyph-cyclable::after {
+    top: 0;
+    bottom: 0;
+    height: auto;
+    min-height: 0;
+    transform: translateX(-50%);
+  }
 }
 .glyph-followup {
   color: var(--glyph-followup-color);
