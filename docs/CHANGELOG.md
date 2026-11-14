@@ -12206,3 +12206,20 @@ tests, plus `*.b4.independent.test.ts`): all passed against the change except on
 the editor and so moved the caret it was checking (fixed here). Reviewed here. Left from the review's decisions: D4
 (list keys behind a state symbol, needs a design for `# 1.` items) and D11 (word moves around glyphs, written with
 the test plan).
+
+## 470. Editing review, test plan step 3: property tests
+
+**Status: on main, not released yet.**
+
+Step 3 of the editor review's test plan (`docs/design/editor-review.html`): fast-check properties that generate many
+cases instead of hand-picked ones. `src/lib/roundTrip.property.test.ts`: open, edit, save and reload give the bytes the
+storage rules say, for CRLF/LF, BOM, tabs, trailing spaces, no final newline, emoji and combining marks, with the Rust
+rules, the in-memory backend and the web backend agreeing. `src/lib/editor/outsideChanges.property.test.ts`: an outside
+change gives exactly the new text, never a lone surrogate, keeps the caret on its text and is not undoable.
+`src/lib/numberedLists.property.test.ts`: after Tab, Shift+Tab, Enter, deleting or moving lines, every list group is
+consecutive, dotted prefixes match their parent, and the text after each marker is unchanged. The line-agreement
+generator (§468) covers more line kinds.
+
+One bug found and fixed: Shift+Tab on a later item of an indented list with no parent (`  1. a` / `  2. b`, caret on
+`b`) moved the line out without renumbering (`2. b` above `1. c`); it now joins the list it lands in and renumbers.
+Built by Gemini 4 Hydrogen, reviewed here.
