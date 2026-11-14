@@ -1,9 +1,20 @@
-import { EditorSelection, type ChangeSpec, type EditorState, type Line, type SelectionRange, type Text, type TransactionSpec } from "@codemirror/state";
-import { EditorView } from "@codemirror/view";
+import {
+  CharCategory,
+  EditorSelection,
+  type ChangeSpec,
+  type EditorState,
+  type Line,
+  type SelectionRange,
+  type Text,
+  type TransactionSpec,
+  findClusterBreak,
+} from "@codemirror/state";
+import { Direction, EditorView } from "@codemirror/view";
 import { cursorLineBoundaryBackward, isolateHistory, selectLineBoundaryBackward } from "@codemirror/commands";
 import { lineStateAnnouncement } from "./glyphs";
 import { trimmed } from "./editorChanges";
 import { exitNumberedListSpec, moveEmptySubItemOutSpec, shiftTabCommand, tabCommand } from "./numberedListKeys";
+import { docLineWordSpans } from "./wordSpans";
 import { leadingMarkerCharEnd, leadingMarkerTextColumn } from "./wrapIndent";
 import { isTitleLine, tokenizeLine } from "../grammar/tokenize";
 import { underlineFor } from "../sectionFormat";
@@ -554,3 +565,193 @@ export function applyLineToken(view: EditorView, token: LineToken): void {
     });
   }
 }
+
+function skipAtomic(view: EditorView, pos: number, forward: boolean): number {
+  for (const ranges of view.state.facet(EditorView.atomicRanges).map((f) => f(view))) {
+    ranges.between(pos, pos, (from, to) => {
+      if (from < pos && to > pos) pos = forward ? to : from;
+    });
+  }
+  return pos;
+}
+
+function stepWordBoundary(state: EditorState, pos: number, forward: boolean): number {
+  const doc = state.doc;
+  if (forward ? pos >= doc.length : pos <= 0) return pos;
+
+  let line = doc.lineAt(pos);
+  let col = pos - line.from;
+  let spans = docLineWordSpans(doc, line);
+
+  const inside = forward
+    ? spans.find((s) => col >= s.from && col < s.to)
+    : spans.find((s) => col > s.from && col <= s.to);
+  if (inside) {
+    return line.from + (forward ? inside.to : inside.from);
+  }
+
+  const categorize = state.charCategorizer(pos);
+  if (forward) {
+    while (true) {
+      while (col < line.length) {
+        const next = findClusterBreak(line.text, col, true);
+        if (categorize(line.text.slice(col, next)) !== CharCategory.Space) break;
+        col = next;
+      }
+      if (col < line.length) break;
+      if (line.number === doc.lines) return doc.length;
+      line = doc.line(line.number + 1);
+      col = 0;
+      spans = docLineWordSpans(doc, line);
+    }
+
+    const nextSpan = spans.find((s) => col >= s.from && col < s.to);
+    if (nextSpan) return line.from + nextSpan.to;
+
+    const nextSpanFrom = spans.find((s) => s.from > col)?.from ?? line.length;
+    const cat = categorize(line.text.slice(col, findClusterBreak(line.text, col, true)));
+    while (col < nextSpanFrom) {
+      const next = findClusterBreak(line.text, col, true);
+      if (next > nextSpanFrom || categorize(line.text.slice(col, next)) !== cat) break;
+      col = next;
+    }
+    return line.from + col;
+  }
+
+  while (true) {
+    while (col > 0) {
+      const prev = findClusterBreak(line.text, col, false);
+      if (categorize(line.text.slice(prev, col)) !== CharCategory.Space) break;
+      col = prev;
+    }
+    if (col > 0) break;
+    if (line.number === 1) return 0;
+    line = doc.line(line.number - 1);
+    col = line.length;
+    spans = docLineWordSpans(doc, line);
+  }
+
+  const prevSpan = spans.find((s) => col > s.from && col <= s.to);
+  if (prevSpan) return line.from + prevSpan.from;
+
+  let minLeft = 0;
+  for (const s of spans) {
+    if (s.to <= col && s.to > minLeft) minLeft = s.to;
+  }
+  const prev0 = findClusterBreak(line.text, col, false);
+  const cat = categorize(line.text.slice(prev0, col));
+  col = prev0;
+  while (col > minLeft) {
+    const prev = findClusterBreak(line.text, col, false);
+    if (prev < minLeft || categorize(line.text.slice(prev, col)) !== cat) break;
+    col = prev;
+  }
+  return line.from + col;
+}
+
+function deleteWordTarget(state: EditorState, range: SelectionRange, forward: boolean): number {
+  const doc = state.doc;
+  const head = range.head;
+  const line = doc.lineAt(head);
+  if (head === (forward ? line.to : line.from)) {
+    return line.number !== (forward ? doc.lines : 1) ? head + (forward ? 1 : -1) : head;
+  }
+
+  const spans = docLineWordSpans(doc, line);
+  const col = head - line.from;
+  const inside = forward
+    ? spans.find((s) => col >= s.from && col < s.to)
+    : spans.find((s) => col > s.from && col <= s.to);
+  if (inside) {
+    return line.from + (forward ? inside.to : inside.from);
+  }
+
+  const categorize = state.charCategorizer(head);
+  let pos = col;
+  let cat: CharCategory | null = null;
+  while (pos !== (forward ? line.length : 0)) {
+    // Only a single space right at the caret (`cat === null`) may be absorbed with an adjacent span.
+    if (forward) {
+      const hit = spans.find((s) => s.from === pos);
+      if (hit) return line.from + (cat === null ? hit.to : pos);
+    } else {
+      const hit = spans.find((s) => s.to === pos);
+      if (hit) {
+        // Marker spans already own their trailing space; keep `# ` intact when deleting extra spaces.
+        const endsWithSpace = /\s/.test(line.text[hit.to - 1]);
+        return line.from + (cat === null && !endsWithSpace ? hit.from : pos);
+      }
+    }
+
+    const next = findClusterBreak(line.text, pos, forward);
+    const ch = line.text.slice(Math.min(pos, next), Math.max(pos, next));
+    const nextCat = categorize(ch);
+    if (cat !== null && nextCat !== cat) break;
+    if (ch !== " " || pos !== col) cat = nextCat;
+    pos = next;
+  }
+  return line.from + pos;
+}
+
+function ltrAtCursor(view: EditorView): boolean {
+  return view.textDirectionAt(view.state.selection.main.head) === Direction.LTR;
+}
+
+function moveWordBy(view: EditorView, forward: boolean, extend: boolean): boolean {
+  const sel = EditorSelection.create(
+    view.state.selection.ranges.map((range) => {
+      if (!extend && !range.empty) {
+        return EditorSelection.cursor(forward ? range.to : range.from, forward ? -1 : 1);
+      }
+      const next = skipAtomic(view, stepWordBoundary(view.state, range.head, forward), forward);
+      if (!extend) return EditorSelection.cursor(next, forward ? -1 : 1);
+      return EditorSelection.range(range.anchor, next);
+    }),
+    view.state.selection.mainIndex,
+  );
+  if (sel.eq(view.state.selection)) return false;
+  view.dispatch({ selection: sel, userEvent: "select", scrollIntoView: true });
+  return true;
+}
+
+function deleteWordBy(view: EditorView, forward: boolean): boolean {
+  if (view.state.readOnly) return false;
+  let event = "delete.selection";
+  const changes = view.state.changeByRange((range) => {
+    let { from, to } = range;
+    if (from === to) {
+      let towards = deleteWordTarget(view.state, range, forward);
+      if (towards < from) {
+        event = "delete.backward";
+        towards = skipAtomic(view, towards, false);
+      } else if (towards > from) {
+        event = "delete.forward";
+        towards = skipAtomic(view, towards, true);
+      }
+      from = Math.min(from, towards);
+      to = Math.max(to, towards);
+    } else {
+      from = skipAtomic(view, from, false);
+      to = skipAtomic(view, to, true);
+    }
+    return from === to
+      ? { range }
+      : { changes: { from, to }, range: EditorSelection.cursor(from, from < range.head ? -1 : 1) };
+  });
+  if (changes.changes.empty) return false;
+  view.dispatch(
+    view.state.update(changes, {
+      scrollIntoView: true,
+      userEvent: event,
+      effects: event === "delete.selection" ? EditorView.announce.of(view.state.phrase("Selection deleted")) : undefined,
+    }),
+  );
+  return true;
+}
+
+export const cursorWordLeft = (view: EditorView): boolean => moveWordBy(view, !ltrAtCursor(view), false);
+export const cursorWordRight = (view: EditorView): boolean => moveWordBy(view, ltrAtCursor(view), false);
+export const selectWordLeft = (view: EditorView): boolean => moveWordBy(view, !ltrAtCursor(view), true);
+export const selectWordRight = (view: EditorView): boolean => moveWordBy(view, ltrAtCursor(view), true);
+export const deleteWordBackward = (view: EditorView): boolean => deleteWordBy(view, false);
+export const deleteWordForward = (view: EditorView): boolean => deleteWordBy(view, true);

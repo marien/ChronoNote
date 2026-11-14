@@ -13,12 +13,18 @@ import {
   applyToCurrentLine,
   bulletContinuation,
   convertLineToSection,
+  cursorWordLeft,
+  cursorWordRight,
+  deleteWordBackward,
+  deleteWordForward,
   extendSelection,
   indentLines,
   jumpToAdjacentOpenAction,
   lineStartTarget,
   moveCaret,
   nextLineStartTarget,
+  selectWordLeft,
+  selectWordRight,
   smartHome,
 } from "./commands";
 
@@ -71,6 +77,22 @@ export function editingKeymap(deps: EditingKeymapDeps = {}): Extension {
     // Option+Arrow is word movement - except in Peek, which has always used it there.
     { key: "Alt-ArrowLeft", run: () => deps.onOccurrenceKey?.(-1) ?? false },
     { key: "Alt-ArrowRight", run: () => deps.onOccurrenceKey?.(1) ?? false },
+    {
+      key: "Mod-ArrowLeft",
+      mac: "Alt-ArrowLeft",
+      run: cursorWordLeft,
+      shift: selectWordLeft,
+      preventDefault: true,
+    },
+    {
+      key: "Mod-ArrowRight",
+      mac: "Alt-ArrowRight",
+      run: cursorWordRight,
+      shift: selectWordRight,
+      preventDefault: true,
+    },
+    { key: "Mod-Backspace", mac: "Alt-Backspace", run: deleteWordBackward, preventDefault: true },
+    { key: "Mod-Delete", mac: "Alt-Delete", run: deleteWordForward, preventDefault: true },
     { key: "Mod-j", run: (v) => jumpToAdjacentOpenAction(v, 1, { showToast: deps.showToast, jumpTo: deps.jumpTo }) },
     { key: "Mod-Shift-j", run: (v) => jumpToAdjacentOpenAction(v, -1, { showToast: deps.showToast, jumpTo: deps.jumpTo }) },
     {
