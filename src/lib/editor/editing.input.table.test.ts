@@ -140,6 +140,48 @@ describe("editing table: typing & pasting (1-line and 2-line)", () => {
       text: "#",
       expected: "#| ",
     },
+    {
+      label: "typing 5. x below 1. a leaves 5. alone without renumbering",
+      input: "1. a\n|",
+      op: "type",
+      text: "5. x",
+      expected: "1. a\n5. x|",
+    },
+    {
+      label: "typing on empty indented continuation line joins split ) lists",
+      input: "1) a\n   |\n1) c",
+      op: "type",
+      text: "more about a",
+      expected: "1) a\n   more about a|\n2) c",
+    },
+    {
+      label: "typing a digit on indented blank line between lists does not renumber",
+      input: "1. a\n   |\n3. c",
+      op: "type",
+      text: "2",
+      expected: "1. a\n   2|\n3. c",
+    },
+    {
+      label: "typing a letter on indented blank line joins and renumbers",
+      input: "1. a\n   |\n3. c",
+      op: "type",
+      text: "x",
+      expected: "1. a\n   x|\n2. c",
+    },
+    {
+      label: "typing a digit on indented blank line in ) list does not renumber",
+      input: "1) a\n   |\n3) c",
+      op: "type",
+      text: "2",
+      expected: "1) a\n   2|\n3) c",
+    },
+    {
+      label: "typing a letter on indented blank line in ) list joins and renumbers",
+      input: "1) a\n   |\n3) c",
+      op: "type",
+      text: "x",
+      expected: "1) a\n   x|\n2) c",
+    },
   ]);
 
   // Rule: Typing 'by' before an existing ':2026-10-30' then one Backspace deletes one letter (Known Bug)

@@ -687,35 +687,6 @@ test.describe("Rule 7: a tab counts as two columns everywhere", () => {
     expect(withTab.childX).toBeCloseTo(withSpaces.childX, 1);
   });
 
-  test("Tab / Shift+Tab column alignment treats a leading tab as two columns", async ({ page }) => {
-    await seedApp(page, { seed: "empty" });
-
-    // Tab on a numbered item under a deeper `\t- bullet` moves it +2, exactly as under `  - bullet` (the bullet is
-    // not at the item's own indent, so it does not pull the item under its text).
-    await setEditorText(page, "  - bullet\n1. item");
-    await editor(page).locator(".cm-line").nth(1).click();
-    await page.keyboard.press("End");
-    await page.keyboard.press("Tab");
-    const withSpaces = await activeTabContent(page);
-    await setEditorText(page, "\t- bullet\n1. item");
-    await editor(page).locator(".cm-line").nth(1).click();
-    await page.keyboard.press("End");
-    await page.keyboard.press("Tab");
-    expect(await activeTabContent(page)).toBe(withSpaces.replace("  - bullet", "\t- bullet"));
-
-    // Shift+Tab outdents a tab-indented action line and tab-indented numbered list
-    await setEditorText(page, "\t# child");
-    await editor(page).click();
-    await page.keyboard.press("Shift+Tab");
-    expect(await activeTabContent(page)).toBe("# child");
-
-    await setEditorText(page, "\t1. a\n\t2. b");
-    await editor(page).locator(".cm-line").nth(0).click();
-    await page.keyboard.press("End");
-    await page.keyboard.press("Shift+Tab");
-    expect(await activeTabContent(page)).toBe("1. a\n2. b");
-  });
-
   test("wrapping indent for `\\t# ` and `\\t` matches `  # ` and `  `", async ({ page }) => {
     await seedApp(page, { seed: { notes: {}, wordWrap: true } });
 

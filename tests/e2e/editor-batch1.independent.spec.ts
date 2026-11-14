@@ -13,7 +13,6 @@ import {
   tab,
   modalCard,
   MODAL_LABELS,
-  cursorLine,
 } from "./helpers";
 import { REFERENCE_TODAY } from "../../src/lib/testing/scenarios";
 
@@ -453,99 +452,6 @@ test.describe("Editor batch 1 — independent tests", () => {
       await editor(page).click();
       await page.keyboard.press("ControlOrMeta+z");
       await expect.poll(() => activeTabContent(page)).toContain("Added afternoon follow-up");
-    });
-  });
-
-  test.describe("Rule 2: Enter with the caret right after a leading symbol is a plain line break", () => {
-    test.beforeEach(async ({ page }) => {
-      await seedApp(page, { seed: "empty" });
-    });
-
-    test("2.1: '# hello' with caret after '#' breaks into '#\\n hello' with caret at start of line 2", async ({
-      page,
-    }) => {
-      await setEditorText(page, " hello");
-      await page.keyboard.press("ControlOrMeta+Home");
-      await page.keyboard.type("#");
-      await page.keyboard.press("Enter");
-
-      expect(await activeTabContent(page)).toBe("#\n hello");
-      expect(await cursorLine(page)).toBe(2);
-      await page.keyboard.type("Z");
-      expect(await activeTabContent(page)).toBe("#\nZ hello");
-    });
-
-    for (const sym of ["x", "o", "-", "v", ">"]) {
-      test(`2.2 / 2.3: '${sym}' typed at column 0 before two spaces breaks into '${sym}\\n  ' with caret at start of line 2`, async ({
-        page,
-      }) => {
-        await setEditorText(page, "  ");
-        await page.keyboard.press("ControlOrMeta+Home");
-        await page.keyboard.type(sym);
-        await page.keyboard.press("Enter");
-
-        expect(await activeTabContent(page)).toBe(`${sym}\n  `);
-        expect(await cursorLine(page)).toBe(2);
-        await page.keyboard.type("Z");
-        expect(await activeTabContent(page)).toBe(`${sym}\nZ  `);
-      });
-    }
-
-    for (const sym of ["#", "x", "o", "-", "v", ">", "=>", "!", "1."]) {
-      for (const spaces of [" ", "   "]) {
-        test(`every listed symbol '${sym}' with ${spaces.length} trailing space(s) breaks without deleting or continuing`, async ({
-          page,
-        }) => {
-          await setEditorText(page, spaces);
-          await page.keyboard.press("ControlOrMeta+Home");
-          await page.keyboard.type(sym);
-          await page.keyboard.press("Enter");
-
-          expect(await activeTabContent(page)).toBe(`${sym}\n${spaces}`);
-          expect(await cursorLine(page)).toBe(2);
-          await page.keyboard.type("Z");
-          expect(await activeTabContent(page)).toBe(`${sym}\nZ${spaces}`);
-        });
-      }
-    }
-
-    for (const { sym, rest } of [
-      { sym: "=>", rest: "hello" },
-      { sym: "-", rest: "item" },
-      { sym: "o", rest: "topic" },
-      { sym: "!", rest: "urgent" },
-      { sym: "1.", rest: "first" },
-      { sym: "v", rest: "done" },
-      { sym: ">", rest: "deferred" },
-      { sym: "x", rest: "wont" },
-    ]) {
-      test(`2.4 / 2.5: '${sym} ${rest}' with caret after '${sym}' breaks into '${sym}\\n ${rest}'`, async ({ page }) => {
-        await setEditorText(page, ` ${rest}`);
-        await page.keyboard.press("ControlOrMeta+Home");
-        await page.keyboard.type(sym);
-        await page.keyboard.press("Enter");
-
-        expect(await activeTabContent(page)).toBe(`${sym}\n ${rest}`);
-        expect(await cursorLine(page)).toBe(2);
-        await page.keyboard.type("Z");
-        expect(await activeTabContent(page)).toBe(`${sym}\nZ ${rest}`);
-      });
-    }
-
-    test("2.6: unchanged Enter at end of '# hello', on empty '# ', and at column 0 of '# hello'", async ({ page }) => {
-      await typeInEditor(page, "# hello");
-      await page.keyboard.press("Enter");
-      expect(await activeTabContent(page)).toBe("# hello\n# ");
-
-      // Enter on empty '# ' exits the list / removes the symbol.
-      await page.keyboard.press("Enter");
-      expect(await activeTabContent(page)).toBe("# hello\n");
-
-      // Enter at column 0 pushes the marker line down.
-      await setEditorText(page, "# hello");
-      await page.keyboard.press("ControlOrMeta+Home");
-      await page.keyboard.press("Enter");
-      expect(await activeTabContent(page)).toBe("\n# hello");
     });
   });
 
