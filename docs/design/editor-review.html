@@ -153,7 +153,7 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
         <tr><td>ER2-A4</td><td>Ctrl+Shift+S on a title or its <code>===</code> adds a second underline</td><td>Nothing (it is already a title)</td><td>ran</td></tr>
         <tr><td>ER2-A8</td><td>Enter at the end of <code># Title</code> above <code>=====</code> puts <code># </code> between title and underline</td><td>Plain line break</td><td>ran</td></tr>
         <tr><td>ER2-A10</td><td>Enter on <code>o ! - item</code> drops the <code>! - </code></td><td>Continue <code>o ! - </code></td><td>ran</td></tr>
-        <tr><td>ER2-A11</td><td>Alt+Down on <code>- # task</code> leaves it un-normalised; on the line above it, the untouched <code>- # second</code> is rewritten</td><td>Normalise the line you left, only that one</td><td>ran</td></tr>
+        <tr><td>ER2-A11</td><td>Alt+Down on the line above <code>- # second</code> rewrites that untouched line to <code># - second</code> (the other half of the claim was wrong: the moved line is normalised once the caret leaves it)</td><td>Normalise only the line you left</td><td>ran</td></tr>
         <tr><td>ER2-A12</td><td>Ctrl+1 on <code>1. task</code> gives <code># 1. task</code> and leaves <code>2. next</code> orphaned</td><td>Renumber the rest of the list</td><td>ran</td></tr>
         <tr><td>ER1-A2</td><td>Typing <code>by</code> in front of an existing <code>:2026-10-30</code>: one Backspace deletes both letters (no §463 hold for <code>by:</code>)</td><td>Backspace deletes one letter</td><td>ran</td></tr>
         <tr><td>ER1-A11</td><td>Shift+Enter on <code># - item</code>, <code># ! urgent</code>, <code># 1. item</code> goes to column 0 (on <code>o - item</code> it aligns)</td><td>See decision D3</td><td>ran</td></tr>

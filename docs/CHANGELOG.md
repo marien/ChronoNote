@@ -12085,3 +12085,18 @@ the close-time save fail and the last typing went to a conflict copy; a Hydrogen
 more orderings of overlapping saves that went wrong, now each a unit test in `tabs.test.ts` that fails without the fix), and seven of the independent
 tests that read the behaviour file too literally (the toast says "Saved your version as", the app's own last write
 vs. the file, undo grouping of typing at one spot, the spell-check mark held back for the word being typed).
+
+## 466. Editing commands out of the editor component, and a test editor in Vitest
+
+**Status: on main, not released yet.**
+
+Step 1 of the editor review's test plan (`docs/design/editor-review.html`, approved 2026-11-14): the editing commands
+lived inside `EditorPane.svelte`, so they could only be tested in a browser, one case at a time. Moved, unchanged, to
+`src/lib/editor/commands.ts` (Enter/Shift+Enter continuation, state shortcuts, section titles, line navigation, the
+phone toolbar's Indent and token buttons), the editing key bindings to `editingKeymap.ts`, and the editing extensions,
+in their old order, to `editingExtensions.ts` (the component adds its UI-only extensions in named slots).
+`src/lib/testing/testEditor.ts` builds a real EditorView with those extensions in Vitest (`|` and `[`...`]` markers
+for caret and selection, `press`, `type`, `paste`, `undo`, `redo`), the base for the editing table (step 2). Three
+state-first tests that could never fail (their selection change lacked the `select` user event) now can. Vitest runs
+plain tests in Node and only the 26 files that need a DOM in jsdom: `npm test` went from 40 s to 22 s. No behaviour
+change: the full browser suite passes unchanged. Built by Gemini 4 Hydrogen, reviewed here.
