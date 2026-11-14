@@ -52,13 +52,26 @@ export function isSetextUnderline(line: string): boolean {
 
 /** True for section (`===`) or subsection (`---`) underlines (three or more `=` or `-`). */
 export function isTitleUnderline(line: string): boolean {
-  return isSetextUnderline(line) || /^-{3,}$/.test(line.trim());
+  let i = 0;
+  const len = line.length;
+  while (i < len && line.charCodeAt(i) <= 32) i++;
+  if (i >= len) return false;
+  const ch = line.charCodeAt(i);
+  if (ch !== 61 && ch !== 45) return false; // '=' or '-'
+  let count = 0;
+  while (i < len && line.charCodeAt(i) === ch) {
+    count++;
+    i++;
+  }
+  if (count < 3) return false;
+  while (i < len && line.charCodeAt(i) <= 32) i++;
+  return i === len;
 }
 
 /** True when `line` is a non-blank title line directly above a title underline (`===` or `---`).
  * Blank lines and underline lines themselves are not title lines. */
 export function isTitleLine(line: string, nextLine?: string): boolean {
-  return nextLine !== undefined && line.trim() !== "" && !isTitleUnderline(line) && isTitleUnderline(nextLine);
+  return nextLine !== undefined && isTitleUnderline(nextLine) && line.trim() !== "" && !isTitleUnderline(line);
 }
 
 /** Visual column width of a leading-whitespace string (each tab counts as 2 columns). */

@@ -88,4 +88,16 @@ describe("treeConnectors", () => {
     const withOpenStep = ["v a => # step", "  v b"];
     expect(treeConnectors(actionTree(withOpenStep))[0].resolved).toBe(false);
   });
+
+  it("Rule 7: tab indentation measures column width consistently (tab = 2) when lines are passed", () => {
+    const lines = ["# parent", "\t# tab child"];
+    expect(treeConnectors(actionTree(lines), lines)).toEqual([
+      {
+        parentLineIdx: 0,
+        parentCol: 0,
+        children: [{ lineIdx: 1, col: 2 }],
+        resolved: false,
+      },
+    ]);
+  });
 });

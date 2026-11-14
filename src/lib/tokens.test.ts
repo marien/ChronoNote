@@ -42,6 +42,8 @@ import {
   withDueDate,
   withoutLineMarker,
   lineMenuStateAt,
+  isTitleLine,
+  isTitleUnderline,
 } from "./tokens";
 
 describe("countActions", () => {
@@ -1461,5 +1463,39 @@ describe("Rules 5 & 6: lineMenuStateAt and withoutLineMarker use the tokenizer",
       symbol: null,
       hasActionPart: false,
     });
+  });
+});
+
+describe("Rules 1 & 2: title lines and per-part action counting/navigation", () => {
+  it("isTitleLine requires non-blank line directly above === or ---", () => {
+    expect(isTitleLine("# Heading", "===")).toBe(true);
+    expect(isTitleLine("# Heading", "---")).toBe(true);
+    expect(isTitleLine("# Heading", "  ---  ")).toBe(true);
+    expect(isTitleLine("", "---")).toBe(false);
+    expect(isTitleLine("===", "---")).toBe(false);
+    expect(isTitleLine("---", "===")).toBe(false);
+    expect(isTitleLine("# Heading", "--")).toBe(false);
+    expect(isTitleUnderline("---")).toBe(true);
+    expect(isTitleUnderline("===")).toBe(true);
+  });
+
+  it("title lines are plain text in countActions and openActionLineIndices", () => {
+    const doc = ["# Header", "---", "# real task", "", "---", "> not a title above blank", "", "---"].join("\n");
+    expect(countActions(doc)).toEqual({ open: 1, closed: 0, forwarded: 1 });
+    expect(openActionLineIndices(doc)).toEqual([2]);
+  });
+
+  it("countActions and openActionLineIndices agree on multi-part and topic consequence lines", () => {
+    expect(countActions("# first => v resolved")).toEqual({ open: 1, closed: 1, forwarded: 0 });
+    expect(openActionLineIndices("# first => v resolved")).toEqual([0]);
+
+    expect(countActions("v done => # next")).toEqual({ open: 1, closed: 1, forwarded: 0 });
+    expect(openActionLineIndices("v done => # next")).toEqual([0]);
+
+    expect(countActions("Notes => # call Sam")).toEqual({ open: 1, closed: 0, forwarded: 0 });
+    expect(openActionLineIndices("Notes => # call Sam")).toEqual([0]);
+
+    expect(countActions("o topic => v closed")).toEqual({ open: 0, closed: 1, forwarded: 0 });
+    expect(openActionLineIndices("o topic => v closed")).toEqual([]);
   });
 });

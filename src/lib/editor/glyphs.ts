@@ -232,6 +232,8 @@ const ATOMIC = Decoration.replace({});
  * §463: a token a caret in `held` sits strictly inside stays text and is not atomic. That only happens right after
  * typing: `v` typed in front of a space that was already there (a line that looked empty) completes `v ` with the
  * caret between them, and drawing it would hide the letter and push the caret past the space, mid-word. */
+const TITLE_TOKENIZE_OPTS = { title: true } as const;
+
 export function buildGlyphDecorations(
   view: EditorView,
   held: readonly number[] = [],
@@ -245,10 +247,10 @@ export function buildGlyphDecorations(
     let line = startPos <= to ? doc.lineAt(startPos) : null;
     while (line && line.from <= to) {
       const nextLine = line.to < doc.length ? doc.lineAt(line.to + 1) : null;
-      const title = isTitleLine(line.text, nextLine?.text);
+      const title = nextLine !== null && isTitleLine(line.text, nextLine.text);
       doneTo = line.to;
       let afterEmphasis = false; // #208: a bullet right after `! ` takes the emphasis colour
-      for (const t of tokenizeLine(line.text, { title })) {
+      for (const t of title ? tokenizeLine(line.text, TITLE_TOKENIZE_OPTS) : tokenizeLine(line.text)) {
         const emphasisBullet = afterEmphasis && t.kind === "bullet";
         afterEmphasis = t.kind === "emphasis";
         const a = line.from + t.from;
