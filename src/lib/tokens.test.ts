@@ -1498,4 +1498,26 @@ describe("Rules 1 & 2: title lines and per-part action counting/navigation", () 
     expect(countActions("o topic => v closed")).toEqual({ open: 0, closed: 1, forwarded: 0 });
     expect(openActionLineIndices("o topic => v closed")).toEqual([]);
   });
+
+  it("migrated helpers handle double spaces after => and backslash escapes consistently", () => {
+    expect(countActions("\\# config\n  \\# indented\na \\=> # not an action\na =>  # open")).toEqual({
+      open: 1,
+      closed: 0,
+      forwarded: 0,
+    });
+    expect(stateFirst("- \\# literal")).toBeNull();
+    expect(stateFirst("1. \\# literal")).toBeNull();
+    expect(stateFirst("-  #  task")).toBe("# -  task");
+    expect(stripLeadingToken("Talked to Sam =>  # follow up")).toBe("Talked to Sam follow up");
+    expect(stripLeadingToken("\\# config")).toBe("\\# config");
+    expect(stripLeadingToken("a \\=> # literal")).toBe("a \\=> # literal");
+    expect(setActionSymbolTo("\\# config", "#")).toBe("# \\# config");
+    expect(setActionSymbolTo("a \\=> b", "#")).toBe("# a \\=> b");
+    expect(setActionSymbolTo("a =>  plain", "#")).toBe("a => #  plain");
+    expect(setActionSymbolTo("a =>  @dana", "#")).toBeNull();
+    expect(setTopicSymbolTo("a \\=> b", "o")).toBe("o a \\=> b");
+    expect(openAgendaTopic("\\. discussed")).toBe("\\. discussed");
+    expect(openAgendaTopic("a \\=> . discussed")).toBe("a \\=> . discussed");
+    expect(openAgendaTopic("a =>  . discussed")).toBe("a =>  o discussed");
+  });
 });

@@ -121,6 +121,10 @@ function assertTokenInvariants(line: string, tokens: Token[]) {
         expect(token.word!.length).toBeGreaterThan(0);
         expect(/^by:/i.test(slice)).toBe(true);
         break;
+      case "escape":
+        expect(token.replaced).toBe(false);
+        expect(slice).toBe("\\");
+        break;
     }
   }
 

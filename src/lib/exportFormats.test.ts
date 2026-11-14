@@ -259,5 +259,29 @@ describe("exportFormats", () => {
       expect(html).toContain("2026-10-10");
       expect(html).toContain("2026-10-11");
     });
+
+    it("Rule 2.4: Markdown keeps backslash escapes while HTML/Print drops the escape backslash", () => {
+      const note = ["\\# config", "  \\# indented", "\\v done", "\\- item", "\\1. not a list", "\\=> not follow-up", "a \\=> b"].join("\n");
+      const md = noteToMarkdown(note);
+      expect(md.split("\n")).toEqual([
+        "\\# config",
+        "  \\# indented",
+        "\\v done",
+        "\\- item",
+        "\\1. not a list",
+        "\\=> not follow-up",
+        "a \\=> b",
+      ]);
+
+      const html = noteToHtml(note);
+      expect(html).toContain('<div class="note-line"># config</div>');
+      expect(html).toContain('<div class="note-line">  # indented</div>');
+      expect(html).toContain('<div class="note-line">v done</div>');
+      expect(html).toContain('<div class="note-line">- item</div>');
+      expect(html).toContain('<div class="note-line">1. not a list</div>');
+      expect(html).toContain('<div class="note-line">=&gt; not follow-up</div>');
+      expect(html).toContain('<div class="note-line">a =&gt; b</div>');
+      expect(html).not.toContain("\\#");
+    });
   });
 });

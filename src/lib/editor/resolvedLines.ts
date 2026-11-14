@@ -6,7 +6,7 @@ import {
   ViewPlugin,
   type ViewUpdate,
 } from "@codemirror/view";
-import { isTitleLine, tokenizeLine, type TokenizeOptions } from "../grammar/tokenize";
+import { isTitleLine, tokenAfterArrow, tokenizeLine, type TokenizeOptions } from "../grammar/tokenize";
 
 const RESOLVED = new Set(["v", "x", ">", ".", ","]);
 
@@ -21,8 +21,8 @@ export function resolvedParts(line: string, options?: TokenizeOptions): "all" | 
   parts.push({ from: 0, to: line.length, resolved: lead !== null && RESOLVED.has(lead) });
   tokens.forEach((t, i) => {
     if (t.kind !== "arrow") return;
-    const next = tokens[i + 1];
-    const own = next && next.from === t.to && (next.kind === "consequence" || next.kind === "consequenceTopic") ? next.symbol! : null;
+    const next = tokenAfterArrow(line, tokens, i);
+    const own = next && (next.kind === "consequence" || next.kind === "consequenceTopic") ? next.symbol! : null;
     parts[parts.length - 1].to = t.from;
     parts.push({ from: t.from, to: line.length, resolved: own !== null ? RESOLVED.has(own) : parts[parts.length - 1].resolved });
   });

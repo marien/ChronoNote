@@ -2,7 +2,7 @@
  * editor's glyph rendering, the action drawer, and section history. The per-line
  * questions are answered from `tokenizeLine` (grammar/), so there is one definition
  * of each token. */
-import { ACTION_CLASS, ACTION_SYMBOLS, NAME_CHAR, TOPIC_SYMBOLS } from "./grammar/symbols";
+import { ACTION_SYMBOLS, TOPIC_SYMBOLS } from "./grammar/symbols";
 import {
   columnOf,
   getLineActionParts,
@@ -10,6 +10,7 @@ import {
   isSetextUnderline,
   isTitleLine,
   isTitleUnderline,
+  tokenAfterArrow,
   tokenizeLine,
   tokenizeNoteLine,
   type Token,
@@ -19,10 +20,6 @@ export { columnOf, hasOpenAction, isSetextUnderline, isTitleLine, isTitleUnderli
 import { addDaysISO, parseDueWord } from "./date";
 // Matches trailing forward links at the end of a line (same as TRAILING_LINKS in paste.ts)
 const TRAILING_LINKS = /(?:\s*\([<>]\d{4}-\d{2}-\d{2}(?:#[^)]*)?\))+$/;
-
-// Kept as regexes: stripLeadingToken splices around the *last* arrow, which a token list would only make longer.
-const LEADING_ACTION = new RegExp(String.raw`^(\s*)${ACTION_CLASS}\s`);
-const CONSEQUENCE_ACTION = new RegExp(String.raw`^(.*)=>\s${ACTION_CLASS}\s(.*)$`);
 
 /** §40: `x` (won't-do) folds into Closed alongside `v` (done) — both mean
  * "no longer outstanding," just for different reasons. §41: a
@@ -115,7 +112,7 @@ export function isCaretInLeadingSymbol(lineText: string, col: number): boolean {
   if (first.kind === "arrow" && lineText.slice(0, first.from).trim() !== "") return false;
   let expectedFrom = first.from;
   for (const tok of tokens) {
-    if (tok.from !== expectedFrom) break;
+    if (tok.from < expectedFrom || lineText.slice(expectedFrom, tok.from).trim() !== "") break;
     if (
       tok.kind !== "action" &&
       tok.kind !== "topic" &&
@@ -572,21 +569,7 @@ export function setActionSymbolTo(line: string, symbol: "#" | "v" | ">" | "x", c
 /** Sets a line or selection directly to topic state `o`, `.`, or `,` (`Ctrl/Cmd+5`-`7`).
  * Promotes a plain line, list item or unstated follow-up to the target topic state. */
 export function setTopicSymbolTo(line: string, symbol: "o" | "." | ",", col?: number): string | null {
-  const m = matchActionSymbol(line, col);
-  if (m) {
-    return m.rebuild(symbol);
-  }
-  const followMatch = line.match(/^(.*=>\s)(?!@)(\S.*)$/);
-  if (followMatch) {
-    const [, prefix, rest] = followMatch;
-    return `${prefix}${symbol} ${rest}`;
-  }
-  if (/=>/.test(line)) return null;
-  if (isTitleUnderline(line)) return null;
-  const match = line.match(/^(\s*)(.*)$/s);
-  if (!match) return null;
-  const [, indent, rest] = match;
-  return `${indent}${symbol} ${rest}`;
+  return replaceActionSymbol(line, () => symbol, symbol, col);
 }
 
 /** #65/#73/#257: `Ctrl/Cmd+Shift+O` — sets every line in the selection to open,
@@ -641,9 +624,13 @@ export function reopenDeferredAction(line: string, col?: number): string | null 
  * its indentation and text; every other line, including any action (`#`/`v`/`>`/`x`), is returned untouched.
  * For reusing a past agenda as a template: only the topics are reset, the rest is copied as it was. */
 export function openAgendaTopic(line: string): string {
-  return line
-    .replace(/^(\s*)[.,](\s)/, "$1o$2")
-    .replace(/(=>\s+)[.,](\s)/g, "$1o$2");
+  let out = line;
+  for (const tok of tokenizeLine(line)) {
+    if ((tok.kind === "topic" || tok.kind === "consequenceTopic") && (tok.symbol === "." || tok.symbol === ",")) {
+      out = setSymbolAt(out, tok.from, "o");
+    }
+  }
+  return out;
 }
 
 /** Shared line-matching for the symbol transforms above — a plain
@@ -749,15 +736,18 @@ function replaceActionSymbol(line: string, next: (sym: string) => string, create
   const m = matchActionSymbol(line, col);
   if (m) return m.rebuild(next(m.sym));
   if (createAs === undefined) return null;
-  const followMatch = line.match(/^(.*=>\s)(?!@)(\S.*)$/);
-  if (followMatch) {
-    const [, prefix, rest] = followMatch;
-    return `${prefix}${createAs} ${rest}`;
+  const tokens = tokenizeLine(line);
+  for (let i = tokens.length - 1; i >= 0; i--) {
+    if (tokens[i].kind !== "arrow") continue;
+    const arrow = tokens[i];
+    const after = tokenAfterArrow(line, tokens, i);
+    // A delegated (`=> @name`) or empty (`=> `) follow-up — leave alone
+    if (after?.kind === "assignee" || line.slice(arrow.to).trim() === "") return null;
+    return `${line.slice(0, arrow.to)}${createAs} ${line.slice(arrow.to)}`;
   }
-  if (/=>/.test(line)) return null; // a delegated (`=> @name`) or empty (`=> `) follow-up — leave alone
   if (isTitleUnderline(line)) return null; // the `====` or `----` itself, not just the title line above it — leave alone
-  const [, indent, rest] = line.match(/^(\s*)(.*)$/s)!;
-  return `${indent}${createAs} ${rest}`;
+  const indent = line.length - line.trimStart().length;
+  return `${line.slice(0, indent)}${createAs} ${line.slice(indent)}`;
 }
 
 /** Reorders a leading list marker followed by a state symbol to state-first:
@@ -765,53 +755,48 @@ function replaceActionSymbol(line: string, next: (sym: string) => string, create
  * `2) v done` -> `v 2) done`, `1.2. , item` -> `, 1.2. item`.
  * Returns null when the line is already state-first or not a list-marker-then-state line. */
 export function stateFirst(line: string): string | null {
-  const bulletMatch = line.match(/^(\s*)([-*])\s+([#vx>o.,])\s(.*)$/s);
-  if (bulletMatch) {
-    const [, indent, marker, sym, rest] = bulletMatch;
-    return `${indent}${sym} ${marker} ${rest}`;
+  const [first] = tokenizeLine(line);
+  if (first?.kind === "bullet") {
+    const after = line.slice(first.to);
+    const [sub] = tokenizeLine(after);
+    if (sub && (sub.kind === "action" || sub.kind === "topic")) {
+      return `${line.slice(0, first.from)}${sub.symbol} ${first.symbol} ${after.slice(sub.to)}`;
+    }
+    return null;
   }
   const item = parseNumberedItem(line);
   if (item) {
     const after = line.slice(item.indent.length + item.marker.length);
-    const m = after.match(/^\s+([#vx>o.,])\s(.*)$/s);
-    if (m) {
-      const [, sym, rest] = m;
-      return `${item.indent}${sym} ${item.marker} ${rest}`;
+    const [sub] = tokenizeLine(after);
+    if (sub && (sub.kind === "action" || sub.kind === "topic")) {
+      return `${item.indent}${sub.symbol} ${item.marker} ${after.slice(sub.to)}`;
     }
   }
   return null;
 }
-
-const DELEGATED_FOLLOW_UP = new RegExp(String.raw`^(.*)=>\s(@${NAME_CHAR}+\s.*)$`, "u");
 
 /** Strips a line's leading token(s) for display in the Action Drawer/
  * Section History (§45), which already show the equivalent glyph
  * separately — showing the raw character too was a duplicate, confusing
  * presentation (`☐ # Buy milk`). Leaves a delegated `@name` in place
  * (real, meaningful content — who it's assigned to — not a duplicate of
- * any glyph) and strips only the token characters proper.
- *
- * The three `=> `-based patterns aren't anchored to the start of the
- * line — `=> ` can (and often does) follow other text, e.g. "Talked to
- * Sam => # follow up" (§41/§59) — so whatever precedes it is kept, with
- * only the arrow and its symbol removed. Without this, a line like that
- * fell through every branch below unmodified, showing its raw `=> #`
- * token text right next to the row's glyph instead of being stripped.
- *
- * A plain leading action symbol is always at the true start of the line,
- * so it's stripped first and independently of the `=> ` handling — a
- * line with *both* ("# Call Sam => get quote", #28) used to keep its
- * leading `#` because a `=> ` branch matched and returned before the
- * plain-symbol branch was ever reached. */
+ * any glyph) and strips only the token characters proper. */
 export function stripLeadingToken(line: string): string {
-  const withoutLeading = line.replace(LEADING_ACTION, "$1");
-  const consequence = withoutLeading.match(CONSEQUENCE_ACTION);
-  if (consequence) return consequence[1] + consequence[2];
-  const delegated = withoutLeading.match(DELEGATED_FOLLOW_UP);
-  if (delegated) return delegated[1] + delegated[2];
-  const followUp = withoutLeading.match(/^(.*)=>\s(.*)$/);
-  if (followUp) return followUp[1] + followUp[2];
-  return withoutLeading;
+  const tokens = tokenizeLine(line);
+  let out = line;
+  // Strip right-to-left so earlier token indices stay valid.
+  for (let i = tokens.length - 1; i >= 0; i--) {
+    const t = tokens[i];
+    if (t.kind !== "arrow") continue;
+    const next = tokenAfterArrow(line, tokens, i);
+    const stripEnd = next?.kind === "consequence" ? next.to : t.to;
+    out = out.slice(0, t.from) + out.slice(stripEnd);
+    break;
+  }
+  if (tokens[0]?.kind === "action") {
+    out = out.slice(0, tokens[0].from) + out.slice(tokens[0].to);
+  }
+  return out;
 }
 
 /** Whitespace-delimited word count for the status bar (§100). Single

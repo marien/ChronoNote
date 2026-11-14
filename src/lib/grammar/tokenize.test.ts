@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { tokenizeLine } from "./tokenize";
+import { getLineActionParts, tokenizeLine } from "./tokenize";
 import { GLYPHS, glyphSpecForSymbol } from "./glyphs";
 
 const kinds = (line: string) => tokenizeLine(line).map((t) => t.kind);
@@ -345,5 +345,88 @@ describe("tokenizeLine due and dueWord (Section 1 table)", () => {
     for (const line of ["# task [by:2026-10-30]", '# task "by:2026-10-30"', "# really by:2026-10-30?!"]) {
       expect(tokenizeLine(line).find((t) => t.kind === "due")?.date).toBe("2026-10-30");
     }
+  });
+
+  describe("Rule 1 (D6): marker is symbol + exactly one space", () => {
+    it("extra spaces after leading symbol stay in the text and only symbol + 1 space is replaced", () => {
+      expect(tokenizeLine("#  task")).toEqual([{ kind: "action", from: 0, to: 2, symbol: "#", replaced: true }]);
+      expect(tokenizeLine("#task")).toEqual([]);
+    });
+
+    it("supports multiple spaces after => before consequence symbol or @name", () => {
+      expect(tokenizeLine("a =>  # call")).toEqual([
+        { kind: "arrow", from: 2, to: 5, replaced: true },
+        { kind: "consequence", from: 6, to: 8, symbol: "#", replaced: true },
+      ]);
+      expect(tokenizeLine("a =>  o topic")).toEqual([
+        { kind: "arrow", from: 2, to: 5, replaced: true },
+        { kind: "consequenceTopic", from: 6, to: 8, symbol: "o", replaced: true },
+      ]);
+      expect(tokenizeLine("a =>   @dana")).toEqual([
+        { kind: "arrow", from: 2, to: 5, replaced: true },
+        { kind: "assignee", from: 7, to: 12, replaced: false },
+      ]);
+      expect(getLineActionParts("a =>  # call", tokenizeLine("a =>  # call"))).toEqual([
+        { from: 2, to: 12, isAction: true, state: "#", delegated: false },
+      ]);
+      expect(getLineActionParts("=>  # call", tokenizeLine("=>  # call"))).toEqual([
+        { from: 0, to: 10, isAction: true, state: "#", delegated: false },
+      ]);
+    });
+
+    it("applies the same topicTag rule at line start and after =>  and never emits topicTag without its action", () => {
+      const lead = tokenizeLine("#  (bug) fix");
+      const arrow = tokenizeLine("=>  #  (bug) fix");
+      expect(lead.find((t) => t.kind === "topicTag")).toEqual({ kind: "topicTag", from: 3, to: 8, replaced: false });
+      expect(arrow.find((t) => t.kind === "topicTag")).toEqual({ kind: "topicTag", from: 7, to: 12, replaced: false });
+      expect(kinds("=>  text (bug) fix")).toEqual(["arrow", "paren"]);
+      expect(kinds("\\#  (bug) fix")).toEqual(["escape", "paren"]);
+      expect(kinds("a \\=> # (bug) fix")).toEqual(["escape", "paren"]);
+    });
+  });
+
+  describe("Rule 2 (D7): backslash keeps a marker literal", () => {
+    it("escapes every leading marker (optionally indented) and suppresses actions/due dates", () => {
+      const cases = [
+        "\\# config",
+        "\\v done",
+        "\\> quote",
+        "\\x dropped",
+        "\\o topic",
+        "\\. discussed",
+        "\\, skipped",
+        "\\- item",
+        "\\* item",
+        "\\! note",
+        "\\1. not a list",
+        "\\=> not a follow-up",
+        "  \\# indented",
+        "\\# task by:tomorrow",
+      ];
+      for (const line of cases) {
+        const indentLen = line.length - line.trimStart().length;
+        expect(tokenizeLine(line), line).toEqual([{ kind: "escape", from: indentLen, to: indentLen + 1, replaced: false }]);
+        expect(getLineActionParts(line, tokenizeLine(line)), line).toEqual([]);
+      }
+    });
+
+    it("mid-line \\=> keeps arrow and follow-up literal", () => {
+      const line = "a \\=> b";
+      expect(tokenizeLine(line)).toEqual([{ kind: "escape", from: 2, to: 3, replaced: false }]);
+      expect(getLineActionParts(line, tokenizeLine(line))).toEqual([]);
+
+      const withConseq = "a \\=> # call by:tomorrow";
+      expect(tokenizeLine(withConseq)).toEqual([{ kind: "escape", from: 2, to: 3, replaced: false }]);
+      expect(getLineActionParts(withConseq, tokenizeLine(withConseq))).toEqual([]);
+
+      const onAction = "# parent \\=> # child";
+      expect(tokenizeLine(onAction)).toEqual([
+        { kind: "action", from: 0, to: 2, symbol: "#", replaced: true },
+        { kind: "escape", from: 9, to: 10, replaced: false },
+      ]);
+      expect(getLineActionParts(onAction, tokenizeLine(onAction))).toEqual([
+        { from: 0, to: onAction.length, isAction: true, state: "#", delegated: false },
+      ]);
+    });
   });
 });

@@ -1,4 +1,4 @@
-import { columnOf, getLineActionParts, tokenizeNoteLine } from "./grammar/tokenize";
+import { columnOf, getLineActionParts, tokenAfterArrow, tokenizeNoteLine } from "./grammar/tokenize";
 
 export type ActionState = "#" | "v" | ">" | "x";
 
@@ -56,16 +56,11 @@ export function actionTree(lines: string[]): ActionNode[] {
     let isArrowLine = false;
 
     if (lineStart !== -1) {
+      const arrowNext = tokens[0]?.kind === "arrow" && tokens[0].from === lineStart ? tokenAfterArrow(line, tokens, 0) : undefined;
       if (tokens[0]?.kind === "action") {
         isGroupLine = true;
         isActionLine = true;
-      } else if (
-        tokens[0]?.kind === "arrow" &&
-        tokens[0].from === lineStart &&
-        tokens[1] !== undefined &&
-        tokens[1].from === tokens[0].to &&
-        (tokens[1].kind === "consequence" || tokens[1].kind === "assignee")
-      ) {
+      } else if (arrowNext && (arrowNext.kind === "consequence" || arrowNext.kind === "assignee")) {
         isGroupLine = true;
         isArrowLine = true;
       }
@@ -118,10 +113,11 @@ export function actionTree(lines: string[]): ActionNode[] {
 
     const ownPart = actionParts[0];
     let symbolCol: number | null = null;
+    const arrowStepTok = isArrowLine ? tokenAfterArrow(line, tokens, 0) : undefined;
     if (isActionLine) {
       symbolCol = tokens[0].from;
-    } else if (isArrowLine && tokens[1]?.kind === "consequence") {
-      symbolCol = tokens[1].from;
+    } else if (arrowStepTok?.kind === "consequence") {
+      symbolCol = arrowStepTok.from;
     }
 
     const lineNode: ActionNode = {
@@ -142,8 +138,8 @@ export function actionTree(lines: string[]): ActionNode[] {
     const steps: ActionNode[] = [];
     for (let sIdx = 1; sIdx < actionParts.length; sIdx++) {
       const stepPart = actionParts[sIdx];
-      const arrowTok = tokens.find((t) => t.kind === "arrow" && t.from === stepPart.from);
-      const nextTok = arrowTok ? tokens.find((t) => t.from === arrowTok.to) : undefined;
+      const arrowIdx = tokens.findIndex((t) => t.kind === "arrow" && t.from === stepPart.from);
+      const nextTok = arrowIdx !== -1 ? tokenAfterArrow(line, tokens, arrowIdx) : undefined;
       const stepSymbolCol = nextTok?.kind === "consequence" ? nextTok.from : null;
 
       steps.push({

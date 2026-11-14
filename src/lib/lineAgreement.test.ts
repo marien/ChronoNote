@@ -43,6 +43,27 @@ function generateLines(): CaseSpec[] {
     { line: "", nextLine: "---" },
     { line: "---", nextLine: "===" },
     { line: "===", nextLine: "---" },
+    // Double spaces after markers (Rule 1 / D6)
+    { line: "#  task", nextLine: undefined },
+    { line: "=>  # call", nextLine: undefined },
+    { line: "a =>  # call", nextLine: undefined },
+    { line: "a =>  @alice", nextLine: undefined },
+    { line: "=>  #  (topic) fix", nextLine: undefined },
+    { line: "#  (topic) fix", nextLine: undefined },
+    // Backslash escapes (Rule 2 / D7)
+    { line: "\\# config", nextLine: undefined },
+    { line: "  \\# indented", nextLine: undefined },
+    { line: "\\v done", nextLine: undefined },
+    { line: "\\> quote", nextLine: undefined },
+    { line: "\\x drop", nextLine: undefined },
+    { line: "\\o topic", nextLine: undefined },
+    { line: "\\- item", nextLine: undefined },
+    { line: "\\* item", nextLine: undefined },
+    { line: "\\! note", nextLine: undefined },
+    { line: "\\1. not a list", nextLine: undefined },
+    { line: "\\=> not a follow-up", nextLine: undefined },
+    { line: "a \\=> b", nextLine: undefined },
+    { line: "a \\=> # literal", nextLine: undefined },
   ];
 
   let idx = 0;
@@ -124,7 +145,14 @@ describe("cross-view line model agreement", () => {
         expect(roParts).toEqual([{ cls: "", text: line }]);
       } else {
         const roGlyphs = roParts.filter((p) =>
-          p.cls.split(" ").some((c) => c.startsWith("glyph-") && c !== "glyph-emphasis-line" && c !== "glyph-assignee" && c !== "glyph-topic"),
+          p.cls.split(" ").some(
+            (c) =>
+              c.startsWith("glyph-") &&
+              c !== "glyph-emphasis-line" &&
+              c !== "glyph-assignee" &&
+              c !== "glyph-topic" &&
+              c !== "glyph-escape",
+          ),
         );
         expect(roGlyphs.length, `read-only glyph count for ${JSON.stringify(doc)}`).toBe(widgetClasses.length);
       }
@@ -180,7 +208,7 @@ describe("cross-view line model agreement", () => {
         expect(md.split("\n")[0]).toBe(`## ${line.trim()}`);
         expect(html).toContain(`<h2>${escapeHtml(line.trim())}</h2>`);
       } else {
-        expect(md).not.toMatch(/=> [#vx>o.,]\s/);
+        expect(md).not.toMatch(/(?<!\\)=> [#vx>o.,]\s/);
         expect(md).not.toMatch(/- \[[ x]\] - /);
         expect(html).not.toMatch(/➔ [#vx>o.,]\s/);
         if (tokens.some((t) => (t.kind === "action" || t.kind === "consequence") && t.symbol === ">")) {

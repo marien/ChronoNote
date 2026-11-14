@@ -17,7 +17,8 @@ export type TokenKind =
   | "paren" // any other `(word)`: recognised (and consumed) but not decorated
   | "due" // by: followed by a valid calendar date YYYY-MM-DD
   | "dueWord" // by: followed by non-space chars not a valid ISO date
-  | "forwardLink"; // (>YYYY-MM-DD#Section) or (<YYYY-MM-DD#Section)
+  | "forwardLink" // (>YYYY-MM-DD#Section) or (<YYYY-MM-DD#Section)
+  | "escape"; // leading \ escaping a marker, or \ before =>
 
 export interface Token {
   kind: TokenKind;
@@ -94,7 +95,16 @@ export function isValidCalendarDate(year: number, month: number, day: number): b
   return d.getUTCFullYear() === year && d.getUTCMonth() === month - 1 && d.getUTCDate() === day;
 }
 
-export function getLineActionParts(line: string, tokens: Token[]): ActionPart[] {
+/** Returns the token immediately after `arrow` (`tokens[arrowIndex]`) when only whitespace separates them,
+ * or `undefined` when followed by plain text or end of line. Assumes `tokens` is sorted by `from`. */
+export function tokenAfterArrow(line: string, tokens: readonly Token[], arrowIndex: number): Token | undefined {
+  const arrow = tokens[arrowIndex];
+  const next = tokens[arrowIndex + 1];
+  if (!arrow || !next || next.from < arrow.to) return undefined;
+  return line.slice(arrow.to, next.from).trim() === "" ? next : undefined;
+}
+
+export function getLineActionParts(line: string, tokens: readonly Token[]): ActionPart[] {
   interface Part {
     from: number;
     to: number;
@@ -117,8 +127,8 @@ export function getLineActionParts(line: string, tokens: Token[]): ActionPart[] 
   for (let i = 0; i < tokens.length; i++) {
     const t = tokens[i];
     if (t.kind !== "arrow") continue;
-    const next = tokens[i + 1];
-    if (!next || next.from !== t.to) continue;
+    const next = tokenAfterArrow(line, tokens, i);
+    if (!next) continue;
 
     if (next.kind === "consequence") {
       parts[parts.length - 1].to = t.from;
@@ -157,18 +167,19 @@ export function getLineActionParts(line: string, tokens: Token[]): ActionPart[] 
 
 /** Same pattern as `leadingTopicTag` in tokens.ts, kept here so the grammar has no
  * dependency on it. `(@name)` is a delegate, not a topic. */
-const TOPIC_TAG = new RegExp(
-  String.raw`^(\s*(?:${ACTION_CLASS}|${TOPIC_CLASS})\s+|.*?=>\s+(?:${ACTION_CLASS}|${TOPIC_CLASS})\s+)(\((?!@)[^\s()]+\))`,
-);
-
 const LINE_START = new RegExp(String.raw`^(\s*)(?:(${ACTION_CLASS})|(${TOPIC_CLASS})|(${BULLET_CLASS}))\s`);
+
+const LEADING_ESCAPE = new RegExp(
+  String.raw`^(\s*)\\(?:(?:${ACTION_CLASS}|${TOPIC_CLASS}|${BULLET_CLASS}|!|=>)\s|[1-9]\d{0,8}(?:\.[1-9]\d{0,8})*[.)]\s)`,
+);
 
 const BULLET_AFTER_STATE = new RegExp(String.raw`^(${BULLET_CLASS})\s`);
 
-// Alternatives in the editor's order: `=> @name`, `=> <symbol> `, `=> <topic> `, `=> `, bare `@name` (not glued to a
-// word, `@` or `/`; also each name in `(@a, @b)`, which has no meaning of its own), `(word)` (never `(@…)`).
+// Alternatives in the editor's order: `\=> ` (escaped arrow), `=> @name`, `=> <symbol> `, `=> <topic> `, `=> `,
+// bare `@name` (not glued to a word, `@` or `/`; also each name in `(@a, @b)`, which has no meaning of its own),
+// `(word)` (never `(@…)`). Spaces between `=>` and its symbol or `@name` stay in the text; each marker stays symbol + 1 space.
 const INLINE = new RegExp(
-  String.raw`=>\s@(${NAME_CHAR}+)|=>\s(${ACTION_CLASS})\s|=>\s(${TOPIC_CLASS})\s|=>\s|(?<!${NAME_GLUE})@(${NAME_CHAR}+)|\((?!@)([^\s()]+)\)`,
+  String.raw`\\=>\s|=>\s+@(${NAME_CHAR}+)|=>\s+(${ACTION_CLASS})\s|=>\s+(${TOPIC_CLASS})\s|=>\s|(?<!${NAME_GLUE})@(${NAME_CHAR}+)|\((?!@)([^\s()]+)\)`,
   "gu",
 );
 
@@ -188,46 +199,53 @@ export function tokenizeLine(line: string, options?: TokenizeOptions): Token[] {
   const tokens: Token[] = [];
   let scanFrom = 0;
 
-  const emphasisLead = /^(\s*)!\s/.exec(line);
-  if (emphasisLead) {
-    const indent = emphasisLead[1].length;
-    // The editor marks from the `!`; its inline tokens are still found after the `! `.
-    tokens.push({ kind: "emphasis", from: indent, to: line.length, symbol: "!", replaced: false });
-    scanFrom = pushBulletAfterEmphasis(tokens, line, indent + 2);
+  const leadingEscape = line.includes("\\") ? LEADING_ESCAPE.exec(line) : null;
+  if (leadingEscape) {
+    const indent = leadingEscape[1].length;
+    tokens.push({ kind: "escape", from: indent, to: indent + 1, replaced: false });
+    scanFrom = leadingEscape[0].length;
   } else {
-    const lead = LINE_START.exec(line);
-    if (lead) {
-      const [full, indent, action, topic, bullet] = lead;
-      const symbol = action ?? topic ?? bullet;
-      tokens.push({
-        kind: action ? "action" : topic ? "topic" : "bullet",
-        from: indent.length,
-        to: full.length,
-        symbol,
-        replaced: true,
-      });
-      scanFrom = full.length;
+    const emphasisLead = /^(\s*)!\s/.exec(line);
+    if (emphasisLead) {
+      const indent = emphasisLead[1].length;
+      // The editor marks from the `!`; its inline tokens are still found after the `! `.
+      tokens.push({ kind: "emphasis", from: indent, to: line.length, symbol: "!", replaced: false });
+      scanFrom = pushBulletAfterEmphasis(tokens, line, indent + 2);
+    } else {
+      const lead = LINE_START.exec(line);
+      if (lead) {
+        const [full, indent, action, topic, bullet] = lead;
+        const symbol = action ?? topic ?? bullet;
+        tokens.push({
+          kind: action ? "action" : topic ? "topic" : "bullet",
+          from: indent.length,
+          to: full.length,
+          symbol,
+          replaced: true,
+        });
+        scanFrom = full.length;
 
-      if (action || topic) {
-        const bulletFollow = BULLET_AFTER_STATE.exec(line.slice(scanFrom));
-        if (bulletFollow) {
-          tokens.push({
-            kind: "bullet",
-            from: scanFrom,
-            to: scanFrom + bulletFollow[0].length,
-            symbol: bulletFollow[1],
-            replaced: true,
-          });
-          scanFrom += bulletFollow[0].length;
-        } else if (/^!\s/.test(line.slice(scanFrom))) {
-          tokens.push({
-            kind: "emphasis",
-            from: scanFrom,
-            to: line.length,
-            symbol: "!",
-            replaced: false,
-          });
-          scanFrom = pushBulletAfterEmphasis(tokens, line, scanFrom + 2);
+        if (action || topic) {
+          const bulletFollow = BULLET_AFTER_STATE.exec(line.slice(scanFrom));
+          if (bulletFollow) {
+            tokens.push({
+              kind: "bullet",
+              from: scanFrom,
+              to: scanFrom + bulletFollow[0].length,
+              symbol: bulletFollow[1],
+              replaced: true,
+            });
+            scanFrom += bulletFollow[0].length;
+          } else if (/^!\s/.test(line.slice(scanFrom))) {
+            tokens.push({
+              kind: "emphasis",
+              from: scanFrom,
+              to: line.length,
+              symbol: "!",
+              replaced: false,
+            });
+            scanFrom = pushBulletAfterEmphasis(tokens, line, scanFrom + 2);
+          }
         }
       }
     }
@@ -253,35 +271,53 @@ export function tokenizeLine(line: string, options?: TokenizeOptions): Token[] {
     }
   }
 
-  const tagFrom = TOPIC_TAG.exec(line)?.[1].length ?? -1;
-  INLINE.lastIndex = scanFrom;
-  let m: RegExpExecArray | null;
-  while ((m = INLINE.exec(line)) !== null) {
-    const from = m.index;
-    const to = from + m[0].length;
-    if (fwdLinks.some((f) => from < f.to && to > f.from)) {
-      continue;
-    }
-    if (m[1] !== undefined) {
-      tokens.push({ kind: "arrow", from, to: from + 3, replaced: true });
-      tokens.push({ kind: "assignee", from: from + 3, to, replaced: false });
-    } else if (m[2] !== undefined) {
-      tokens.push({ kind: "arrow", from, to: from + 3, replaced: true });
-      tokens.push({ kind: "consequence", from: from + 3, to, symbol: m[2], replaced: true });
-    } else if (m[3] !== undefined) {
-      tokens.push({ kind: "arrow", from, to: from + 3, replaced: true });
-      tokens.push({ kind: "consequenceTopic", from: from + 3, to, symbol: m[3], replaced: true });
-    } else if (m[0].startsWith("=>")) {
-      tokens.push({ kind: "arrow", from, to, replaced: true });
-    } else if (m[4] !== undefined) {
-      tokens.push({ kind: "assignee", from, to, replaced: false });
-    } else {
-      tokens.push({ kind: from === tagFrom ? "topicTag" : "paren", from, to, replaced: false });
+  let hasTopicTag = false;
+  if (line.includes("=>") || line.includes("@") || line.includes("(")) {
+    INLINE.lastIndex = scanFrom;
+    let m: RegExpExecArray | null;
+    while ((m = INLINE.exec(line)) !== null) {
+      const from = m.index;
+      const to = from + m[0].length;
+      if (fwdLinks.some((f) => from < f.to && to > f.from)) {
+        continue;
+      }
+      if (m[0].startsWith("\\")) {
+        tokens.push({ kind: "escape", from, to: from + 1, replaced: false });
+      } else if (m[1] !== undefined) {
+        tokens.push({ kind: "arrow", from, to: from + 3, replaced: true });
+        const symFrom = to - m[1].length - 1;
+        tokens.push({ kind: "assignee", from: symFrom, to, replaced: false });
+      } else if (m[2] !== undefined) {
+        tokens.push({ kind: "arrow", from, to: from + 3, replaced: true });
+        tokens.push({ kind: "consequence", from: to - 2, to, symbol: m[2], replaced: true });
+      } else if (m[3] !== undefined) {
+        tokens.push({ kind: "arrow", from, to: from + 3, replaced: true });
+        tokens.push({ kind: "consequenceTopic", from: to - 2, to, symbol: m[3], replaced: true });
+      } else if (m[0].startsWith("=>")) {
+        tokens.push({ kind: "arrow", from, to, replaced: true });
+      } else if (m[4] !== undefined) {
+        tokens.push({ kind: "assignee", from, to, replaced: false });
+      } else {
+        const isTag =
+          !hasTopicTag &&
+          tokens.some(
+            (t) =>
+              (t.kind === "action" || t.kind === "topic" || t.kind === "consequence" || t.kind === "consequenceTopic") &&
+              t.to <= from &&
+              line.slice(t.to, from).trim() === "",
+          );
+        if (isTag) hasTopicTag = true;
+        tokens.push({ kind: isTag ? "topicTag" : "paren", from, to, replaced: false });
+      }
     }
   }
 
-  tokens.push(...fwdLinks);
-  const actionParts = getLineActionParts(line, tokens);
+  if (fwdLinks.length > 0) {
+    tokens.push(...fwdLinks);
+    if (tokens.length > 1) tokens.sort((a, b) => a.from - b.from || a.to - b.to);
+  }
+  const actionParts = line.includes(":") ? getLineActionParts(line, tokens) : [];
+  let addedDue = false;
   if (actionParts.length > 0) {
     // Not glued to a word, and not inside a URL path or an address (`…/by:x`, `a.by:x`, `@by:x`).
     const DUE_RE = /(?<![\p{L}\p{N}_/.@:-])by:/giu;
@@ -332,14 +368,15 @@ export function tokenizeLine(line: string, options?: TokenizeOptions): Token[] {
             word: cleanWord,
           });
         }
-
+        addedDue = true;
         break;
       }
     }
-
   }
 
-  tokens.sort((a, b) => a.from - b.from || a.to - b.to);
+  if (addedDue && tokens.length > 1) {
+    tokens.sort((a, b) => a.from - b.from || a.to - b.to);
+  }
   return tokens;
 }
 
