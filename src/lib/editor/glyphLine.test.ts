@@ -286,5 +286,25 @@ describe("parseGlyphLine", () => {
       expect(parseGlyphLine("# Section", { title: true })).toEqual([{ text: "# Section" }]);
       expect(parseGlyphLine("! Heading => @alice", { title: true })).toEqual([{ text: "! Heading => @alice" }]);
     });
+
+    it("renders escaped backslashes as dimmed glyph-escape without replacing the marker", () => {
+      expect(parseGlyphLine("\\# config")).toEqual([
+        { text: "\\", cls: "glyph-escape" },
+        { text: "# config" },
+      ]);
+      expect(parseGlyphLine("a \\=> b")).toEqual([
+        { text: "a " },
+        { text: "\\", cls: "glyph-escape" },
+        { text: "=> b" },
+      ]);
+      expect(parseGlyphLine("=>  # call")).toEqual([
+        { text: "➔", cls: "glyph-followup" },
+        { text: " " },
+        { text: " " },
+        { text: "☐", cls: "glyph-open" },
+        { text: " " },
+        { text: "call" },
+      ]);
+    });
   });
 });

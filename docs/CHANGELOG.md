@@ -12177,3 +12177,32 @@ independent tests written from the same file by a second Hydrogen run (`tests/e2
 in my behaviour file (a due date only belongs to an action, so `! urgent by:date` has no due flag in any view; the
 action menu has always listed all four states, Open included) and to three that drove the editor wrongly (Enter on an
 action line continues it, so `===` typed after it was `# ===`).
+
+## 469. Editing review, batch 4: tokenizer edges, pasting and dropping
+
+**Status: on main, not released yet.**
+
+Batch 4, the last fix batch of the editor review (`docs/design/editor-review.html`, approved 2026-11-14):
+
+1. **Decision D6, one space after a marker** (ER1-A10): the marker is the symbol plus one space everywhere; extra
+   spaces are text. `=>  # call` with two spaces is a follow-up action like `=> # call`, and `=>  #  (bug)` no longer
+   gets a topic tag without its action (the tag follows the same rule as at the line start).
+2. **Decision D7, backslash escape:** `\# config` (and every other leading marker, and `\=>`) stays plain text; the
+   backslash is drawn dimmed and stays in the file. A new `escape` token in the tokenizer.
+3. **Links** (ER1-A5, A9): a date inside a URL no longer cuts the URL link in three; a forward link to
+   `Sync (Part 1)` keeps its whole section name (balanced parentheses).
+4. **Decision D10:** an impossible due date (`by:2026-02-30`, `by:fridy`) has a wavy underline and "Not a date", and
+   is not counted as due.
+5. **Outside changes** (ER3-11): the minimal edit never splits an emoji's surrogate pair; on large notes the caret
+   and scroll stay put.
+6. **Pasting lists from other apps** (ER3-5..9): a leading non-breaking space, a checkbox sub-list under a numbered
+   item, `<pre>` in an item, Google Docs nesting levels, a Word list without its hidden marker span.
+7. **Decision D9, drag and drop:** a drop goes through the paste rules (state first, due words, empty-marker merge,
+   renumbering, HTML lists); moving text within the note is one undo step.
+
+Built by Gemini 4 Hydrogen from a behaviour file (`agent-tools/briefs/b4-behaviour.md`, outside the repo);
+independent tests from the same file by a second Hydrogen run (`tests/e2e/editor-batch4.independent.spec.ts`, 31
+tests, plus `*.b4.independent.test.ts`): all passed against the change except one, whose helper clicked the middle of
+the editor and so moved the caret it was checking (fixed here). Reviewed here. Left from the review's decisions: D4
+(list keys behind a state symbol, needs a design for `# 1.` items) and D11 (word moves around glyphs, written with
+the test plan).

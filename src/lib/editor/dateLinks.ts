@@ -1,8 +1,8 @@
+import { RangeSetBuilder } from "@codemirror/state";
 import {
   Decoration,
   type DecorationSet,
   type EditorView,
-  MatchDecorator,
   ViewPlugin,
   type ViewUpdate,
 } from "@codemirror/view";
@@ -10,61 +10,91 @@ import { isMac } from "../platform";
 import { isMobile } from "../controller";
 import { get } from "svelte/store";
 import { isValidCalendarDate, openDateLink } from "../dateLinks";
-import { isTitleLine } from "../grammar/tokenize";
+import { findBalancedParenEnd, isTitleLine } from "../grammar/tokenize";
+import { urlRangesInLine } from "./clickableLinks";
 import { locale, t } from "../i18n";
 
-export const DATE_LINK_REGEX =
-  /(?<=\([<>]?)\d{4}-\d{2}-\d{2}(?:#[^)\r\n]+)?(?=\))|(?<![a-zA-Z0-9])\d{4}-\d{2}-\d{2}(?![a-zA-Z0-9])/g;
+const DATE_START_RE = /(?<=\([<>]?)\d{4}-\d{2}-\d{2}|(?<![a-zA-Z0-9])\d{4}-\d{2}-\d{2}(?![a-zA-Z0-9])/g;
 
-const dateLinkMatcher = new MatchDecorator({
-  regexp: DATE_LINK_REGEX,
-  decorate(add, from, _to, match, view) {
-    const matchedText = match[0];
-    const dateStr = matchedText.slice(0, 10);
-    const parts = dateStr.split("-").map((p) => parseInt(p, 10));
-    if (parts.length !== 3 || !isValidCalendarDate(parts[0], parts[1], parts[2])) {
-      return;
-    }
+function buildDateLinkDecorations(view: EditorView): DecorationSet {
+  const b = new RangeSetBuilder<Decoration>();
+  const title = isMac && get(locale) === "en" ? "Cmd+Click to open this day" : get(t)("editor.dateLink.title");
+  let lastLine = -1;
 
-    const line = view.state.doc.lineAt(from);
-    if (line.number < view.state.doc.lines) {
-      const nextLine = view.state.doc.line(line.number + 1);
-      if (isTitleLine(line.text, nextLine.text)) {
-        return;
+  for (const vr of view.visibleRanges) {
+    let pos = vr.from;
+    while (pos <= vr.to) {
+      const line = view.state.doc.lineAt(pos);
+      pos = line.to + 1;
+      if (line.number <= lastLine) continue;
+      lastLine = line.number;
+
+      const text = line.text;
+      if (line.number < view.state.doc.lines) {
+        const nextLine = view.state.doc.line(line.number + 1);
+        if (isTitleLine(text, nextLine.text)) continue;
+      }
+
+      const urls = urlRangesInLine(text);
+      DATE_START_RE.lastIndex = 0;
+      let match: RegExpExecArray | null;
+      while ((match = DATE_START_RE.exec(text)) !== null) {
+        const start = match.index;
+        const dateStr = match[0];
+        const parts = dateStr.split("-").map((p) => parseInt(p, 10));
+        if (parts.length !== 3 || !isValidCalendarDate(parts[0], parts[1], parts[2])) continue;
+
+        const prev1 = start > 0 ? text[start - 1] : "";
+        const prev2 = start > 1 ? text[start - 2] : "";
+        const openIdx = prev1 === "(" ? start - 1 : (prev1 === "<" || prev1 === ">") && prev2 === "(" ? start - 2 : -1;
+
+        let end = start + 10;
+        let bracketed = false;
+        if (openIdx !== -1) {
+          const closeIdx = findBalancedParenEnd(text, openIdx);
+          if (closeIdx === end || (closeIdx > end + 1 && text[end] === "#")) {
+            end = closeIdx;
+            bracketed = true;
+          } else if (end < text.length && /[a-zA-Z0-9]/.test(text[end])) {
+            continue;
+          }
+        }
+
+        if (urls.some(([uFrom, uTo]) => start < uTo && end > uFrom)) {
+          DATE_START_RE.lastIndex = Math.max(DATE_START_RE.lastIndex, end);
+          continue;
+        }
+
+        const matchedText = text.slice(start, end);
+        const dateTarget = bracketed ? `(${matchedText})` : matchedText;
+        b.add(
+          line.from + start,
+          line.from + end,
+          Decoration.mark({
+            class: "cm-link cm-date-link",
+            attributes: {
+              "data-date-target": dateTarget,
+              title,
+            },
+          }),
+        );
+        DATE_START_RE.lastIndex = Math.max(DATE_START_RE.lastIndex, end);
       }
     }
-
-    const title =
-      isMac && get(locale) === "en" ? "Cmd+Click to open this day" : get(t)("editor.dateLink.title");
-
-    const prevChar = from > 0 ? view.state.doc.sliceString(from - 1, from) : "";
-    const isBracketed = prevChar === "(" || prevChar === "<" || prevChar === ">";
-    const dateTarget = isBracketed ? `(${matchedText})` : matchedText;
-
-    add(
-      from,
-      from + matchedText.length,
-      Decoration.mark({
-        class: "cm-link cm-date-link",
-        attributes: {
-          "data-date-target": dateTarget,
-          title,
-        },
-      }),
-    );
-  },
-});
+  }
+  return b.finish();
+}
 
 export const dateLinksPlugin = ViewPlugin.fromClass(
   class {
     decorations: DecorationSet;
     constructor(view: EditorView) {
-      this.decorations = dateLinkMatcher.createDeco(view);
+      this.decorations = buildDateLinkDecorations(view);
     }
     update(update: ViewUpdate) {
-      this.decorations = update.docChanged
-        ? dateLinkMatcher.createDeco(update.view)
-        : dateLinkMatcher.updateDeco(update, this.decorations);
+      if (update.docChanged || update.viewportChanged) {
+        this.decorations = buildDateLinkDecorations(update.view);
+      }
     }
   },
   {

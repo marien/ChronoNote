@@ -91,6 +91,7 @@ function formatMarkdownEmphasized(body: string): string {
 function renderHtmlInline(line: string, from: number, tokens: Token[]): string {
   const parts: string[] = [];
   let pos = from;
+  let chunk = "";
   // A deferred consequence's ` (deferred)` goes after its own text, i.e. before the next arrow or at the end,
   // so the export reads right without styles (as Markdown's `*(deferred)*`).
   let pendingDeferred = false;
@@ -102,10 +103,18 @@ function renderHtmlInline(line: string, from: number, tokens: Token[]): string {
 
   for (const t of tokens) {
     if (t.from < from) continue;
+    if (t.kind === "escape") {
+      // HTML/Print export drops literal escape backslashes so `\# config` shows `# config`.
+      chunk += line.slice(pos, t.from);
+      pos = t.to;
+      continue;
+    }
     if (t.kind !== "arrow" && t.kind !== "consequence" && t.kind !== "consequenceTopic") continue;
 
-    if (t.from > pos || (pendingDeferred && t.kind === "arrow")) {
-      pushText(line.slice(pos, t.from));
+    chunk += line.slice(pos, t.from);
+    if (chunk || (pendingDeferred && t.kind === "arrow")) {
+      pushText(chunk);
+      chunk = "";
     }
     if (t.kind === "arrow") {
       parts.push(`${ARROW_GLYPH.char} `);
@@ -118,8 +127,9 @@ function renderHtmlInline(line: string, from: number, tokens: Token[]): string {
     pos = t.to;
   }
 
-  if (pos < line.length || pendingDeferred) {
-    pushText(line.slice(pos));
+  chunk += line.slice(pos);
+  if (chunk || pendingDeferred) {
+    pushText(chunk);
   }
   return parts.join("");
 }

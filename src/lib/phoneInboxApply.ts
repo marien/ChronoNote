@@ -1,7 +1,7 @@
 /** Phone companion, phase 2: the pure part of applying `.chrononote-mobile/inbox.json` requests to notes: parsing and
  * validating the file, and rewriting one note's text for a request. No stores, no API. Format:
  * `docs/phone-companion-file-guide.md` (section 3); rules: spec section 6.7. */
-import { isValidCalendarDate, tokenizeLine } from "./grammar/tokenize";
+import { isValidCalendarDate, tokenAfterArrow, tokenizeLine } from "./grammar/tokenize";
 import { underlineFor } from "./sectionFormat";
 import {
   isSetextUnderline,
@@ -206,12 +206,11 @@ function stateSymbolOf(line: string): { index: number; sym: string; kind: Kind }
   if (first.kind === "action" || first.kind === "topic") {
     return { index: first.from, sym: first.symbol!, kind: first.kind };
   }
-  const next = tokens[1];
+  const next = tokenAfterArrow(line, tokens, 0);
   if (
     first.kind === "arrow" &&
     line.slice(0, first.from).trim() === "" &&
     next &&
-    next.from === first.to &&
     (next.kind === "consequence" || next.kind === "consequenceTopic") &&
     line[next.from] === next.symbol
   ) {

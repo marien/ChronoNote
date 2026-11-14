@@ -145,6 +145,9 @@ export function parseGlyphLine(line: string, opts?: ParseGlyphLineOpts): GlyphPa
       case "assignee":
         parts.push({ text: line.slice(t.from, t.to), cls: "glyph-assignee" });
         break;
+      case "escape":
+        parts.push({ text: "\\", cls: "glyph-escape" });
+        break;
       case "topicTag":
         // As in the editor when the caret is elsewhere: the parentheses stay as text, transparent (§426).
         parts.push({

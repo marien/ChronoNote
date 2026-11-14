@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it } from "vitest";
 import { createTestEditor, type TestEditor } from "../testing/testEditor";
+import { liveGlyphs } from "./glyphs";
 
 const editors: TestEditor[] = [];
 
@@ -349,5 +350,48 @@ describe("editing table: Tab, Shift-Tab & Backspace", () => {
       key: "Backspace",
       expected: "\t|item",
     },
+    {
+      label: "Backspace right after leading escape backslash reveals marker",
+      input: "\\|# config",
+      key: "Backspace",
+      expected: "|# config",
+    },
+    {
+      label: "Backspace right after indented escape backslash reveals marker",
+      input: "  \\|# config",
+      key: "Backspace",
+      expected: "  |# config",
+    },
+    {
+      label: "Backspace right after \\1. escape backslash reveals numbered list item",
+      input: "\\|1. now a list",
+      key: "Backspace",
+      expected: "|1. now a list",
+    },
+    {
+      label: "Backspace right after mid-line \\=> escape backslash reveals arrow",
+      input: "a \\|=> b",
+      key: "Backspace",
+      expected: "a |=> b",
+    },
   ]);
+
+  it("dims the escape backslash with glyph-escape and Backspace right after it reveals the live glyph", () => {
+    const ed = openEditor("\\|# config");
+    const hasClass = (cls: string): boolean => {
+      const decos = ed.view.plugin(liveGlyphs)!.decorations;
+      let found = false;
+      decos.between(0, ed.view.state.doc.length, (_f, _t, v) => {
+        if (v.spec.class === cls || v.spec.widget?.toDOM(ed.view).className.includes(cls)) found = true;
+      });
+      return found;
+    };
+    expect(hasClass("glyph-escape")).toBe(true);
+    expect(hasClass("glyph-open")).toBe(false);
+
+    ed.press("Backspace");
+    expect(ed.caret()).toBe("|# config");
+    expect(hasClass("glyph-escape")).toBe(false);
+    expect(hasClass("glyph-open")).toBe(true);
+  });
 });

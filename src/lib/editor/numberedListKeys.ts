@@ -562,7 +562,7 @@ export const numberedListRenumberFilter = EditorState.transactionFilter.of((tr) 
   if (!ev) return tr;
   const typing = ev === "input" || ev.startsWith("input.type") || ev.startsWith("input.complete");
   const isDelete = ev.startsWith("delete");
-  const isPasteOrDrop = ev === "input.paste" || ev === "input.drop";
+  const isPasteOrDrop = ev === "input.paste" || ev === "input.drop" || ev === "move.drop";
   if (!(typing || isDelete || ev === "move.line" || isPasteOrDrop)) return tr;
 
   const oldDoc = tr.startState.doc;

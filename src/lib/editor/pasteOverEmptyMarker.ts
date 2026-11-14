@@ -1,4 +1,4 @@
-import { EditorState } from "@codemirror/state";
+import { EditorState, Transaction } from "@codemirror/state";
 import { get } from "svelte/store";
 import { hasOpenAction } from "../grammar/tokenize";
 import { ACTION_CLASS, BULLET_CLASS, TOPIC_CLASS } from "../grammar/symbols";
@@ -66,32 +66,40 @@ export function mergePasteOverEmptyMarker(
 }
 
 export const pasteOverEmptyMarker = EditorState.transactionFilter.of((tr) => {
-  if (!tr.isUserEvent("input.paste") || !tr.docChanged) return tr;
-  const fromSuffixes = takePendingPasteFrom() ?? undefined;
-  // One entry per change; a paste into several cursors is left alone.
-  const specs: ({ from: number; to: number; insert: string } | null)[] = [];
+  const isPasteOrDrop = tr.isUserEvent("input.paste") || tr.isUserEvent("input.drop") || tr.isUserEvent("move.drop");
+  if (!isPasteOrDrop || !tr.docChanged) return tr;
+  const fromSuffixes = tr.isUserEvent("input.paste") ? (takePendingPasteFrom() ?? undefined) : undefined;
+  const doc = tr.startState.doc;
+  const hunks: { from: number; to: number; insert: string; isInsert: boolean }[] = [];
   tr.changes.iterChanges((fromA, toA, _fromB, _toB, inserted) => {
-    const doc = tr.startState.doc;
-    const line = doc.lineAt(fromA);
-    const raw = inserted.toString();
-    const merged =
-      doc.lineAt(toA).number === line.number
-        ? mergePasteOverEmptyMarker(doc.sliceString(line.from, fromA), doc.sliceString(toA, line.to), raw, fromSuffixes)
-        : null;
-    if (merged) {
-      specs.push({ from: fromA - merged.deleteBefore, to: toA, insert: merged.insert });
-    } else {
-      const rewritten = rewritePasted(raw, fromSuffixes);
-      if (rewritten !== raw) {
-        specs.push({ from: fromA, to: toA, insert: rewritten });
-      } else {
-        specs.push(null);
-      }
-    }
+    hunks.push({ from: fromA, to: toA, insert: inserted.toString(), isInsert: inserted.length > 0 });
   });
-  const spec = specs.length === 1 ? specs[0] : null;
-  if (!spec) return tr;
-  const { from, to, insert } = spec;
-  if (fromSuffixes) updatePasteDeferPastedBlock(insert);
-  return { changes: { from, to, insert }, selection: { anchor: from + insert.length }, userEvent: "input.paste", scrollIntoView: true };
+  const insertHunks = hunks.filter((h) => h.isInsert);
+  if (insertHunks.length !== 1) return tr;
+  if (!tr.isUserEvent("move.drop") && hunks.length !== 1) return tr;
+
+  const ins = insertHunks[0]!;
+  const line = doc.lineAt(ins.from);
+  const delTouchedBeforeOnLine = hunks.some((h) => !h.isInsert && h.to > line.from && h.from < ins.from);
+  const merged =
+    !delTouchedBeforeOnLine && doc.lineAt(ins.to).number === line.number
+      ? mergePasteOverEmptyMarker(doc.sliceString(line.from, ins.from), doc.sliceString(ins.to, line.to), ins.insert, fromSuffixes)
+      : null;
+
+  let rewrittenIns: { from: number; to: number; insert: string } | null = null;
+  if (merged) {
+    rewrittenIns = { from: ins.from - merged.deleteBefore, to: ins.to, insert: merged.insert };
+  } else {
+    const rewritten = rewritePasted(ins.insert, fromSuffixes);
+    if (rewritten !== ins.insert) {
+      rewrittenIns = { from: ins.from, to: ins.to, insert: rewritten };
+    }
+  }
+  if (!rewrittenIns) return tr;
+
+  const changes = hunks.map((h) => (h.isInsert ? rewrittenIns! : { from: h.from, to: h.to, insert: h.insert }));
+  if (fromSuffixes) updatePasteDeferPastedBlock(rewrittenIns.insert);
+  const cs = tr.startState.changes(changes);
+  const userEvent = tr.annotation(Transaction.userEvent) ?? "input.paste";
+  return { changes, selection: { anchor: cs.mapPos(rewrittenIns.to, 1) }, userEvent, scrollIntoView: true };
 });

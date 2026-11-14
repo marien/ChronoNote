@@ -2,6 +2,7 @@ import { EditorSelection, type ChangeSpec, type EditorState, type Line, type Sel
 import { EditorView } from "@codemirror/view";
 import { cursorLineBoundaryBackward, isolateHistory, selectLineBoundaryBackward } from "@codemirror/commands";
 import { lineStateAnnouncement } from "./glyphs";
+import { trimmed } from "./editorChanges";
 import { exitNumberedListSpec, moveEmptySubItemOutSpec, shiftTabCommand, tabCommand } from "./numberedListKeys";
 import { leadingMarkerCharEnd, leadingMarkerTextColumn } from "./wrapIndent";
 import { isTitleLine, tokenizeLine } from "../grammar/tokenize";
@@ -107,15 +108,12 @@ interface LineEdit {
 
 function minimalLineEdit(line: Line, updated: string): LineEdit {
   const orig = line.text;
-  let p = 0;
-  while (p < orig.length && p < updated.length && orig[p] === updated[p]) p++;
-  let s = 0;
-  while (s < orig.length - p && s < updated.length - p && orig[orig.length - 1 - s] === updated[updated.length - 1 - s]) s++;
+  const diff = trimmed(orig, 0, orig.length, updated);
   return {
     line,
     orig,
     updated,
-    change: { from: line.from + p, to: line.to - s, insert: updated.slice(p, updated.length - s) },
+    change: diff ? { from: line.from + diff.from, to: line.from + diff.to, insert: diff.insert } : { from: line.from, to: line.from, insert: "" },
   };
 }
 

@@ -49,4 +49,66 @@ describe("editorChanges", () => {
     const inserted = apply(doc, caret, doc.replace("- one\n", "- one\n# new line\n").replace("- three", "x three"));
     expect(inserted.doc.slice(inserted.caret - 2, inserted.caret + 2)).toBe("book");
   });
+
+  it("never splits UTF-16 surrogate pairs on outside edits", () => {
+    const isHigh = (c: number) => c >= 0xd800 && c <= 0xdbff;
+    const isLow = (c: number) => c >= 0xdc00 && c <= 0xdfff;
+    const hasLoneSurrogate = (s: string) => {
+      if (s.includes("\uFFFD")) return true;
+      for (let i = 0; i < s.length; i++) {
+        const c = s.charCodeAt(i);
+        if (isHigh(c)) {
+          if (i + 1 >= s.length || !isLow(s.charCodeAt(i + 1))) return true;
+          i++;
+        } else if (isLow(c)) {
+          return true;
+        }
+      }
+      return false;
+    };
+    const isInsideSurrogatePair = (s: string, idx: number) =>
+      idx > 0 && idx < s.length && isHigh(s.charCodeAt(idx - 1)) && isLow(s.charCodeAt(idx));
+
+    const cases: [string, string][] = [
+      ["\uD83D\uDCC5 meeting", "\uD83D\uDCC6 meeting"],
+      ["\uD83D\uDCC5 meeting", "\uD83D\uDCC5! meeting"],
+      ["\uD83D\uDCC5", "\uD83D\uDCC5!"],
+      ["\uD83D\uDCC5", "\uD83D\uDCC6\uD83D\uDCC5"],
+      ["\uD83D\uDE00\uD83D\uDE00", "\uD83D\uDE00\uD83D\uDE03\uD83D\uDE00"],
+      ["\uD83D\uDCC5", "\uD83E\uDCC5"],
+      ["\uD83D\uDCC5\uD83D\uDCC6", "\uD83D\uDCC5"],
+      ["line 1\n\uD83D\uDCC5 sync @Dana\nline 3", "line 1\n\uD83D\uDCC6 sync @Dana\nline 3"],
+    ];
+
+    for (const [oldText, newText] of cases) {
+      const changes = editorChanges(oldText, newText);
+      expect(changes.length).toBeGreaterThan(0);
+      for (const c of changes) {
+        expect(isInsideSurrogatePair(oldText, c.from), `from inside surrogate for ${oldText} -> ${newText}`).toBe(false);
+        expect(isInsideSurrogatePair(oldText, c.to), `to inside surrogate for ${oldText} -> ${newText}`).toBe(false);
+        expect(hasLoneSurrogate(c.insert), `lone surrogate in insert for ${oldText} -> ${newText}`).toBe(false);
+      }
+      const after = apply(oldText, 0, newText);
+      expect(after.doc).toBe(newText);
+      expect(hasLoneSurrogate(after.doc)).toBe(false);
+    }
+  });
+
+  it("keeps caret on same text on a 5,000-line note with a 1-line edit far away", () => {
+    const lines = Array.from({ length: 5000 }, (_, i) => `item line ${i + 1}`);
+    const oldText = lines.join("\n");
+    const targetLine = "item line 4900";
+    const caret = oldText.indexOf(targetLine) + 5;
+    const edited = [...lines];
+    edited[9] = "item line 10 edited from phone";
+    const newText = edited.join("\n");
+
+    const changes = editorChanges(oldText, newText);
+    expect(changes).toHaveLength(1);
+    expect(changes[0]!.from).toBeLessThan(oldText.indexOf("item line 11"));
+
+    const after = apply(oldText, caret, newText);
+    expect(after.doc).toBe(newText);
+    expect(after.doc.slice(after.caret - 5, after.caret + targetLine.length - 5)).toBe(targetLine);
+  });
 });

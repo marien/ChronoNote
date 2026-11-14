@@ -10,15 +10,17 @@ import {
   ViewPlugin,
   type ViewUpdate,
 } from "@codemirror/view";
-import { columnOf, isTitleLine, isTitleUnderline, tokenizeLine } from "../grammar/tokenize";
+import { columnOf, isTitleLine, isTitleUnderline, tokenAfterArrow, tokenizeLine } from "../grammar/tokenize";
 import { parseNumberedItem } from "../tokens";
 
 /** Character offset in `lineText` right after any leading ChronoNote marker (`- `, `# `, `# ! - `, `o 1. `, `=> # `, etc.), or `null` when the line starts with plain/indented text. */
 export function leadingMarkerCharEnd(lineText: string): number | null {
-  const [first, second, third] = tokenizeLine(lineText);
+  const tokens = tokenizeLine(lineText);
+  const [first, second, third] = tokens;
   if (first?.kind === "arrow" && lineText.slice(0, first.from).trim() === "") {
-    if (second && (second.kind === "consequence" || second.kind === "consequenceTopic") && second.from === first.to) {
-      return second.to;
+    const after = tokenAfterArrow(lineText, tokens, 0);
+    if (after && (after.kind === "consequence" || after.kind === "consequenceTopic")) {
+      return after.to;
     }
     return first.to;
   }
