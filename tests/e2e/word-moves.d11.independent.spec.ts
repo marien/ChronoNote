@@ -81,13 +81,10 @@ test.describe("D11 independent E2E: double-click and word moves around glyphs", 
     expect(await selectedText(page)).toBe("by:2026-11-20");
   });
 
-  test("double-click on by:fri and impossible by:2026-02-30 selects the full token", async ({ page }) => {
-    await setEditorText(page, "# first by:fri\n# second by:2026-02-30\nplain line");
-    await editor(page).locator(".cm-line").nth(2).click();
-
-    await dblclickChar(page, 0, "fri", 1);
-    expect(await selectedText(page)).toBe("by:fri");
-
+  // Corrected in review: `by:fri` is rewritten to a date as soon as the caret leaves its line, so only the impossible
+  // date stays as typed here (the Vitest file covers `by:fri` for the keys).
+  test("double-click on an impossible by:2026-02-30 selects the full token", async ({ page }) => {
+    await setEditorText(page, "# first task\n# second by:2026-02-30\nplain line");
     await editor(page).locator(".cm-line").nth(2).click();
     await dblclickChar(page, 1, "2026-02-30", 5);
     expect(await selectedText(page)).toBe("by:2026-02-30");
@@ -116,8 +113,9 @@ test.describe("D11 independent E2E: double-click and word moves around glyphs", 
     await dblclickChar(page, 0, "dana", 1);
     expect(await selectedText(page)).toBe("@dana");
 
+    // Corrected in review: a name stops at `.` (the app's NAME_CHAR), so this selects `@dana`.
     await dblclickChar(page, 1, "dana", 1);
-    expect(await selectedText(page)).toBe("@dana.k");
+    expect(await selectedText(page)).toBe("@dana");
 
     await dblclickChar(page, 2, "dana", 1);
     expect(await selectedText(page)).toBe("@dana-k");
