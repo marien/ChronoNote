@@ -67,8 +67,6 @@ describe("editing table: Tab, Shift-Tab & Backspace", () => {
       ["follow-up =>", "=> follow"],
       ["consequence => #", "=> # action"],
       ["prose+consequence a => # b", "a => # b"],
-      ["action+numbered # 1.", "# 1. task"],
-      ["topic+numbered o 1.", "o 1. topic"],
     ];
     const rows: KeyCase[] = [];
     for (const [name, text] of lines) {
@@ -240,6 +238,73 @@ describe("editing table: Tab, Shift-Tab & Backspace", () => {
       key: "Shift-Tab",
       expected: "1. a|\n2. b",
     },
+    // D4 Rule 2: Tab & Shift-Tab behind a lead
+    {
+      label: "Tab indents action+numbered under numbered item's text column (Rule 2.1)",
+      input: "1. plan\n# 2. book|\n3. meet",
+      key: "Tab",
+      expected: "1. plan\n   # 1. book|\n2. meet",
+    },
+    {
+      label: "Tab indents plain numbered under action+numbered at 5-space text column (Rule 2.1)",
+      input: "# 1. plan\n2. book|\n# 3. meet",
+      key: "Tab",
+      expected: "# 1. plan\n     1. book|\n# 2. meet",
+    },
+    {
+      label: "Tab indents action+numbered under indented action+numbered at 7 spaces (Rule 2.1)",
+      input: "  # 1. a\n  v 2. b|",
+      key: "Tab",
+      expected: "  # 1. a\n       v 1. b|",
+    },
+    {
+      label: "Tab at col 0 of action+numbered shifts two spaces",
+      input: "|# 1. task",
+      key: "Tab",
+      expected: "|  # 1. task",
+    },
+    {
+      label: "Tab at col 0 of topic+numbered shifts two spaces",
+      input: "|o 1. topic",
+      key: "Tab",
+      expected: "|  o 1. topic",
+    },
+    {
+      label: "Tab indents topic bullet under topic bullet (Rule 2.5)",
+      input: "o - point\no - detail|",
+      key: "Tab",
+      expected: "o - point\n    o - detail|",
+    },
+    {
+      label: "Shift-Tab outdents topic bullet back to parent indent (Rule 2.5)",
+      input: "o - point\n    o - detail|",
+      key: "Shift-Tab",
+      expected: "o - point\no - detail|",
+    },
+    {
+      label: "Tab indents mixed action+numbered selection together (Rule 2.6)",
+      input: "# 1. a\n[# 2. b\nv 3. c]\n# 4. d",
+      key: "Tab",
+      expected: "# 1. a\n[     # 1. b\n     v 2. c]\n# 2. d",
+    },
+    {
+      label: "Shift-Tab outdents mixed action+numbered selection together (Rule 2.6)",
+      input: "# 1. a\n[     # 1. b\n     v 2. c]\n# 2. d",
+      key: "Shift-Tab",
+      expected: "# 1. a\n[# 2. b\nv 3. c]\n# 4. d",
+    },
+    {
+      label: "Tab on first action+numbered shifts whole group including mixed leads",
+      input: "|# 1. a\nv 2. b",
+      key: "Tab",
+      expected: "|  # 1. a\n  v 2. b",
+    },
+    {
+      label: "Shift-Tab outdents action+numbered sub-item and renumbers following mixed items",
+      input: "# 1. a\n     v 1. b|\n# 2. c",
+      key: "Shift-Tab",
+      expected: "# 1. a\nv 2. b|\n# 3. c",
+    },
   ]);
 
   // Rule: Backspace at text start on atomic tokens removes whole token (Spec 2.2, §5, §11); held caret deletes 1 char (§463)
@@ -349,6 +414,61 @@ describe("editing table: Tab, Shift-Tab & Backspace", () => {
       input: "\t1. |item",
       key: "Backspace",
       expected: "\t|item",
+    },
+    // D4 Rule 1.2 & Rule 4: Backspace on state/lead vs at text start behind a lead
+    {
+      label: "Backspace deleting first plain item renumbers mixed lead items from 1 (Rule 1.1)",
+      input: "[1. a\n]# 2. b\nv 3. c",
+      key: "Backspace",
+      expected: "|# 1. b\nv 2. c",
+    },
+    {
+      label: "Backspace removes number across a lead continuation line inside the list (Rule 1.3)",
+      input: "1. a\n#  book room\n2. |b\n3. c",
+      key: "Backspace",
+      expected: "1. a\n#  book room\n   |b\n2. c",
+    },
+    {
+      label: "Tab in one list leaves the list after a topic line alone (Rule 1.3)",
+      input: "o Budget\n1. a\n2. |b\no Hiring\n1. c\n2. d",
+      key: "Tab",
+      expected: "o Budget\n1. a\n   1. |b\no Hiring\n1. c\n2. d",
+    },
+    {
+      label: "First Backspace at text start behind lead removes number and aligns under item above (Rule 4.1)",
+      input: "# 1. a\n# 2. |b\n# 3. c",
+      key: "Backspace",
+      expected: "# 1. a\n#    |b\n# 2. c",
+    },
+    {
+      label: "Second Backspace at aligned continuation behind lead unindents to parent indent keeping lead, splitting the list (Rule 4.2)",
+      input: "# 1. a\n#    |b\n# 2. c",
+      key: "Backspace",
+      expected: "# 1. a\n# |b\n# 1. c",
+    },
+    {
+      label: "Backspace at text start of top-most lead numbered item removes number keeping lead (Rule 4.2)",
+      input: "# 1. |only",
+      key: "Backspace",
+      expected: "# |only",
+    },
+    {
+      label: "Backspace on empty lead sub-item moves out to parent list (Rule 4.3)",
+      input: "# 1. a\n     # 1. |",
+      key: "Backspace",
+      expected: "# 1. a\n# 2. |",
+    },
+    {
+      label: "Backspace inside text of lead numbered item is ordinary character deletion (Rule 4.4)",
+      input: "# 1. pla|n",
+      key: "Backspace",
+      expected: "# 1. pl|n",
+    },
+    {
+      label: "Backspace at text start behind lead under plain numbered item aligns under plain text (Rule 4.1)",
+      input: "1. a\n# 2. |b\n3. c",
+      key: "Backspace",
+      expected: "1. a\n#  |b\n2. c",
     },
     {
       label: "Backspace right after leading escape backslash reveals marker",

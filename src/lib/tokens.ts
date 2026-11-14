@@ -271,6 +271,8 @@ export function topicContinuationIndent(lineText: string): string | null {
 export interface NumberedItem {
   /** Leading whitespace, kept verbatim. */
   indent: string;
+  /** Optional leading action/topic symbol + space (`# `, `v `, `> `, `x `, `o `, `. `, `, `) between indent and marker. */
+  lead: string;
   /** The whole marker, e.g. `1.`, `12)`, `1.2.`. */
   marker: string;
   /** The numbers in it: `1.2.` is [1, 2]. */
@@ -279,29 +281,60 @@ export interface NumberedItem {
   delimiter: "." | ")";
   /** The text after the marker and its whitespace (may be empty). */
   text: string;
-  /** Column where the marker ends (just after its delimiter). */
+  /** Column where the marker ends (just after its delimiter), counted on the whole line. */
   markerEnd: number;
+}
+
+export const LEAD_PREFIX_RE = new RegExp(String.raw`^(\s*)([${ACTION_SYMBOLS}${TOPIC_SYMBOLS}] )`);
+const NUMBERED_ITEM_RE = new RegExp(
+  String.raw`^(\s*)([${ACTION_SYMBOLS}${TOPIC_SYMBOLS}] )?((?:[1-9]\d{0,8})(?:\.[1-9]\d{0,8})*)([.)])(\s|$)`,
+);
+
+/** Visual column of a non-list line. A lead with extra spaces after it (`#    b`, what Backspace leaves when it
+ * removes a number) counts at its text column, so it continues the item above; any other line, `# call Sam` or
+ * `o Hiring` included, counts at its indent, so a topic or action line between two lists still splits them. */
+export function nonListLineColumn(line: string): number {
+  const m = LEAD_PREFIX_RE.exec(line);
+  if (m) {
+    const extra = line.slice(m[0].length).match(/^ */)![0].length;
+    if (extra > 0) return indentLen(m[1]) + m[2].length + extra;
+  }
+  return indentLen(line.match(/^\s*/)![0]);
+}
+
+function nextLead(lead: string): string {
+  if (!lead) return "";
+  return ACTION_SYMBOLS.includes(lead[0]) ? "# " : "o ";
 }
 
 export function parseNumberedItem(line: string): NumberedItem | null {
   let k = 0;
   while (k < line.length && (line[k] === " " || line[k] === "\t")) k++;
+  if (
+    k + 1 < line.length &&
+    line[k + 1] === " " &&
+    (ACTION_SYMBOLS.includes(line[k]) || TOPIC_SYMBOLS.includes(line[k]))
+  ) {
+    k += 2;
+  }
   const c = line.charCodeAt(k);
   if (Number.isNaN(c) || (c >= 33 && c <= 126 && (c < 49 || c > 57))) return null;
   // The marker has to be followed by whitespace (a space typed after it) — "1." alone is not yet an item.
-  const m = line.match(/^(\s*)((?:[1-9]\d{0,8})(?:\.[1-9]\d{0,8})*)([.)])(\s|$)/);
-  if (!m) return null;
-  if (m[4] === "") return null;
-  const marker = m[2] + m[3];
+  const m = NUMBERED_ITEM_RE.exec(line);
+  if (!m || m[5] === "") return null;
   const indent = m[1];
-  const numbers = m[2].includes(".") ? m[2].split(".").map(Number) : [Number(m[2])];
+  const lead = m[2] ?? "";
+  const marker = m[3] + m[4];
+  const numbers = m[3].includes(".") ? m[3].split(".").map(Number) : [Number(m[3])];
+  const markerEnd = indent.length + lead.length + marker.length;
   return {
     indent,
+    lead,
     marker,
     numbers,
-    delimiter: m[3] as "." | ")",
-    text: line.slice(indent.length + marker.length).trim(),
-    markerEnd: indent.length + marker.length,
+    delimiter: m[4] as "." | ")",
+    text: line.slice(markerEnd).trim(),
+    markerEnd,
   };
 }
 
@@ -351,7 +384,7 @@ export function renumberAfterInsert(following: string[], item: NumberedItem): { 
   const stack: { origIndent: number; newIndent: number; shift: number }[] = [];
   let taken = item.numbers[depth - 1] + 1; // the number the new item has just claimed
   const rewrite = (line: string, p: NumberedItem, numbers: number[]) =>
-    p.indent + numbers.join(".") + p.delimiter + line.slice(p.markerEnd);
+    p.indent + p.lead + numbers.join(".") + p.delimiter + line.slice(p.markerEnd);
 
   for (let i = 0; i < following.length; i++) {
     const line = following[i];
@@ -363,7 +396,7 @@ export function renumberAfterInsert(following: string[], item: NumberedItem): { 
 
     const p = parseNumberedItem(line);
     if (!p) {
-      if (origIndent <= itemIndentLen) break;
+      if (nonListLineColumn(line) <= itemIndentLen) break;
       if (parentShift !== 0) {
         const minInd = parent ? parent.newIndent + 1 : 0;
         const shifted = shiftLineIndent(line, parentShift, minInd);
@@ -436,14 +469,14 @@ export function numberedListEnter(
   if (item.text === "") return { exit: true };
   if (col <= item.markerEnd) return { plain: true };
   if (nextLine !== undefined && isTitleUnderline(nextLine)) return { plain: true };
-  return { insert: `\n${item.indent}${nextNumberedMarker(item)} ` };
+  return { insert: `\n${item.indent}${nextLead(item.lead)}${nextNumberedMarker(item)} ` };
 }
 
 /** Shift+Enter on a numbered item: a plain continuation line aligned under the item's text (the indent, then
- * as many spaces as the marker and its space take). `null` when the line is not a numbered item. */
+ * as many spaces as the lead, marker, and its space take). `null` when the line is not a numbered item. */
 export function numberedContinuationIndent(line: string): string | null {
   const item = parseNumberedItem(line);
-  return item ? item.indent + " ".repeat(item.marker.length + 1) : null;
+  return item ? item.indent + " ".repeat(item.lead.length + item.marker.length + 1) : null;
 }
 
 /** The action-cycle logic (§40: `# → v → > → x → #`) behind `Ctrl+Space`/
@@ -764,8 +797,8 @@ export function stateFirst(line: string): string | null {
     return null;
   }
   const item = parseNumberedItem(line);
-  if (item) {
-    const after = line.slice(item.indent.length + item.marker.length);
+  if (item && !item.lead) {
+    const after = line.slice(item.markerEnd);
     const [sub] = tokenizeLine(after);
     if (sub && (sub.kind === "action" || sub.kind === "topic")) {
       return `${item.indent}${sub.symbol} ${item.marker} ${after.slice(sub.to)}`;

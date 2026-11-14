@@ -244,6 +244,12 @@ describe("editing table: Home, Shift-Home & Alt-ArrowUp/Down", () => {
       key: "Alt-ArrowDown",
       expected: "- # second\n|first",
     },
+    {
+      label: "Moving an action line up between two items splits the list there (D4 rule 1.3)",
+      input: "o Budget\n1. a\n2. b\n# call Sam|\n1. c\n2. d",
+      key: "Alt-ArrowUp",
+      expected: "o Budget\n1. a\n# call Sam|\n1. b\n2. c\n3. d",
+    },
   ]);
 
   it("Alt-ArrowDown on '|- # task\\nsecond' followed by ArrowUp normalises to 'second\\n# - task' (bug)", () => {

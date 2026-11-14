@@ -3279,6 +3279,7 @@ exports[`token behaviour snapshot (refactor R1) > edge cases 1`] = `
     "parseNumberedItem": {
       "delimiter": ".",
       "indent": "",
+      "lead": "",
       "marker": "1.",
       "markerEnd": 2,
       "numbers": [
@@ -3315,6 +3316,7 @@ exports[`token behaviour snapshot (refactor R1) > edge cases 1`] = `
     "parseNumberedItem": {
       "delimiter": ")",
       "indent": "",
+      "lead": "",
       "marker": "1.1)",
       "markerEnd": 4,
       "numbers": [
@@ -3352,6 +3354,7 @@ exports[`token behaviour snapshot (refactor R1) > edge cases 1`] = `
     "parseNumberedItem": {
       "delimiter": ".",
       "indent": "",
+      "lead": "",
       "marker": "1.1.",
       "markerEnd": 4,
       "numbers": [
@@ -3411,7 +3414,17 @@ exports[`token behaviour snapshot (refactor R1) > edge cases 1`] = `
     "isTopicLikeLine": true,
     "leadingTopicTag": null,
     "line": "o 1. numbered topic",
-    "parseNumberedItem": null,
+    "parseNumberedItem": {
+      "delimiter": ".",
+      "indent": "",
+      "lead": "o ",
+      "marker": "1.",
+      "markerEnd": 4,
+      "numbers": [
+        1,
+      ],
+      "text": "numbered topic",
+    },
     "stripLeadingToken": "o 1. numbered topic",
     "toggleOpenClosed": ". 1. numbered topic",
   },
@@ -3463,7 +3476,17 @@ exports[`token behaviour snapshot (refactor R1) > edge cases 1`] = `
     "isTopicLikeLine": false,
     "leadingTopicTag": null,
     "line": "# 1. numbered action",
-    "parseNumberedItem": null,
+    "parseNumberedItem": {
+      "delimiter": ".",
+      "indent": "",
+      "lead": "# ",
+      "marker": "1.",
+      "markerEnd": 4,
+      "numbers": [
+        1,
+      ],
+      "text": "numbered action",
+    },
     "stripLeadingToken": "1. numbered action",
     "toggleOpenClosed": "v 1. numbered action",
   },
@@ -3493,6 +3516,7 @@ exports[`token behaviour snapshot (refactor R1) > edge cases 1`] = `
     "parseNumberedItem": {
       "delimiter": ")",
       "indent": "  ",
+      "lead": "",
       "marker": "2)",
       "markerEnd": 4,
       "numbers": [
@@ -3529,6 +3553,7 @@ exports[`token behaviour snapshot (refactor R1) > edge cases 1`] = `
     "parseNumberedItem": {
       "delimiter": ".",
       "indent": "",
+      "lead": "",
       "marker": "10.",
       "markerEnd": 3,
       "numbers": [

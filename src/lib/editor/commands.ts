@@ -338,53 +338,24 @@ function computeBulletContinuationSpec(state: EditorState, pos: number, insertBu
   if (numbered && col <= numbered.markerEnd) return plainNewline();
 
   if (!insertBullet) {
-    const first = tokenizeLine(line.text)[0];
-    if (first && (first.kind === "action" || first.kind === "topic")) {
-      const sub = parseNumberedItem(line.text.slice(first.to));
-      if (sub && sub.indent === "" && col <= first.to + sub.markerEnd) {
-        return plainNewline();
-      }
-    }
     const contCol = leadingMarkerTextColumn(line.text);
     return plainNewline(contCol ? " ".repeat(contCol) : "");
   }
+
+  const exitOrPromote = () =>
+    moveEmptySubItemOutSpec(state, line.from, line.number - 1, "input") ?? {
+      changes: { from: line.from, to: line.to, insert: "" },
+      selection: { anchor: line.from },
+      userEvent: "input",
+      scrollIntoView: true,
+    };
 
   // #208: `! - item` continues as `! - `.
   const bulletMatch = line.text.match(/^(\s*)((?:! )?[-*])\s/);
   if (bulletMatch) {
     const [, indent, marker] = bulletMatch;
-    if (line.text.trim() === marker) {
-      return (
-        moveEmptySubItemOutSpec(state, line.from, line.number - 1, "input") ?? {
-          changes: { from: line.from, to: line.to, insert: "" },
-          selection: { anchor: line.from },
-          userEvent: "input",
-          scrollIntoView: true,
-        }
-      );
-    }
+    if (line.text.trim() === marker) return exitOrPromote();
     return plainNewline(`${indent}${marker} `);
-  }
-
-  if (isTopicLikeLine(line.text)) {
-    const step = topicLineEnter(line.text, col, nextLine);
-    if (step && "removeSymbol" in step) {
-      return {
-        changes: { from: line.from, to: line.to, insert: "" },
-        selection: { anchor: line.from },
-        userEvent: "input",
-        scrollIntoView: true,
-      };
-    }
-    if (step && "insert" in step) {
-      return {
-        changes: { from: pos, to: pos, insert: step.insert },
-        selection: { anchor: pos + step.insert.length },
-        userEvent: "input",
-        scrollIntoView: true,
-      };
-    }
-    return plainNewline();
   }
 
   if (numbered) {
@@ -418,17 +389,24 @@ function computeBulletContinuationSpec(state: EditorState, pos: number, insertBu
     return plainNewline();
   }
 
+  if (isTopicLikeLine(line.text)) {
+    const step = topicLineEnter(line.text, col, nextLine);
+    if (step && "removeSymbol" in step) return exitOrPromote();
+    if (step && "insert" in step) {
+      return {
+        changes: { from: pos, to: pos, insert: step.insert },
+        selection: { anchor: pos + step.insert.length },
+        userEvent: "input",
+        scrollIntoView: true,
+      };
+    }
+    return plainNewline();
+  }
+
   // §85 (#12): Enter on an action or consequence line continues it as `# ` / `=> # ` / `=> `.
   const edit = actionLineEnter(line.text, col, nextLine);
   if (edit === null) return null;
-  if ("removeSymbol" in edit) {
-    return {
-      changes: { from: line.from, to: line.to, insert: "" },
-      selection: { anchor: line.from },
-      userEvent: "input",
-      scrollIntoView: true,
-    };
-  }
+  if ("removeSymbol" in edit) return exitOrPromote();
   if ("plain" in edit) return plainNewline();
   return {
     changes: { from: pos, to: pos, insert: edit.insert },

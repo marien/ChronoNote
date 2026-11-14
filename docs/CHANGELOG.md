@@ -12223,3 +12223,34 @@ generator (§468) covers more line kinds.
 One bug found and fixed: Shift+Tab on a later item of an indented list with no parent (`  1. a` / `  2. b`, caret on
 `b`) moved the line out without renumbering (`2. b` above `1. c`); it now joins the list it lands in and renumbers.
 Built by Gemini 4 Hydrogen, reviewed here.
+
+## 471. Editing review, decision D4: list keys behind a state symbol
+
+**Status: on main, not released yet.**
+
+Decision D4 of the editor review (`docs/design/editor-review.html`), designed with Marien on 2026-11-14: the
+numbered-list and bullet rules see through an action or topic symbol in front of the marker (`# 1. task`,
+`v 2) done`, `o - point`), which until now made Tab a plain indent and left the numbers alone.
+
+1. **One list:** `1. a`, `# 2. b`, `v 3. c` share one numbering. Setting or removing a state (Ctrl+1..7, Ctrl+Shift+O,
+   the line menu) keeps the item in its list and changes no numbers; this reverses §467, where `1. task` to
+   `# 1. task` left the list and the rest restarted.
+2. **Tab / Shift+Tab:** `# 2. x` under `# 1. y` moves under the parent's text, `     # 1. x`, numbered from 1; all
+   the existing Tab rules (continuing a group, dotted sub-items, whole groups) apply. A symbol never moves: an indent
+   goes before it. Bullets with a symbol likewise (`o - detail` under `o - point` goes 4 spaces in).
+3. **Enter:** on `v 2. x` gives `# 3. ` (a done, deferred or won't-do item continues as open, a topic as `o `); an
+   empty item with a symbol ends the list or, as a sub-item, moves out as the parent's next number.
+4. **Backspace** at the text start of `# 2. x` removes the number and keeps the symbol: `#    x`, its text under the
+   item above's text, continuing that item, and the rest renumbers. A second Backspace gives `# x` at the list's
+   indent, which splits the list (the rest restarts at 1), as for a plain continuation line.
+
+Which lines split a list: a line with a symbol, no list marker and extra spaces after the symbol (`#    x`) continues
+the list; `# call Sam` or `o Hiring` at the list's indent splits it, as any line there does. A first version had every
+symbol line continue the list, which made Tab in one list renumber the next list under another topic heading; found
+in review and fixed before merging.
+
+Built by Gemini 4 Hydrogen from a behaviour file (`agent-tools/briefs/d4-behaviour.md`, outside the repo); independent
+tests from the same file by a second Hydrogen run (`src/lib/editor/listLeads.d4.independent.test.ts`, 45 tests;
+`tests/e2e/list-leads.d4.independent.spec.ts`, 5): all passed against the change except a selection detail (a bullet
+with a symbol keeps the selection as a plain bullet does) and a browser helper that counted a glyph as two arrow steps.
+Reviewed here.

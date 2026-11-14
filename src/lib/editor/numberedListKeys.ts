@@ -26,7 +26,7 @@ import {
   type ListBlock,
   type NumberedGroup,
 } from "../numberedLists";
-import { tokenizeLine } from "../grammar/tokenize";
+import { ACTION_SYMBOLS, TOPIC_SYMBOLS } from "../grammar/symbols";
 import { parseNumberedItem, shiftLineIndent } from "../tokens";
 
 /** Marks a transaction whose numbering is already done, so the renumber filter leaves it alone. */
@@ -132,7 +132,7 @@ function withRenumbering(
 /** `line` with its leading whitespace replaced by `indent`; a numbered marker can be swapped in at the same time. */
 function reindent(line: string, indent: string, marker?: string): string {
   const num = parseNumberedItem(line);
-  if (num) return indent + (marker ?? num.marker) + line.slice(num.markerEnd);
+  if (num) return indent + num.lead + (marker ?? num.marker) + line.slice(num.markerEnd);
   return indent + line.replace(/^\s*/, "");
 }
 
@@ -222,7 +222,7 @@ function bulletAboveDelta(lines: string[], idx: number): number | null {
     const prevIndent = indentLen(prev.indent);
     if (prevIndent < myIndent) return null;
     if (prevIndent === myIndent) {
-      return prev.kind === "bullet" ? prevIndent + prev.marker.length + 1 - myIndent : null;
+      return prev.kind === "bullet" ? prevIndent + prev.lead.length + prev.marker.length + 1 - myIndent : null;
     }
   }
   return null;
@@ -284,7 +284,13 @@ export function tabCommand(view: EditorView): boolean {
     const num = parsedItem?.kind === "numbered" ? parsedItem : null;
 
     if (target === null) {
-      if (!num) return false;
+      if (!num) {
+        const delta = bulletAboveDelta(lines, first);
+        if (delta === null || delta <= 0) return false;
+        const working = [...lines];
+        working[first] = shiftLineIndent(lines[first], delta);
+        return applyListEdit(view, withRenumbering(lines, working, [first]), "input.indent", undefined, offset, lines);
+      }
       const group = getGroupsInBlock(lines, beforeRun.block, beforeRun.runStart, beforeRun.parsed).find(
         (g) => g.first === first,
       );
@@ -527,7 +533,7 @@ function backspaceCommand(view: EditorView): boolean {
   const bullet = num ? null : parseBulletItem(line.text);
   if (
     ((num && num.text === "" && col > num.markerEnd) ||
-      (bullet && bullet.text === "" && col > bullet.indent.length + bullet.marker.length)) &&
+      (bullet && bullet.text === "" && col > bullet.indent.length + bullet.lead.length + bullet.marker.length)) &&
     col === line.text.length &&
     moveEmptySubItemOut(view, line.from, idx, "delete.backward")
   ) {
@@ -544,14 +550,14 @@ function backspaceCommand(view: EditorView): boolean {
   if (withoutMarker !== null) {
     const working = [...lines];
     working[localIdx] = withoutMarker;
-    const anchor = line.from + withoutMarker.match(/^\s*/)![0].length;
+    const anchor = line.from + withoutMarker.length - (line.text.length - col);
     return applyListEdit(view, withRenumbering(lines, working, touched), "delete.backward", anchor, offset, lines);
   }
   const outdented = backspaceContinuation(lines, localIdx, col);
   if (outdented !== null) {
     const working = [...lines];
     working[localIdx] = outdented;
-    const anchor = line.from + outdented.match(/^\s*/)![0].length;
+    const anchor = line.from + outdented.length - (line.text.length - col);
     return applyListEdit(view, withRenumbering(lines, working, touched), "delete.backward", anchor, offset, lines);
   }
   return false;
@@ -565,15 +571,11 @@ export const numberedListKeymap = Prec.high(
   ]),
 );
 
-function hasLeadingStatePrefix(line: string): boolean {
-  const [first] = tokenizeLine(line);
-  return first?.kind === "action" || first?.kind === "topic";
-}
+const DIGIT_START_RE = new RegExp(String.raw`^\s*(?:[${ACTION_SYMBOLS}${TOPIC_SYMBOLS}] )?\d`);
 
 /** Rule 4, 5, 12, 15: deleting, cutting, moving or pasting lines in a list renumbers it, and so does typing or
- * deleting that turns a line from blank into text or back (joining or splitting lists), or adding/removing a state
- * symbol on a numbered item. Typing a number or deleting a digit (including on a blank line between lists) never
- * renumbers anything. */
+ * deleting that turns a line from blank into text or back (joining or splitting lists). Typing a number, deleting
+ * a digit (including on a blank line between lists), or adding/removing a state symbol never renumbers anything. */
 export const numberedListRenumberFilter = EditorState.transactionFilter.of((tr) => {
   if (!tr.docChanged || tr.annotation(renumbered)) return tr;
   const ev = tr.annotation(Transaction.userEvent);
@@ -587,7 +589,6 @@ export const numberedListRenumberFilter = EditorState.transactionFilter.of((tr) 
   const newDoc = tr.newDoc;
   let lineBreaks = false;
   let blankChanged = false;
-  let stateChanged = false;
   let digitEdit = false;
   let listPaste = false;
   const oldTouched: number[] = [];
@@ -609,21 +610,15 @@ export const numberedListRenumberFilter = EditorState.transactionFilter.of((tr) 
       const oldLine = oldDoc.line(a0 + 1).text;
       const newLine = newDoc.line(b0 + 1).text;
       if ((oldLine.trim() === "") !== (newLine.trim() === "")) blankChanged = true;
-      if (
-        (parseNumberedItem(oldLine) !== null) !== (parseNumberedItem(newLine) !== null) &&
-        hasLeadingStatePrefix(oldLine) !== hasLeadingStatePrefix(newLine)
-      ) {
-        stateChanged = true;
-      }
-      if (typing && /^\s*\d/.test(newLine)) digitEdit = true;
-      if (isDelete && /^\s*\d/.test(oldLine) && parseNumberedItem(oldLine) === null) digitEdit = true;
+      if (typing && DIGIT_START_RE.test(newLine)) digitEdit = true;
+      if (isDelete && DIGIT_START_RE.test(oldLine) && parseNumberedItem(oldLine) === null) digitEdit = true;
       if (isPasteOrDrop && (parseNumberedItem(oldLine) !== null || parseNumberedItem(newLine) !== null)) listPaste = true;
     }
     for (let i = a0; i <= a1; i++) oldTouched.push(i);
     for (let i = b0; i <= b1; i++) newTouched.push(i);
   });
   if (digitEdit) return tr;
-  if (typing ? !(lineBreaks || blankChanged || stateChanged) : !(lineBreaks || blankChanged || listPaste || stateChanged)) {
+  if (typing ? !(lineBreaks || blankChanged) : !(lineBreaks || blankChanged || listPaste)) {
     return tr;
   }
 

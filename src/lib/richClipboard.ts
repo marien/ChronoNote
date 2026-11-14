@@ -31,7 +31,7 @@ function parseListLine(line: string): ListLineInfo | null {
   }
 
   const numItem = parseNumberedItem(line);
-  if (numItem) {
+  if (numItem && !numItem.lead) {
     const startNum = numItem.numbers[numItem.numbers.length - 1];
     return {
       type: "ol",
