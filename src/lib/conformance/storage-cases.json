@@ -409,5 +409,28 @@
         "expect": { "error": true }
       }
     ]
+  },
+  {
+    "name": "delete_note with expectedHash accepts normalized hash of CRLF note",
+    "steps": [
+      {
+        "cmd": "write_note",
+        "args": { "filename": "2026-01-01.txt", "content": "a\nb", "expectedHash": null },
+        "capture": { "lfHash": "contentHash" }
+      },
+      {
+        "cmd": "write_note",
+        "args": { "filename": "2026-01-05.txt", "content": "a\r\nb", "expectedHash": null }
+      },
+      {
+        "cmd": "delete_note",
+        "args": { "filename": "2026-01-05.txt", "expectedHash": "$lfHash" }
+      },
+      {
+        "cmd": "read_note",
+        "args": { "filename": "2026-01-05.txt" },
+        "expect": { "result": null }
+      }
+    ]
   }
 ]

@@ -143,3 +143,18 @@ describe.each(["mock", "web"] as const)("%s backend conformance", (backendKind) 
     });
   }
 });
+
+describe("MockBackend CRLF delete_note normalization", () => {
+  it("hashes normalized text when comparing expectedHash against seeded CRLF content", async () => {
+    sessionStorage.clear();
+    const backend = new MockBackend({
+      notes: {
+        "2026-01-01.txt": "a\nb",
+        "2026-01-05.txt": "a\r\nb",
+      },
+    });
+    const meta = (await backend.invoke("get_file_metadata", { filename: "2026-01-01.txt" })) as { contentHash: string };
+    await backend.invoke("delete_note", { filename: "2026-01-05.txt", expectedHash: meta.contentHash });
+    expect(await backend.invoke("read_note", { filename: "2026-01-05.txt" })).toBeNull();
+  });
+});

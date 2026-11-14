@@ -1019,7 +1019,7 @@ export class MockBackend {
       if (typeof expectedHash === "string") {
         const current = this.dir().notes.get(filename);
         if (current === undefined) return;
-        if ((await sha256Hex(current)) !== expectedHash) {
+        if ((await sha256Hex(normalizeNoteText(current))) !== expectedHash) {
           throw new Error(`conflict: note changed on disk: ${filename}`);
         }
       }
