@@ -12254,3 +12254,26 @@ tests from the same file by a second Hydrogen run (`src/lib/editor/listLeads.d4.
 `tests/e2e/list-leads.d4.independent.spec.ts`, 5): all passed against the change except a selection detail (a bullet
 with a symbol keeps the selection as a plain bullet does) and a browser helper that counted a glyph as two arrow steps.
 Reviewed here.
+
+## 472. Editing review, decision D11: word moves around glyphs, dates, pills and names
+
+**Status: on main, not released yet.**
+
+Decision D11 of the editor review (`docs/design/editor-review.html`), with Marien's choices of 2026-11-14 on the
+taste cases (`! ` and number markers, dates and `@name` all one word): Ctrl+Left/Right (with Shift), Ctrl+Backspace,
+Ctrl+Delete and double-click treat a leading marker with its space (each glyph, `! `, `12. `), a due date with its
+`by:`, a topic tag with its parentheses, a date and an `@name` as one word. Until now these were CodeMirror's
+defaults: a glyph was one step only because it is an atomic range, a due date took seven Ctrl+Right steps, and a
+double-click on a topic pill selected `bug` without its parentheses. Everything else keeps CodeMirror's word rules;
+glyph clicks are unchanged.
+
+`src/lib/editor/wordSpans.ts` reads a line's words from the tokenizer, the numbered-marker parser and the date-link
+matcher (`dateLinkSpansInLine`, extracted from `dateLinks.ts`); the commands are in `commands.ts`, double-click in a
+`mouseSelectionStyle`.
+
+Built by Gemini 4 Hydrogen from a behaviour file (`agent-tools/briefs/d11-behaviour.md`, outside the repo);
+independent tests from the same file by a second Hydrogen run (`src/lib/editor/wordMoves.d11.independent.test.ts`,
+`tests/e2e/word-moves.d11.independent.spec.ts`). Their failures were all in the tests or the behaviour file: `(bug)`
+after the text is not a topic tag, `@dana.k` is `@dana` and `.k` (the app's name characters), an indent is its own
+Ctrl+Delete step as in CodeMirror, and `by:fri` is rewritten to a date before a double-click can reach it. Reviewed
+here.
