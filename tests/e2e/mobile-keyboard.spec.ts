@@ -29,6 +29,7 @@ for (const width of [390, 360]) {
       await page.locator(".mobile-nav-bar .mobile-nav-dest", { hasText: "Actions" }).click();
       const drawer = page.getByRole("dialog", { name: "Actions" });
       await expect(drawer).toBeVisible();
+      // Deliberate: asserts nothing happens for 300 ms (opening Actions never focuses a text field)
       await page.waitForTimeout(300);
       expect(await focusInTextField(page)).toBe(false);
       await drawer.locator(".modal-close-btn").click();
@@ -106,6 +107,7 @@ for (const width of [390, 360]) {
         document.querySelector(".cm-scroller")?.dispatchEvent(new Event("scroll"));
         (document.activeElement as HTMLElement | null)?.blur();
       });
+      // Deliberate: asserts nothing happens for 100 ms (scroll and blur do not dismiss context menu on touch)
       await page.waitForTimeout(100);
       await expect(menu).toBeVisible();
       // The line was not toggled by the long-press.

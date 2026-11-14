@@ -34,6 +34,7 @@ test.describe("Ctrl+scroll in the note changes the font size (Marien, 2026-10-10
     // A plain wheel scrolls; it does not change the size.
     await page.mouse.move(box.x + 40, box.y + 40);
     await page.mouse.wheel(0, 100);
+    // Deliberate: asserts nothing happens for 500 ms (plain wheel without Ctrl does not change font size)
     await page.waitForTimeout(500);
     expect(await size()).toBe(17);
   });

@@ -120,6 +120,7 @@ test.describe("due dates editor — independent tests (slice 2)", () => {
 
       // Verify note remains verbatim on disk initially
       expect(await mockNote(page, todayFilename())).toBe(noteContent);
+      // Deliberate: asserts nothing happens for 500 ms (unvisited by:tomorrow line is not rewritten on open)
       await page.waitForTimeout(500);
       expect(await mockNote(page, todayFilename())).toBe(noteContent);
 

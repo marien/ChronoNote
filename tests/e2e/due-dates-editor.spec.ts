@@ -214,6 +214,7 @@ test.describe("due dates editor (slice 2)", () => {
 
     // Check disk note is still verbatim by:fri
     expect(await mockNote(page, todayFilename())).toBe(noteContent);
+    // Deliberate: asserts nothing happens for 600 ms (unvisited by:fri is not rewritten on open)
     await page.waitForTimeout(600);
     expect(await mockNote(page, todayFilename())).toBe(noteContent);
 
@@ -278,6 +279,7 @@ test.describe("due dates editor (slice 2)", () => {
       await expect(page.locator(".compact-picker")).toBeVisible();
       await digits.click();
       await expect(page.locator(".compact-picker")).toHaveCount(0);
+      // Deliberate: asserts nothing happens for 300 ms (closed compact picker stays closed)
       await page.waitForTimeout(300);
       await expect(page.locator(".compact-picker")).toHaveCount(0);
     });

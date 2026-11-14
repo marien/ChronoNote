@@ -19,6 +19,7 @@ test("opening a CRLF note and switching tabs does not rewrite the file", async (
   await seedApp(page, seed);
   await tab(page, "2026-09-06.txt").click();
   await tab(page, "2026-09-07.txt").click();
+  // Deliberate: asserts nothing happens for 1000 ms (CRLF note is not rewritten on open or tab switch)
   await page.waitForTimeout(1000);
   const disk = await page.evaluate(() => window.__CHRONO_MOCK__!.getNote("2026-09-07.txt"));
   expect(disk).toBe(CRLF);

@@ -1,5 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
-import { seedApp, editor, setEditorText, modalCard, MODAL_LABELS, datePicker } from "./helpers";
+import { seedApp, editor, setEditorText, modalCard, MODAL_LABELS, datePicker, toast } from "./helpers";
 
 /** CSS parity check for refactors that must not change how anything looks (the app.css split,
  * moving rules into components). Opt-in: skipped unless CSS_PARITY=1, so normal runs and CI never
@@ -70,11 +70,18 @@ test("every modal over a populated workspace", async ({ page }) => {
     await page.keyboard.press(combo);
     const overlay =
       key === "date" ? datePicker(page) : modalCard(page, MODAL_LABELS[key as keyof typeof MODAL_LABELS]);
-    await overlay.waitFor().catch(() => {}); // a drawer that needs a section (history) may show a toast instead
-    await page.waitForTimeout(300);
+    await expect(overlay.or(toast(page))).toBeVisible();
+    await page.evaluate(() =>
+      Promise.all(
+        document
+          .getAnimations()
+          .filter((a) => a.effect?.getComputedTiming?.().iterations !== Infinity)
+          .map((a) => a.finished),
+      ),
+    );
     await same(page, `modal-${key}`);
     await page.keyboard.press("Escape");
-    await page.waitForTimeout(150);
+    await expect(overlay).toHaveCount(0);
   }
 });
 
@@ -86,7 +93,7 @@ test("settings tabs", async ({ page }) => {
   const n = await tabs.count();
   for (let i = 0; i < n; i++) {
     await tabs.nth(i).click();
-    await page.waitForTimeout(150);
+    await expect(tabs.nth(i)).toHaveAttribute("aria-selected", "true");
     await same(page, `settings-tab-${i}`);
   }
 });
@@ -102,17 +109,18 @@ test("find bar and narrow window", async ({ page }) => {
   await input.waitFor();
   await input.fill("action");
   await expect(page.locator(".find-bar")).not.toContainText(/no results/i);
-  await page.waitForTimeout(300);
+  await expect(page.locator(".cm-searchMatch").first()).toBeVisible();
   await same(page, "find-bar");
   await page.keyboard.press("Escape");
   await page.setViewportSize({ width: 700, height: 600 });
-  await page.waitForTimeout(400);
+  await page.waitForFunction(() => window.innerWidth === 700);
+  await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
   await same(page, "narrow-window");
 });
 
 test("phone layout", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await seedApp(page, { seed: "busy-week" });
-  await page.waitForTimeout(400);
+  await expect(page.locator("#mobile-drawer-btn")).toBeVisible();
   await same(page, "phone");
 });

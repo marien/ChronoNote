@@ -76,6 +76,7 @@ test.describe("copy/paste deferral", () => {
         .dispatchEvent(new ClipboardEvent("paste", { clipboardData: data, bubbles: true, cancelable: true }));
     });
     await expect.poll(() => mockNote(page, "2026-09-07.txt")).toContain("text from another application");
+    // Deliberate: asserts nothing happens for 500 ms (external paste does not defer source tab)
     await page.waitForTimeout(500);
     expect(await mockNote(page, "2026-09-03.txt")).toContain("# call the vendor back");
     expect(await mockNote(page, "2026-09-03.txt")).not.toContain("> call the vendor back");
@@ -143,6 +144,7 @@ test.describe("copy/paste deferral", () => {
     await page.keyboard.press("ControlOrMeta+V");
 
     // Source stays open, not deferred.
+    // Deliberate: asserts nothing happens for 500 ms (pasting into non-today tab leaves source action open)
     await page.waitForTimeout(500);
     expect(await mockNote(page, "2026-09-07.txt")).toContain("# review the metrics");
   });
@@ -177,6 +179,7 @@ test.describe("copy/paste deferral", () => {
     await page.keyboard.press("End");
     await page.keyboard.press("ControlOrMeta+V");
 
+    // Deliberate: asserts nothing happens for 500 ms (stale copy record cleared so old tab is not deferred)
     await page.waitForTimeout(500);
     // The old tab's actions are still open — the plain copy replaced the stale record.
     expect(await mockNote(page, "2026-08-20.txt")).toContain("# chase the invoice");

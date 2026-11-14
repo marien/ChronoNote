@@ -68,6 +68,7 @@ test.describe("Editor batch 1 — independent tests", () => {
 
       expect(await activeTabContent(page)).toBe("EXTERNAL change\n");
       // Nothing of the user's is left to save, so the file keeps the outside version.
+      // Deliberate: asserts nothing happens for 800 ms (no autosave overwrites the external version after Ctrl+Z)
       await page.waitForTimeout(800);
       expect(await mockNote(page, file)).toBe("EXTERNAL change\n");
     });
@@ -97,6 +98,7 @@ test.describe("Editor batch 1 — independent tests", () => {
       await page.keyboard.press("ControlOrMeta+z");
 
       expect(await activeTabContent(page)).toBe("EXTERNAL change\n");
+      // Deliberate: asserts nothing happens for 800 ms (no autosave overwrites the external version after Ctrl+Z)
       await page.waitForTimeout(800);
       expect(await mockNote(page, file)).toBe("EXTERNAL change\n");
     });
@@ -168,6 +170,7 @@ test.describe("Editor batch 1 — independent tests", () => {
 
       // One extra undo must not touch the outside change "B2".
       await page.keyboard.press("ControlOrMeta+z");
+      // Deliberate: asserts nothing happens for 200 ms (extra Ctrl+Z does not undo outside change)
       await page.waitForTimeout(200);
       expect(await activeTabContent(page)).toBe("A\nB2\n");
 
@@ -211,6 +214,7 @@ test.describe("Editor batch 1 — independent tests", () => {
 
       await editor(page).click();
       await page.keyboard.press("ControlOrMeta+z");
+      // Deliberate: asserts nothing happens for 200 ms (Ctrl+Z does not undo phone companion line)
       await page.waitForTimeout(200);
 
       expect(await activeTabContent(page)).toContain("# from phone");
@@ -264,6 +268,7 @@ test.describe("Editor batch 1 — independent tests", () => {
 
       // Further Ctrl+Z must not undo the phone companion line.
       await page.keyboard.press("ControlOrMeta+z");
+      // Deliberate: asserts nothing happens for 200 ms (extra Ctrl+Z does not undo phone companion line)
       await page.waitForTimeout(200);
       expect(await activeTabContent(page)).toContain("# from phone");
     });
@@ -297,6 +302,7 @@ test.describe("Editor batch 1 — independent tests", () => {
 
       await editor(page).click();
       await page.keyboard.press("ControlOrMeta+z");
+      // Deliberate: asserts nothing happens for 200 ms (Ctrl+Z does not undo dropped-file resolution)
       await page.waitForTimeout(200);
       expect(await activeTabContent(page)).toBe("dropped version\n");
     });
@@ -578,6 +584,7 @@ test.describe("Editor batch 1 — independent tests", () => {
       expect(copyBody).toContain("unsaved edit");
 
       // Ensure no delayed autosave fires later to clobber the external file.
+      // Deliberate: asserts nothing happens for 600 ms (no delayed autosave clobbers external file after tab close)
       await page.waitForTimeout(600);
       expect(await mockNote(page, file)).toBe("Today\n=====\nEXTERNAL newer\n");
     });
@@ -752,9 +759,7 @@ test.describe("Editor batch 1 — independent tests", () => {
       await expect
         .poll(() => page.evaluate(() => window.__CHRONO_MOCK__!.invokeLog.some((e) => e.cmd === "write_note")))
         .toBe(true);
-      await page.waitForTimeout(300);
-
-      expect(await activeTabContent(page)).toBe(initial);
+      await expect.poll(() => activeTabContent(page)).toBe(initial);
       expect(await mockNote(page, file)).toBe(initial);
     });
 
@@ -815,6 +820,7 @@ test.describe("Editor batch 1 — independent tests", () => {
       await setEditorText(page, "ok");
 
       // Wait past both the 1200ms in-flight response and the subsequent recheck.
+      // Deliberate: asserts nothing happens for 1800 ms (in-flight stale spell check never applies underline after note replacement)
       await page.waitForTimeout(1800);
 
       expect(pageErrors).toEqual([]);
@@ -883,6 +889,7 @@ test.describe("Editor batch 1 — independent tests", () => {
       expect(await activeTabContent(page)).toBe("hello helo");
 
       // Wait until the 1st (stale) check has resolved (~1400ms) while the 2nd is still pending.
+      // Deliberate: asserts nothing happens for 1600 ms (stale 1st check resolves without underlining shifted 'hello')
       await page.waitForTimeout(1600);
       await expect(page.locator(".cm-misspelled")).toHaveCount(0);
 

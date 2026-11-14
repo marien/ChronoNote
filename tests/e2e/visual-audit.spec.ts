@@ -94,20 +94,20 @@ test.describe("Visual layout & overflow audit across locales", () => {
       // Switch to Notes & Sync tab
       const tabButtons = page.locator(".settings-tab");
       await tabButtons.nth(1).click();
-      await page.waitForTimeout(100);
+      await expect(tabButtons.nth(1)).toHaveAttribute("aria-selected", "true");
       issues = await findOverflows(page, ".settings-modal-card, .settings-page", locale, "Settings (Notes & Sync)");
       allIssues.push(...issues);
 
       // Switch to About tab if present
       if ((await tabButtons.count()) > 2) {
         await tabButtons.nth(2).click();
-        await page.waitForTimeout(100);
+        await expect(tabButtons.nth(2)).toHaveAttribute("aria-selected", "true");
         issues = await findOverflows(page, ".settings-modal-card, .settings-page", locale, "Settings (About)");
         allIssues.push(...issues);
       }
 
       await page.keyboard.press("Escape");
-      await page.waitForTimeout(150);
+      await expect(page.locator(".settings-modal-card, .settings-page")).toHaveCount(0);
 
       // 2. Shortcuts Modal
       await editor(page).click();
@@ -116,7 +116,7 @@ test.describe("Visual layout & overflow audit across locales", () => {
       issues = await findOverflows(page, ".modal-card", locale, "Shortcuts");
       allIssues.push(...issues);
       await page.keyboard.press("Escape");
-      await page.waitForTimeout(150);
+      await expect(page.locator(".shortcuts-modal-card, .modal-card.modal-xl")).toHaveCount(0);
 
       // 3. About Modal
       await editor(page).click();
@@ -125,7 +125,7 @@ test.describe("Visual layout & overflow audit across locales", () => {
       issues = await findOverflows(page, ".settings-page", locale, "About");
       allIssues.push(...issues);
       await page.keyboard.press("Escape");
-      await page.waitForTimeout(150);
+      await expect(page.locator(".settings-page")).toHaveCount(0);
 
       // 4. Command Palette
       await editor(page).click();
@@ -134,7 +134,7 @@ test.describe("Visual layout & overflow audit across locales", () => {
       issues = await findOverflows(page, ".modal-card", locale, "Command Palette");
       allIssues.push(...issues);
       await page.keyboard.press("Escape");
-      await page.waitForTimeout(150);
+      await expect(page.locator(".palette-card, .modal-card")).toHaveCount(0);
 
       // 5. Section History Modal
       await editor(page).click();
@@ -143,7 +143,7 @@ test.describe("Visual layout & overflow audit across locales", () => {
       issues = await findOverflows(page, ".modal-card, aside.history-pane", locale, "Section History");
       allIssues.push(...issues);
       await page.keyboard.press("Escape");
-      await page.waitForTimeout(150);
+      await expect(page.locator(".history-modal-card, aside.history-pane, .modal-card")).toHaveCount(0);
 
       // 6. Search Modal
       await editor(page).click();
@@ -152,7 +152,7 @@ test.describe("Visual layout & overflow audit across locales", () => {
       issues = await findOverflows(page, ".modal-card", locale, "Search");
       allIssues.push(...issues);
       await page.keyboard.press("Escape");
-      await page.waitForTimeout(150);
+      await expect(page.locator(".search-modal-card, .modal-card.modal-lg")).toHaveCount(0);
 
       // 7. Action Drawer
       await editor(page).click();
@@ -161,7 +161,7 @@ test.describe("Visual layout & overflow audit across locales", () => {
       issues = await findOverflows(page, ".modal-card, aside.actions-pane", locale, "Action Drawer");
       allIssues.push(...issues);
       await page.keyboard.press("Escape");
-      await page.waitForTimeout(150);
+      await expect(page.locator(".actions-pane-card, aside.actions-pane, .modal-card")).toHaveCount(0);
 
       // 8. Date Picker Modal
       await page.locator("[data-datepicker-trigger]").click();
@@ -169,7 +169,7 @@ test.describe("Visual layout & overflow audit across locales", () => {
       issues = await findOverflows(page, ".datepicker-pop", locale, "DatePicker");
       allIssues.push(...issues);
       await page.keyboard.press("Escape");
-      await page.waitForTimeout(150);
+      await expect(page.locator(".datepicker-pop")).toHaveCount(0);
 
       // 9. Find Bar
       await editor(page).click();
@@ -178,7 +178,7 @@ test.describe("Visual layout & overflow audit across locales", () => {
       issues = await findOverflows(page, ".find-bar", locale, "FindBar");
       allIssues.push(...issues);
       await page.keyboard.press("Escape");
-      await page.waitForTimeout(150);
+      await expect(page.locator(".find-bar")).toHaveCount(0);
 
       // 10. TopBar & StatusBar
       issues = await findOverflows(page, "#top-bar", locale, "TopBar");
@@ -197,12 +197,12 @@ test.describe("Visual layout & overflow audit across locales", () => {
       allIssues.push(...issues);
 
       await page.locator(".settings-tab").nth(1).click();
-      await page.waitForTimeout(100);
+      await expect(page.locator(".settings-tab").nth(1)).toHaveAttribute("aria-selected", "true");
       issues = await findOverflows(page, ".settings-modal-card, .settings-page", locale, "Mobile Settings (Notes)");
       allIssues.push(...issues);
 
       await page.keyboard.press("Escape");
-      await page.waitForTimeout(150);
+      await expect(page.locator(".settings-modal-card, .settings-page")).toHaveCount(0);
 
       // Mobile Tab Drawer
       const drawerBtn = page.locator("#mobile-drawer-btn");
@@ -212,7 +212,7 @@ test.describe("Visual layout & overflow audit across locales", () => {
         issues = await findOverflows(page, ".mobile-drawer-card", locale, "MobileTabDrawer");
         allIssues.push(...issues);
         await page.locator(".drawer-close-btn").click();
-        await page.waitForTimeout(150);
+        await expect(page.locator(".mobile-drawer-card")).toHaveCount(0);
       }
 
       // Restore desktop viewport
@@ -236,7 +236,7 @@ test.describe("Visual layout & overflow audit across locales", () => {
         issues = await findOverflows(page, ".modal-card", locale, "SyncConflictsModal");
         allIssues.push(...issues);
         await page.keyboard.press("Escape");
-        await page.waitForTimeout(150);
+        await expect(page.locator(".modal-card")).toHaveCount(0);
       }
 
       const cloudBtn = page.locator("#stat-cloud");
@@ -246,7 +246,7 @@ test.describe("Visual layout & overflow audit across locales", () => {
         issues = await findOverflows(page, "#telemetry-popover", locale, "SyncHealthPopover");
         allIssues.push(...issues);
         await cloudBtn.click();
-        await page.waitForTimeout(150);
+        await expect(page.locator("#telemetry-popover")).toHaveCount(0);
       }
 
       expect(allIssues).toEqual([]);

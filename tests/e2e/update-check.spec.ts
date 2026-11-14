@@ -105,7 +105,8 @@ test.describe("update check (§update-check)", () => {
       },
     });
     await editor(page).click();
-    await page.waitForTimeout(400); // give an errant check a chance to fire
+    // Deliberate: asserts nothing happens for 400 ms (auto-check disabled fires no update check or banner)
+    await page.waitForTimeout(400);
     await expect(page.locator(".info-bar")).toHaveCount(0);
     expect(
       await page.evaluate(() => window.__CHRONO_MOCK__!.invokeLog.some((e) => e.cmd === "check_update")),
@@ -242,6 +243,7 @@ test.describe("#50: first-launch-after-update notice", () => {
     await page.evaluate(() => (window.__CHRONO_MOCK__!.windowCalls = []));
     await page.reload();
     await expect(page.locator("#top-bar")).toBeVisible();
+    // Deliberate: asserts nothing happens for 300 ms (reload after update banner raises no window calls)
     await page.waitForTimeout(300);
     expect(await raised()).toEqual([]);
   });

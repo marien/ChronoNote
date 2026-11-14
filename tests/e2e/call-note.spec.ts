@@ -146,6 +146,7 @@ test.describe("Peek notes for the meeting that is on now", () => {
     await seed(page);
     await expect.poll(() => page.evaluate(() => window.__CHRONO_MOCK__!.globalShortcuts)).toEqual(["CommandOrControl+Alt+J"]);
     // Peek on the section at the caret (Ctrl+Shift+P) is in-app only: nothing else is registered with the OS.
+    // Deliberate: asserts nothing happens for 500 ms (no extra OS global shortcut is registered)
     await page.waitForTimeout(500);
     expect(await page.evaluate(() => window.__CHRONO_MOCK__!.globalShortcuts)).toEqual(["CommandOrControl+Alt+J"]);
   });

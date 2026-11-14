@@ -187,13 +187,15 @@ test.describe("glyph line layout", () => {
 
     // §422: the caret on the pill's line but away from the pill (its end): still idle, parentheses hidden.
     await page.keyboard.press("ControlOrMeta+End");
-    await page.waitForTimeout(250); // any colour transition
+    // Deliberate: asserts nothing happens for 250 ms (parens stay hidden and any colour transition does not appear)
+    await page.waitForTimeout(250);
     const onLine = await measure();
     expect(onLine.editing).toBe(false);
     expect(onLine.parenColor).toBe("rgba(0, 0, 0, 0)");
 
     // Hovering the pill does not show them either.
     await page.locator(".cm-line").nth(1).locator(".glyph-topic").hover();
+    // Deliberate: asserts nothing happens for 250 ms (hovering the pill does not reveal parens)
     await page.waitForTimeout(250);
     expect((await measure()).parenColor).toBe("rgba(0, 0, 0, 0)");
 
@@ -202,7 +204,15 @@ test.describe("glyph line layout", () => {
     await page.keyboard.press("Home");
     await page.keyboard.press("ArrowRight");
     await expect.poll(async () => (await measure()).editing).toBe(true);
-    await page.waitForTimeout(250); // the colour transition
+    await expect.poll(async () => (await measure()).parenColor).not.toBe("rgba(0, 0, 0, 0)");
+    await page.evaluate(() =>
+      Promise.all(
+        document
+          .getAnimations()
+          .filter((a) => a.effect?.getComputedTiming?.().iterations !== Infinity)
+          .map((a) => a.finished),
+      ),
+    );
     const editing = await measure();
     expect(Math.abs(editing.delta)).toBeLessThan(1);
     expect(editing.parenColor).not.toBe("rgba(0, 0, 0, 0)");
@@ -406,7 +416,8 @@ test.describe("glyph line layout", () => {
       ].join("\n"),
     );
     await page.evaluate(() => (document.activeElement as HTMLElement)?.blur());
-    await page.waitForTimeout(300);
+    await expect(page.locator(".cm-editor")).not.toHaveClass(/cm-focused/);
+    await page.evaluate(() => document.fonts.ready.then(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)))));
 
     const content = page.locator(".cm-content");
     const buf = await content.screenshot();
@@ -526,7 +537,8 @@ test.describe("glyph line layout", () => {
       }, lh);
       await setEditorText(page, testLines);
       await page.evaluate(() => (document.activeElement as HTMLElement)?.blur());
-      await page.waitForTimeout(150);
+      await expect(page.locator(".cm-editor")).not.toHaveClass(/cm-focused/);
+      await page.evaluate(() => document.fonts.ready.then(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)))));
 
       const content = page.locator(".cm-content");
       const buf = await content.screenshot();

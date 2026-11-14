@@ -46,6 +46,7 @@ test.describe("desktop tab strip", () => {
     await expect(left).toBeDisabled();
     await expect(right).toBeEnabled();
     await left.click({ force: true });
+    // Deliberate: asserts nothing happens for 300 ms (disabled left arrow does not scroll or wrap tab strip)
     await page.waitForTimeout(300);
     expect(await scrollLeft(page)).toBe(0);
     await right.click();

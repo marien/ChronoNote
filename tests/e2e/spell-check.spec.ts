@@ -7,6 +7,7 @@ test.describe("spell check (proposal D2)", () => {
     await setEditorText(page, "Here is teh wrods to test.");
     const content = page.locator(".cm-content");
     await expect(content).toHaveAttribute("spellcheck", "false");
+    // Deliberate: asserts nothing happens for 400 ms (spell check stays off; no marks appear)
     await page.waitForTimeout(400);
     await expect(page.locator(".cm-misspelled")).toHaveCount(0);
   });
@@ -24,7 +25,7 @@ test.describe("spell check (proposal D2)", () => {
     await scroller.evaluate((el) => {
       el.scrollTop = el.scrollHeight;
     });
-    await page.waitForTimeout(400);
+    await expect(page.locator(".cm-line", { hasText: "line 120" }).locator(".cm-misspelled").first()).toBeVisible();
 
     await scroller.evaluate((el) => {
       el.scrollTop = 0;
@@ -35,8 +36,6 @@ test.describe("spell check (proposal D2)", () => {
   test("tokens (# , @teh, a URL with teh) are not marked", async ({ page }) => {
     await seedApp(page, { seed: { spellCheck: true } });
     await setEditorText(page, "# first action\n@teh assignee\nhttps://example.com/teh\nregular teh");
-
-    await page.waitForTimeout(400);
 
     const marks = page.locator(".cm-misspelled");
     await expect(marks).toHaveCount(1);
@@ -83,12 +82,14 @@ test.describe("spell check (proposal D2)", () => {
 
     // Caret into the misspelled word with the mouse, then wait past the 300 ms recheck.
     await page.locator(".cm-misspelled", { hasText: "wrods" }).click();
+    // Deliberate: asserts nothing happens for 700 ms (recheck runs and mark stays visible with caret inside)
     await page.waitForTimeout(700);
     const wrods = page.locator(".cm-misspelled", { hasText: "wrods" });
     await expect(wrods).toBeVisible();
 
     // Moving inside it with the keyboard does not hide it either.
     await page.keyboard.press("ArrowRight");
+    // Deliberate: asserts nothing happens for 700 ms (arrowing inside word does not hide mark)
     await page.waitForTimeout(700);
     await expect(wrods).toBeVisible();
 
@@ -100,6 +101,7 @@ test.describe("spell check (proposal D2)", () => {
     await wrods.click();
     await page.keyboard.type("x");
     await expect(page.locator(".cm-line").first()).toContainText("x"); // the line had no "x" before
+    // Deliberate: asserts nothing happens for 700 ms (no red underline while typing inside the word)
     await page.waitForTimeout(700);
     await expect(page.locator(".cm-misspelled", { hasText: /x/ })).toHaveCount(0);
   });

@@ -132,9 +132,9 @@ export async function readMock<T>(page: Page, fn: () => T): Promise<T> {
 }
 
 /** Latest persisted content for a note file, or `null` if never written.
- * Waits out the 400ms autosave debounce first. */
+ * Waits until the mock backend records a write for that file. */
 export async function lastWrittenNote(page: Page, filename: string): Promise<string | null> {
-  await page.waitForTimeout(500);
+  await page.waitForFunction((f) => window.__CHRONO_MOCK__!.lastWrite(f) !== null, filename);
   return page.evaluate((f) => window.__CHRONO_MOCK__!.lastWrite(f), filename);
 }
 
