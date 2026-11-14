@@ -11997,7 +11997,7 @@ the fix; the ninth checks a really empty line still draws the glyph as the space
 
 ## 464. Numbered lists: fixes from a cross-model review
 
-**Status: on main, not released yet.**
+**Status: released in beta 0.38.0-1 (early channel only).**
 
 Marien (2026-11-13) asked Gemini 4 Hydrogen to review the numbered lists (§457, §462) for correctness, test
 coverage and completeness. Its read-only review reported 10 correctness findings, the Tab-on-the-first-item edge
@@ -12044,7 +12044,7 @@ lines without `Math.min(...list)`, which overflows on a select-all delete of a v
 
 ## 465. Editing review, batch 1: no lost text
 
-**Status: on main, not released yet.**
+**Status: released in beta 0.38.0-1 (early channel only).**
 
 Marien (2026-11-14) asked for a full review of the editor, the tokenizer and their surroundings, design and tests
 included, because the numbered-list bugs (§464) and §463 shook his confidence in editing. Four Gemini 4 Hydrogen
@@ -12088,7 +12088,7 @@ vs. the file, undo grouping of typing at one spot, the spell-check mark held bac
 
 ## 466. Editing commands out of the editor component, and a test editor in Vitest
 
-**Status: on main, not released yet.**
+**Status: released in beta 0.38.0-1 (early channel only).**
 
 Step 1 of the editor review's test plan (`docs/design/editor-review.html`, approved 2026-11-14): the editing commands
 lived inside `EditorPane.svelte`, so they could only be tested in a browser, one case at a time. Moved, unchanged, to
@@ -12103,7 +12103,7 @@ change: the full browser suite passes unchanged. Built by Gemini 4 Hydrogen, rev
 
 ## 467. Editing review, batch 2: keys and commands
 
-**Status: on main, not released yet.**
+**Status: released in beta 0.38.0-1 (early channel only).**
 
 Batch 2 of the editor review (`docs/design/editor-review.html`, approved 2026-11-14), with step 2 of its test plan: a
 table of 882 cases (`src/lib/editor/editing.*.table.test.ts`, every editing command on every kind of line, caret
@@ -12144,7 +12144,7 @@ for column 0 or Shift+Enter for a plain break now use the new keys. Built by Gem
 
 ## 468. Editing review, batch 3: one line, one meaning
 
-**Status: on main, not released yet.**
+**Status: released in beta 0.38.0-1 (early channel only).**
 
 Batch 3 of the editor review (`docs/design/editor-review.html`, approved 2026-11-14). Several features read a line
 with their own regexes, so the editor, the drawer, the counts, export and the menu disagreed about the same line. Each
@@ -12180,7 +12180,7 @@ action line continues it, so `===` typed after it was `# ===`).
 
 ## 469. Editing review, batch 4: tokenizer edges, pasting and dropping
 
-**Status: on main, not released yet.**
+**Status: released in beta 0.38.0-1 (early channel only).**
 
 Batch 4, the last fix batch of the editor review (`docs/design/editor-review.html`, approved 2026-11-14):
 
@@ -12209,7 +12209,7 @@ the test plan).
 
 ## 470. Editing review, test plan step 3: property tests
 
-**Status: on main, not released yet.**
+**Status: released in beta 0.38.0-1 (early channel only).**
 
 Step 3 of the editor review's test plan (`docs/design/editor-review.html`): fast-check properties that generate many
 cases instead of hand-picked ones. `src/lib/roundTrip.property.test.ts`: open, edit, save and reload give the bytes the
@@ -12226,7 +12226,7 @@ Built by Gemini 4 Hydrogen, reviewed here.
 
 ## 471. Editing review, decision D4: list keys behind a state symbol
 
-**Status: on main, not released yet.**
+**Status: released in beta 0.38.0-1 (early channel only).**
 
 Decision D4 of the editor review (`docs/design/editor-review.html`), designed with Marien on 2026-11-14: the
 numbered-list and bullet rules see through an action or topic symbol in front of the marker (`# 1. task`,
@@ -12257,7 +12257,7 @@ Reviewed here.
 
 ## 472. Editing review, decision D11: word moves around glyphs, dates, pills and names
 
-**Status: on main, not released yet.**
+**Status: released in beta 0.38.0-1 (early channel only).**
 
 Decision D11 of the editor review (`docs/design/editor-review.html`), with Marien's choices of 2026-11-14 on the
 taste cases (`! ` and number markers, dates and `@name` all one word): Ctrl+Left/Right (with Shift), Ctrl+Backspace,
@@ -12280,7 +12280,7 @@ here.
 
 ## 473. Editing review, test plan steps 4 and 6: browser-only tests, a phone tap fix, Windows layout specs
 
-**Status: on main, not released yet.**
+**Status: released in beta 0.38.0-1 (early channel only).**
 
 Step 4 of the editor review's test plan (`docs/design/editor-review.html`): `tests/e2e/editor-browser-only.spec.ts`,
 22 tests for what Vitest cannot show, written by Gemini 4 Hydrogen from the spec: composition and US-International
@@ -12300,7 +12300,7 @@ review's recommendation).
 
 ## 474. Editing review, test plan step 5: no fixed sleeps, key tests folded into the tables
 
-**Status: on main, not released yet.**
+**Status: released in beta 0.38.0-1 (early channel only).**
 
 Step 5 of the editor review's test plan (`docs/design/editor-review.html`), done by Gemini 4 Hydrogen and reviewed
 here. Tests only; no app code changed.
