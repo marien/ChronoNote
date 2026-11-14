@@ -201,7 +201,8 @@ async function checkDrift(page: Page): Promise<void> {
 }
 
 async function triggerApplyPhoneChanges(page: Page): Promise<void> {
-  await editor(page).click();
+  // Focus without clicking: a click would move the caret the test is about.
+  await editor(page).focus();
   await page.keyboard.press("ControlOrMeta+k");
   const palette = modalCard(page, MODAL_LABELS.commandPalette);
   await expect(palette).toBeVisible();
