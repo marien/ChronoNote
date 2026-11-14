@@ -241,10 +241,16 @@ describe("editing table: Enter & Shift-Enter", () => {
       expected: "# 1. plan\n     |",
     },
     {
-      label: "Enter does not split unified list across non-list lead line (Rule 1.3)",
-      input: "1. a|\n# book room\n2. b",
+      label: "Enter does not split unified list across a lead continuation line (Rule 1.3)",
+      input: "1. a|\n#  book room\n2. b",
       key: "Enter",
-      expected: "1. a\n2. |\n# book room\n3. b",
+      expected: "1. a\n2. |\n#  book room\n3. b",
+    },
+    {
+      label: "a topic line between two lists keeps them apart (Rule 1.3)",
+      input: "o Budget\n1. a|\n2. b\no Hiring\n1. c",
+      key: "Enter",
+      expected: "o Budget\n1. a\n2. |\n3. b\no Hiring\n1. c",
     },
   ]);
 

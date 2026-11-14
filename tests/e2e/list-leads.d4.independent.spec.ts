@@ -11,10 +11,6 @@ async function caretAtEndOfLine(page: Page, line: number): Promise<void> {
   await page.keyboard.press("End");
 }
 
-async function caretAtLineOffset(page: Page, line: number, offset: number): Promise<void> {
-  await caretAtLineStart(page, line);
-  for (let i = 0; i < offset; i++) await page.keyboard.press("ArrowRight");
-}
 
 test.describe("D4 independent E2E: list keys behind a state symbol", () => {
   test.beforeEach(async ({ page }) => {
@@ -47,12 +43,14 @@ test.describe("D4 independent E2E: list keys behind a state symbol", () => {
     page,
   }) => {
     await setEditorText(page, "# 1. a\n# 2. b\n# 3. c");
-    await caretAtLineOffset(page, 1, 5); // "# 2. |b"
+    // A glyph is one ArrowRight step, so reach the text start with smart Home (from column 0 it goes there).
+    await caretAtLineStart(page, 1);
+    await page.keyboard.press("Home"); // "# 2. |b"
     await page.keyboard.press("Backspace");
     expect(await activeTabContent(page)).toBe("# 1. a\n#    b\n# 2. c");
 
     await page.keyboard.press("Backspace");
-    expect(await activeTabContent(page)).toBe("# 1. a\n# b\n# 2. c");
+    expect(await activeTabContent(page)).toBe("# 1. a\n# b\n# 1. c");
 
     await page.keyboard.press("ControlOrMeta+z");
     expect(await activeTabContent(page)).toBe("# 1. a\n#    b\n# 2. c");

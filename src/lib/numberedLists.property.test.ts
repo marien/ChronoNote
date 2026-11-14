@@ -358,7 +358,8 @@ const generatedListDocArb: fc.Arbitrary<GeneratedDoc> = fc
           lineKinds.push("cont");
         }
         if (item.hasNonListLead) {
-          lines.push(`${baseIndent}# note ${n}`);
+          // A lead line continues the item only when its text sits under the item's text (`#    note`).
+          lines.push(`${baseIndent}# ${" ".repeat(item.lead.length + marker.length - 1)}note ${n}`);
           lineKinds.push("cont");
         }
         if (item.hasBulletChild) {

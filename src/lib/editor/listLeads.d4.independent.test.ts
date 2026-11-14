@@ -115,16 +115,26 @@ describe("D4 independent tests: list keys behind a state symbol", () => {
       expect(ed.text()).toBe("1. task\n2. next");
     });
 
-    it("1.3: a lead line with no list marker ('# book room') inside a list does not split the list", () => {
-      assertKeyAndUndo("[1. x\n]2. a\n# book room\n3. b", "Delete", "|1. a\n# book room\n2. b");
-      assertKeyAndUndo("1. a|\n# book room\n2. b", "Enter", "1. a\n2. |\n# book room\n3. b");
-      assertKeyAndUndo("1. a|\n. discuss later\n2. b", "Enter", "1. a\n2. |\n. discuss later\n3. b");
-      assertKeyAndUndo("# 1. a|\n# book room\n# 2. b", "Enter", "# 1. a\n# 2. |\n# book room\n# 3. b");
-      assertKeyAndUndo("  1. a|\n  # book room\n  2. b", "Enter", "  1. a\n  2. |\n  # book room\n  3. b");
+    // Rule 1.3 as revised in review: only a lead line whose text sits under the item's text continues the list.
+    it("1.3: a lead line with its text under the item's text ('#  book room') does not split the list", () => {
+      assertKeyAndUndo("[1. x\n]2. a\n#  book room\n3. b", "Delete", "|1. a\n#  book room\n2. b");
+      assertKeyAndUndo("1. a|\n#  book room\n2. b", "Enter", "1. a\n2. |\n#  book room\n3. b");
+      assertKeyAndUndo("1. a|\n.  discuss later\n2. b", "Enter", "1. a\n2. |\n.  discuss later\n3. b");
+      assertKeyAndUndo("# 1. a|\n#    book room\n# 2. b", "Enter", "# 1. a\n# 2. |\n#    book room\n# 3. b");
+      assertKeyAndUndo("  1. a|\n  #  book room\n  2. b", "Enter", "  1. a\n  2. |\n  #  book room\n  3. b");
+    });
+
+    it("1.3: a topic or action line at the list's indent splits it", () => {
+      assertKeyAndUndo(
+        "o Budget\n[1. x\n]1. a\n2. b\no Hiring\n1. c\n2. d",
+        "Delete",
+        "o Budget\n|1. a\n2. b\no Hiring\n1. c\n2. d",
+      );
+      assertKeyAndUndo("1. a\n2. |b\n# call Sam\n1. c", "Tab", "1. a\n   1. |b\n# call Sam\n1. c");
     });
 
     it("1.3: a blank line still splits a list", () => {
-      assertKeyAndUndo("1. a|\n# book room\n\n1. b", "Enter", "1. a\n2. |\n# book room\n\n1. b");
+      assertKeyAndUndo("1. a|\n#  book room\n\n1. b", "Enter", "1. a\n2. |\n#  book room\n\n1. b");
     });
   });
 
@@ -233,7 +243,7 @@ describe("D4 independent tests: list keys behind a state symbol", () => {
         "# 1. a\n[# 2. b\nv 3. c]\n> 4. d",
       );
       assertKeyAndUndo("# 1. a\n[# 2. b\n]# 3. c", "Tab", "# 1. a\n[     # 1. b\n]# 2. c");
-      assertKeyAndUndo("o - point\n[o - a\n. - b]", "Tab", "o - point\n[    o - a\n    . - b]");
+      assertKeyAndUndo("o - point\n[o - a\n. - b]", "Tab", "o - point\n    [o - a\n    . - b]");
     });
   });
 
@@ -362,12 +372,13 @@ describe("D4 independent tests: list keys behind a state symbol", () => {
       );
     });
 
-    it("4.2: second Backspace outdents back to the continued item's indent, keeps the lead+space, and does not split the list", () => {
-      assertKeyAndUndo("# 1. a\n#    |b\n# 2. c", "Backspace", "# 1. a\n# |b\n# 2. c");
-      assertKeyAndUndo("# 1) a\n#    |b\n# 2) c", "Backspace", "# 1) a\n# |b\n# 2) c");
-      assertKeyAndUndo("  # 1. a\n  #    |b\n  # 2. c", "Backspace", "  # 1. a\n  # |b\n  # 2. c");
-      assertKeyAndUndo("# 1. a\nv    |b\n# 2. c", "Backspace", "# 1. a\nv |b\n# 2. c");
-      assertKeyAndUndo("# 1. a\no    |b\n# 2. c", "Backspace", "# 1. a\no |b\n# 2. c");
+    it("4.2: second Backspace outdents back to the continued item's indent, keeps the lead+space, and splits the list there", () => {
+      // As revised in review: `# b` at the list's indent splits the list, so the rest restarts at 1 (as for plain items).
+      assertKeyAndUndo("# 1. a\n#    |b\n# 2. c", "Backspace", "# 1. a\n# |b\n# 1. c");
+      assertKeyAndUndo("# 1) a\n#    |b\n# 2) c", "Backspace", "# 1) a\n# |b\n# 1) c");
+      assertKeyAndUndo("  # 1. a\n  #    |b\n  # 2. c", "Backspace", "  # 1. a\n  # |b\n  # 1. c");
+      assertKeyAndUndo("# 1. a\nv    |b\n# 2. c", "Backspace", "# 1. a\nv |b\n# 1. c");
+      assertKeyAndUndo("# 1. a\no    |b\n# 2. c", "Backspace", "# 1. a\no |b\n# 1. c");
     });
 
     it("4.1 + 4.2: two consecutive Backspaces and two Ctrl+Z undos step cleanly through both states", () => {
@@ -375,7 +386,7 @@ describe("D4 independent tests: list keys behind a state symbol", () => {
       ed.press("Backspace");
       expect(ed.caret()).toBe("# 1. a\n#    |b\n# 2. c");
       ed.press("Backspace");
-      expect(ed.caret()).toBe("# 1. a\n# |b\n# 2. c");
+      expect(ed.caret()).toBe("# 1. a\n# |b\n# 1. c");
 
       expect(ed.press("Mod-z")).toBe(true);
       expect(ed.caret()).toBe("# 1. a\n#    |b\n# 2. c");

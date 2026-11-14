@@ -423,10 +423,16 @@ describe("editing table: Tab, Shift-Tab & Backspace", () => {
       expected: "|# 1. b\nv 2. c",
     },
     {
-      label: "Backspace removes number across non-list lead line inside unified list (Rule 1.3)",
-      input: "1. a\n# book room\n2. |b\n3. c",
+      label: "Backspace removes number across a lead continuation line inside the list (Rule 1.3)",
+      input: "1. a\n#  book room\n2. |b\n3. c",
       key: "Backspace",
-      expected: "1. a\n# book room\n   |b\n2. c",
+      expected: "1. a\n#  book room\n   |b\n2. c",
+    },
+    {
+      label: "Tab in one list leaves the list after a topic line alone (Rule 1.3)",
+      input: "o Budget\n1. a\n2. |b\no Hiring\n1. c\n2. d",
+      key: "Tab",
+      expected: "o Budget\n1. a\n   1. |b\no Hiring\n1. c\n2. d",
     },
     {
       label: "First Backspace at text start behind lead removes number and aligns under item above (Rule 4.1)",
@@ -435,10 +441,10 @@ describe("editing table: Tab, Shift-Tab & Backspace", () => {
       expected: "# 1. a\n#    |b\n# 2. c",
     },
     {
-      label: "Second Backspace at aligned continuation behind lead unindents to parent indent keeping lead (Rule 4.1)",
+      label: "Second Backspace at aligned continuation behind lead unindents to parent indent keeping lead, splitting the list (Rule 4.2)",
       input: "# 1. a\n#    |b\n# 2. c",
       key: "Backspace",
-      expected: "# 1. a\n# |b\n# 2. c",
+      expected: "# 1. a\n# |b\n# 1. c",
     },
     {
       label: "Backspace at text start of top-most lead numbered item removes number keeping lead (Rule 4.2)",

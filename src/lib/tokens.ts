@@ -290,11 +290,15 @@ const NUMBERED_ITEM_RE = new RegExp(
   String.raw`^(\s*)([${ACTION_SYMBOLS}${TOPIC_SYMBOLS}] )?((?:[1-9]\d{0,8})(?:\.[1-9]\d{0,8})*)([.)])(\s|$)`,
 );
 
-/** Visual column of a non-list line: a line with a lead counts at its text column (indent + 2), so `# note`
- * inside a list does not split it. */
+/** Visual column of a non-list line. A lead with extra spaces after it (`#    b`, what Backspace leaves when it
+ * removes a number) counts at its text column, so it continues the item above; any other line, `# call Sam` or
+ * `o Hiring` included, counts at its indent, so a topic or action line between two lists still splits them. */
 export function nonListLineColumn(line: string): number {
   const m = LEAD_PREFIX_RE.exec(line);
-  if (m) return indentLen(m[1]) + m[2].length;
+  if (m) {
+    const extra = line.slice(m[0].length).match(/^ */)![0].length;
+    if (extra > 0) return indentLen(m[1]) + m[2].length + extra;
+  }
   return indentLen(line.match(/^\s*/)![0]);
 }
 
