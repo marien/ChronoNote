@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { EditorState } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
 import { cleanUrlMatch, clickableLinksPlugin } from "./clickableLinks";
+import { dateLinksPlugin } from "./dateLinks";
 
 describe("cleanUrlMatch", () => {
   it("recognizes standard https and http URLs", () => {
@@ -77,5 +78,48 @@ describe("clickableLinksPlugin", () => {
     expect(view.state.doc.toString()).toBe(doc);
     expect(decoratedFrom).toBe(15);
     expect(decoratedTo).toBe(51);
+  });
+
+  it("Rule 3.1: URL containing a date is one URL link with no date link inside it", () => {
+    const doc = "Check https://example.com/2026-11-14/notes and 2026-11-15";
+    const view = new EditorView({
+      state: EditorState.create({ doc, extensions: [clickableLinksPlugin, dateLinksPlugin] }),
+    });
+
+    const urlSpans: string[] = [];
+    view.plugin(clickableLinksPlugin)!.decorations.between(0, doc.length, (from, to) => {
+      urlSpans.push(doc.slice(from, to));
+    });
+    const dateSpans: string[] = [];
+    view.plugin(dateLinksPlugin)!.decorations.between(0, doc.length, (from, to) => {
+      dateSpans.push(doc.slice(from, to));
+    });
+
+    expect(urlSpans).toEqual(["https://example.com/2026-11-14/notes"]);
+    expect(dateSpans).toEqual(["2026-11-15"]);
+    view.destroy();
+  });
+
+  it("Rule 3.2: forward link with balanced parentheses is one date link", () => {
+    const doc = "See (>2026-11-20#Sync (Part 1)) tomorrow";
+    const view = new EditorView({
+      state: EditorState.create({ doc, extensions: [dateLinksPlugin] }),
+    });
+
+    const matches: { slice: string; target: string }[] = [];
+    view.plugin(dateLinksPlugin)!.decorations.between(0, doc.length, (from, to, val) => {
+      matches.push({
+        slice: doc.slice(from, to),
+        target: (val.spec.attributes as Record<string, string>)?.["data-date-target"] ?? "",
+      });
+    });
+
+    expect(matches).toEqual([
+      {
+        slice: "2026-11-20#Sync (Part 1)",
+        target: "(2026-11-20#Sync (Part 1))",
+      },
+    ]);
+    view.destroy();
   });
 });

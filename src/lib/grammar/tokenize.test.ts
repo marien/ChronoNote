@@ -429,4 +429,33 @@ describe("tokenizeLine due and dueWord (Section 1 table)", () => {
       ]);
     });
   });
+
+  describe("Rule 3.2: forward links with balanced parentheses", () => {
+    it("parses balanced parentheses inside section name as a single forwardLink", () => {
+      const line = "Talked (>2026-11-20#Sync (Part 1)) later";
+      expect(tokenizeLine(line)).toEqual([
+        {
+          kind: "forwardLink",
+          from: 7,
+          to: 34,
+          dir: ">",
+          date: "2026-11-20",
+          section: "Sync (Part 1)",
+          replaced: false,
+        },
+      ]);
+      expect(tokenizeLine("a (>2026-11-20#Outer (Inner (1)))")).toEqual([
+        {
+          kind: "forwardLink",
+          from: 2,
+          to: 33,
+          dir: ">",
+          date: "2026-11-20",
+          section: "Outer (Inner (1))",
+          replaced: false,
+        },
+      ]);
+      expect(tokenizeLine("a (>2026-11-20#unclosed (1)").some((t) => t.kind === "forwardLink")).toBe(false);
+    });
+  });
 });

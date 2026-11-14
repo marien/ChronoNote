@@ -803,8 +803,9 @@ body.peek-mode .cm-overview-ruler {
 }
 
 .cm-due-unknown {
-  text-decoration: underline dotted var(--muted);
-  text-underline-offset: 3px;
+  text-decoration: underline wavy var(--spell-error);
+  text-decoration-skip-ink: none;
+  text-underline-offset: 2px;
 }
 
 /* Grayscale: no colour; the outline says the state. Thin (later), solid text-coloured (today), and for overdue the

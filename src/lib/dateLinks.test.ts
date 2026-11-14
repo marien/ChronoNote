@@ -49,6 +49,19 @@ describe("parseDateLink", () => {
     expect(parseDateLink("12026-10-03")).toBeNull();
   });
 
+  it("parses (>YYYY-MM-DD#Section) with balanced parentheses", () => {
+    expect(parseDateLink("(>2026-11-20#Sync (Part 1))")).toEqual({
+      date: "2026-11-20",
+      section: "Sync (Part 1)",
+    });
+    expect(parseDateLink("(<2026-11-20#A (b (c)))")).toEqual({
+      date: "2026-11-20",
+      section: "A (b (c))",
+    });
+    expect(parseDateLink("(>2026-11-20#a) (b)")).toBeNull();
+    expect(parseDateLink("(>2026-11-20#Sync (Part 1)")).toBeNull();
+  });
+
   it("rejects invalid calendar dates", () => {
     expect(parseDateLink("2026-13-40")).toBeNull();
   });

@@ -1,6 +1,7 @@
 import { get } from "svelte/store";
 import { activeTabId, backStack, forwardStack, type BackStackEntry, editorApi, showToast, tabs, navToastVisible } from "./stores";
 import { jumpToFileLine, openOrCreateDatedFile } from "./tabs";
+import { findBalancedParenEnd } from "./grammar/tokenize";
 import { isSetextUnderline, normalizeHeaderTitle, titleForMatching } from "./tokens";
 import { t } from "./i18n";
 
@@ -17,9 +18,9 @@ export function parseDateLink(text: string): { date: string; section?: string } 
 
   // A date with a section is a link ONLY in brackets: "(2026-10-03#Weekly Sync)", "(>2026-10-14#Weekly Sync)", "(<2026-10-13#Standup)".
   // "(2026-10-03)" is also a link to the day.
-  if (trimmed.startsWith("(") && trimmed.endsWith(")")) {
+  if (trimmed.startsWith("(") && trimmed.endsWith(")") && findBalancedParenEnd(trimmed, 0) === trimmed.length - 1) {
     const inner = trimmed.slice(1, -1).trim();
-    const innerMatch = /^[<>]?(\d{4}-\d{2}-\d{2})(?:#([^)]*))?$/.exec(inner);
+    const innerMatch = /^[<>]?(\d{4}-\d{2}-\d{2})(?:#([\s\S]*))?$/.exec(inner);
     if (!innerMatch) return null;
     dateStr = innerMatch[1];
     sectionRaw = innerMatch[2];

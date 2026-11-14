@@ -183,7 +183,19 @@ const INLINE = new RegExp(
   "gu",
 );
 
-const FORWARD_LINK_RE = /\(([<>])(\d{4}-\d{2}-\d{2})(?:#([^)\r\n]+))?\)/gu;
+const FORWARD_LINK_HEAD_RE = /\(([<>])(\d{4}-\d{2}-\d{2})(?=[#)])/gu;
+
+/** Finds the index of the `)` balancing the `(` at `openIdx` within a single line, or -1 if unclosed. */
+export function findBalancedParenEnd(line: string, openIdx: number): number {
+  let depth = 1;
+  for (let i = openIdx + 1; i < line.length; i++) {
+    const ch = line[i];
+    if (ch === "\r" || ch === "\n") return -1;
+    if (ch === "(") depth++;
+    else if (ch === ")" && --depth === 0) return i;
+  }
+  return -1;
+}
 
 /** #208: `! - item` / `! * item` (also after an action or topic symbol: `# ! - item`) is an emphasised list item: a
  * bullet right after the `! ` is drawn as one. Returns where the scan continues. */
@@ -252,22 +264,38 @@ export function tokenizeLine(line: string, options?: TokenizeOptions): Token[] {
   }
 
   const fwdLinks: Token[] = [];
-  // Only lines that can hold one run the regex: this runs for every line on every rebuild (perf.test.ts).
-  FORWARD_LINK_RE.lastIndex = line.includes("(>") || line.includes("(<") ? scanFrom : line.length;
-  let fm: RegExpExecArray | null;
-  while ((fm = FORWARD_LINK_RE.exec(line)) !== null) {
-    const [full, dir, dateStr, section] = fm;
-    const parts = dateStr.split("-").map((p) => parseInt(p, 10));
-    if (isValidCalendarDate(parts[0], parts[1], parts[2])) {
-      fwdLinks.push({
-        kind: "forwardLink",
-        from: fm.index,
-        to: fm.index + full.length,
-        dir: dir as "<" | ">",
-        date: dateStr,
-        ...(section !== undefined ? { section } : {}),
-        replaced: false,
-      });
+  // Only lines that can hold one run the scanner: this runs for every line on every rebuild (perf.test.ts).
+  if (line.includes("(>") || line.includes("(<")) {
+    FORWARD_LINK_HEAD_RE.lastIndex = scanFrom;
+    let fm: RegExpExecArray | null;
+    while ((fm = FORWARD_LINK_HEAD_RE.exec(line)) !== null) {
+      const openIdx = fm.index;
+      const afterDate = openIdx + 12; // "(>YYYY-MM-DD".length
+      let to: number;
+      let section: string | undefined;
+      if (line[afterDate] === ")") {
+        to = afterDate + 1;
+      } else {
+        const closeIdx = findBalancedParenEnd(line, openIdx);
+        if (closeIdx === -1) continue;
+        const sec = line.slice(afterDate + 1, closeIdx);
+        if (sec.length === 0) continue;
+        section = sec;
+        to = closeIdx + 1;
+      }
+      const parts = fm[2].split("-").map((p) => parseInt(p, 10));
+      if (isValidCalendarDate(parts[0], parts[1], parts[2])) {
+        fwdLinks.push({
+          kind: "forwardLink",
+          from: openIdx,
+          to,
+          dir: fm[1] as "<" | ">",
+          date: fm[2],
+          ...(section !== undefined ? { section } : {}),
+          replaced: false,
+        });
+        FORWARD_LINK_HEAD_RE.lastIndex = to;
+      }
     }
   }
 
@@ -399,4 +427,27 @@ export function tokenizeDocLine(
 export function hasOpenAction(line: string, nextLine?: string): boolean {
   const tokens = tokenizeLine(line, { title: isTitleLine(line, nextLine) });
   return getLineActionParts(line, tokens).some((p) => p.state === "#");
+}
+
+/** Start offset of trailing forward links at the end of `line` (all trailing when `mode === "all"`, or just the last
+ * `(>…)` link when `mode === "lastTo"`), including preceding whitespace. Returns `null` when none match. */
+export function trailingForwardLinksStart(line: string, mode: "all" | "lastTo"): number | null {
+  const tokens = tokenizeLine(line);
+  let cursor = line.length;
+  let foundStart: number | null = null;
+  for (let i = tokens.length - 1; i >= 0; i--) {
+    const t = tokens[i];
+    if (t.kind !== "forwardLink") continue;
+    if (line.slice(t.to, cursor).trim() !== "") break;
+    if (mode === "lastTo") {
+      if (t.dir !== ">") return null;
+      foundStart = t.from;
+      break;
+    }
+    foundStart = t.from;
+    cursor = t.from;
+  }
+  if (foundStart === null) return null;
+  while (foundStart > 0 && /\s/.test(line[foundStart - 1])) foundStart--;
+  return foundStart;
 }

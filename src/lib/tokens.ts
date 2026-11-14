@@ -13,13 +13,12 @@ import {
   tokenAfterArrow,
   tokenizeLine,
   tokenizeNoteLine,
+  trailingForwardLinksStart,
   type Token,
   type TokenizeOptions,
 } from "./grammar/tokenize";
 export { columnOf, hasOpenAction, isSetextUnderline, isTitleLine, isTitleUnderline, tokenizeNoteLine };
 import { addDaysISO, parseDueWord } from "./date";
-// Matches trailing forward links at the end of a line (same as TRAILING_LINKS in paste.ts)
-const TRAILING_LINKS = /(?:\s*\([<>]\d{4}-\d{2}-\d{2}(?:#[^)]*)?\))+$/;
 
 /** §40: `x` (won't-do) folds into Closed alongside `v` (done) — both mean
  * "no longer outstanding," just for different reasons. §41: a
@@ -1027,9 +1026,8 @@ export function withDueDate(line: string, partFrom: number, iso: string | null):
     }
     const isLastPart = part === parts[parts.length - 1] || part.to >= line.length;
     if (isLastPart) {
-      const match = TRAILING_LINKS.exec(line);
-      if (match) {
-        const linksStart = match.index;
+      const linksStart = trailingForwardLinksStart(line, "all");
+      if (linksStart !== null) {
         return line.slice(0, linksStart).trimEnd() + ` by:${iso} ` + line.slice(linksStart).trimStart();
       }
       return line.trimEnd() + ` by:${iso}`;

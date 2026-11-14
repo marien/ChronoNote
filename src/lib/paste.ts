@@ -8,7 +8,7 @@ import { get } from "svelte/store";
 import { currentDateISO, editorApi, showToast, tabs } from "./stores";
 import { writeTabContent } from "./persistence";
 import { dueWordExtra, todayISO } from "./date";
-import { hasOpenAction, tokenizeNoteLine } from "./grammar/tokenize";
+import { hasOpenAction, tokenizeNoteLine, trailingForwardLinksStart } from "./grammar/tokenize";
 import { getSectionHeaderForLine, rewriteDueWords, stateFirst } from "./tokens";
 import { locale, t } from "./i18n";
 
@@ -29,22 +29,20 @@ export function takePendingPasteFrom(): string[] | null {
 export function forwardLink(dir: ">" | "<", date: string, section: string): string {
   return ` (${dir}${date}${section ? `#${section}` : ""})`;
 }
-/** A trailing `(>…)` link, replaced (not doubled) when a line is forwarded again. */
-export const TRAILING_TO = /\s*\(>\d{4}-\d{2}-\d{2}(?:#[^)]*)?\)$/;
-/** Every trailing `(<…)`/`(>…)` link: a pasted line keeps only the new `(<…)` (the chain stays reachable through
- * the source line's own `(<…)`). */
-export const TRAILING_LINKS = /(?:\s*\([<>]\d{4}-\d{2}-\d{2}(?:#[^)]*)?\))+$/;
-
 export function withToLink(line: string, link: string): string {
   if (!link || !link.trim()) return line;
   const suffix = link.startsWith(" ") ? link : ` ${link}`;
-  return line.replace(TRAILING_TO, "").trimEnd() + suffix;
+  const cut = trailingForwardLinksStart(line, "lastTo");
+  const base = cut !== null ? line.slice(0, cut) : line;
+  return base.trimEnd() + suffix;
 }
 
 export function withFromLink(line: string, link: string): string {
   if (!link || !link.trim()) return line;
   const suffix = link.startsWith(" ") ? link : ` ${link}`;
-  return line.replace(TRAILING_LINKS, "").trimEnd() + suffix;
+  const cut = trailingForwardLinksStart(line, "all");
+  const base = cut !== null ? line.slice(0, cut) : line;
+  return base.trimEnd() + suffix;
 }
 
 function isOpenDeferrableToken(kind: string, symbol?: string): boolean {

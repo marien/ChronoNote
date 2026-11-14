@@ -35,8 +35,25 @@ export function cleanUrlMatch(raw: string): { url: string; length: number } | nu
   return { url, length: url.length };
 }
 
+export const URL_MATCH_REGEX = /https?:\/\/[^\s<>"{}|\\^`\[\]]+/g;
+
+/** Returns `[from, to)` character offsets within `lineText` of cleaned clickable URLs. */
+export function urlRangesInLine(lineText: string): [number, number][] {
+  if (!lineText.includes("http")) return [];
+  const ranges: [number, number][] = [];
+  URL_MATCH_REGEX.lastIndex = 0;
+  let m: RegExpExecArray | null;
+  while ((m = URL_MATCH_REGEX.exec(lineText)) !== null) {
+    const cleaned = cleanUrlMatch(m[0]);
+    if (cleaned) {
+      ranges.push([m.index, m.index + cleaned.length]);
+    }
+  }
+  return ranges;
+}
+
 const linkMatcher = new MatchDecorator({
-  regexp: /https?:\/\/[^\s<>"{}|\\^`\[\]]+/g,
+  regexp: URL_MATCH_REGEX,
   decorate(add, from, _to, match) {
     const cleaned = cleanUrlMatch(match[0]);
     if (!cleaned) return;
