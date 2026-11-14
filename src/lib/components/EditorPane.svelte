@@ -3,7 +3,7 @@
   import { get } from "svelte/store";
   import { Compartment, EditorSelection, EditorState, RangeSetBuilder, StateEffect, StateField } from "@codemirror/state";
   import { Decoration, type DecorationSet, drawSelection, EditorView, keymap, ViewPlugin } from "@codemirror/view";
-  import { defaultKeymap, history, historyField, historyKeymap, indentWithTab, redo, undo } from "@codemirror/commands";
+  import { defaultKeymap, history, historyField, historyKeymap, indentWithTab, isolateHistory, redo, undo } from "@codemirror/commands";
   import { indentUnit } from "@codemirror/language";
   import { findNext, findPrevious, replaceNext, replaceAll, search, SearchCursor, SearchQuery, setSearchQuery } from "@codemirror/search";
   import { glyphAtomicRanges, liveGlyphs, lineStateAnnouncement } from "../editor/glyphs";
@@ -49,8 +49,7 @@
     topicLineEnter,
     lineSectionRole,
   } from "../tokens";
-  import { applyListEdit, numberedListKeymap, numberedListRenumberFilter } from "../editor/numberedListKeys";
-  import { emptySubItemEnter, renumberLists } from "../numberedLists";
+  import { exitNumberedList, moveEmptySubItemOut, numberedListKeymap, numberedListRenumberFilter } from "../editor/numberedListKeys";
   import * as controller from "../controller";
   import { editorContextMenu, findMatch, findOpen, readableLineLength, spellCheck, wordWrap } from "../controller";
   import { currentLineKind, editorFocused } from "../stores";
@@ -501,15 +500,8 @@
           return true;
         }
       }
-      function handleEmptySubItem(lineObj: { from: number; to: number; number: number }): boolean {
-        const allLines = v.state.doc.toString().split(/\r?\n/);
-        const subReplacement = emptySubItemEnter(allLines, lineObj.number - 1);
-        if (subReplacement === null) return false;
-
-        const working = [...allLines];
-        working[lineObj.number - 1] = subReplacement;
-        for (const e of renumberLists(working, [lineObj.number - 1])) working[e.line] = e.text;
-        return applyListEdit(v, working, "input", lineObj.from + subReplacement.length);
+      function handleEmptySubItem(lineObj: { from: number; number: number }): boolean {
+        return moveEmptySubItemOut(v, lineObj.from, lineObj.number - 1, "input");
       }
 
       // #208: `! - item` continues as `! - `.
@@ -559,11 +551,15 @@
           const step = numberedListEnter(line.text, pos - line.from, nextLine);
           if (step && "exit" in step) {
             if (handleEmptySubItem(line)) return true;
-            v.dispatch({ changes: { from: line.from, to: line.to, insert: "" }, selection: { anchor: line.from } });
+            exitNumberedList(v, line.from, line.number - 1);
           } else if (step && "insert" in step) {
             // #123: an item inserted in the middle of a list pushes the colliding numbers after it down by one.
             const following: string[] = [];
-            for (let n = line.number + 1; n <= v.state.doc.lines; n++) following.push(v.state.doc.line(n).text);
+            for (let n = line.number + 1; n <= v.state.doc.lines; n++) {
+              const text = v.state.doc.line(n).text;
+              if (text.trim() === "") break;
+              following.push(text);
+            }
             const renumber = renumberAfterInsert(following, numbered).map((r) => {
               const l = v.state.doc.line(line.number + 1 + r.index);
               return { from: l.from, to: l.to, insert: r.text };
@@ -571,6 +567,8 @@
             v.dispatch({
               changes: [{ from: pos, to: pos, insert: step.insert }, ...renumber],
               selection: { anchor: pos + step.insert.length },
+              userEvent: "input",
+              annotations: isolateHistory.of("full"),
               scrollIntoView: true,
             });
           } else {
@@ -758,6 +756,7 @@
       clickableLinksPlugin,
       dateLinksPlugin,
       dueDatesPlugin,
+      numberedListRenumberFilter,
       pasteOverEmptyMarker,
       stateFirstFilter,
       overviewRuler({ onJump: (lineIdx) => triggerLinePulse(lineIdx) }),
@@ -777,7 +776,6 @@
         },
       ),
       numberedListKeymap,
-      numberedListRenumberFilter,
       shortcuts,
       keymap.of([...defaultKeymap, ...historyKeymap, indentWithTab]),
       EditorView.updateListener.of((u) => {

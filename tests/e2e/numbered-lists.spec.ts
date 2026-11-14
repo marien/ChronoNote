@@ -569,3 +569,40 @@ test.describe("numbered lists: a list with 1.1. sub-items keeps that style (§46
     expect(await activeTabContent(page)).toBe("1. a\n   1.1. x\n\n1. b\n   1. c");
   });
 });
+
+test.describe("numbered lists: review fixes (§464)", () => {
+  test.beforeEach(async ({ page }) => {
+    await seedApp(page, { seed: "empty" });
+  });
+
+  test("Backspace twice on a tab-indented item keeps tab column stops and renumbers", async ({ page }) => {
+    await setEditorText(page, "\t1. a\n\t2. b\n\t3. c");
+    await caretAtEndOfLine(page, 1);
+    await page.keyboard.press("ArrowLeft");
+    await page.keyboard.press("Backspace");
+    expect(await activeTabContent(page)).toBe("\t1. a\n\t   b\n\t2. c");
+
+    await page.keyboard.press("Backspace");
+    expect(await activeTabContent(page)).toBe("\t1. a\n\tb\n\t1. c");
+  });
+
+  test("Shift+Tab on a selection of all sub-items outdents them into the outer list", async ({ page }) => {
+    await setEditorText(page, "1. top\n   1. one\n   2. two");
+    await caretAtEndOfLine(page, 1);
+    await page.keyboard.press("Shift+ArrowDown");
+    await page.keyboard.press("Shift+Tab");
+    expect(await activeTabContent(page)).toBe("1. top\n2. one\n3. two");
+  });
+
+  test("growing from 9 to 10 after Enter shifts continuation lines and sub-items by 1 space", async ({ page }) => {
+    const items = Array.from({ length: 8 }, (_, i) => `${i + 1}. x`).join("\n");
+    await setEditorText(page, `${items}\n9. ninth\n   cont\n   1. sub`);
+    await caretAtEndOfLine(page, 0);
+    await page.keyboard.press("Enter");
+    await page.keyboard.type("new");
+    const lines = (await activeTabContent(page)).split("\n");
+    expect(lines[9]).toBe("10. ninth");
+    expect(lines[10]).toBe("    cont");
+    expect(lines[11]).toBe("    1. sub");
+  });
+});

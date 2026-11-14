@@ -54,7 +54,7 @@ test.describe("smarter numbered lists: Tab, Shift+Tab, and renumbering", () => {
     await page.keyboard.press("Backspace");
     expect(await activeTabContent(page)).toBe("1. a\n   b\n2. c");
     await page.keyboard.press("Backspace");
-    expect(await activeTabContent(page)).toBe("1. a\nb\n2. c");
+    expect(await activeTabContent(page)).toBe("1. a\nb\n1. c");
   });
 
   test("Enter on an empty sub-item turns it into the parent list's next item and shifts outer list items", async ({ page }) => {

@@ -11994,3 +11994,50 @@ when that state changes). The same holds for a symbol at the start of a line of 
 the caret out of tokens otherwise, so only typing gets there. As with `(topic)` parentheses (§422), the caret decides
 how the text is drawn; the file is unchanged. Tests: `tests/e2e/glyph-caret-hold.spec.ts` (8 of its 9 fail without
 the fix; the ninth checks a really empty line still draws the glyph as the space is typed).
+
+## 464. Numbered lists: fixes from a cross-model review
+
+**Status: on main, not released yet.**
+
+Marien (2026-11-13) asked Gemini 4 Hydrogen to review the numbered lists (§457, §462) for correctness, test
+coverage and completeness. Its read-only review reported 10 correctness findings, the Tab-on-the-first-item edge
+case Marien had seen (§457, details never given), §462 cases and test gaps; every correctness claim was reproduced
+here before anything was built. Marien decided three behaviour questions (2026-11-14): Tab on the first item of a
+list moves the whole list (as in Word), Backspace on an empty sub-item moves it out like Enter does, and a marker that
+changes width (`9.` to `10.`) takes its sub-items and continuation lines along. The fixes, as a behaviour file of 15
+rules with exact examples (`agent-tools/briefs/nl-fix-behaviour.md`, outside the repo):
+
+1. Tab on the first item of a group moves the group with its subtrees (+2, or to the text column of a bullet right
+   above); Shift+Tab on the first item of a parentless indented group mirrors it. This was the edge case: Tab added two
+   spaces to one line and renumbered nothing.
+2. Tab no longer looks past the item's parent (it could jump under a cousin's sub-item).
+3. Enter on an item with sub-items renumbers the siblings after them (`renumberAfterInsert` stopped at the first
+   deeper item); the sub-items follow the new item.
+4. A split list: the first part keeps its start, later parts start at 1 (`matchGroupStarts`); pasting a blank line,
+   moving a line into a list (Alt+Up/Down), typing over a multi-line selection and Enter on an empty middle item now
+   renumber.
+5. Typing a digit never renumbers, also on a blank line between two lists.
+6. The second Backspace works past sub-items and bullets, and renumbers.
+7. Backspace on an empty sub-item with a numbered parent moves it out (Marien's choice).
+8. Enter on an empty sub-item: the sub-items after it become its children, from 1.
+9. Shift+Tab on a selection restarts left-behind sub-items at 1.
+10. `9.` to `10.` (and back) shifts the item's subtree (Marien's choice).
+11. Tab-indented lists are compared by width (tab = 2) everywhere; the first Backspace keeps the tab.
+12. Pasting onto an empty numbered item replaces the marker, as for `- ` and `# `.
+13. Copying a list with continuation lines keeps one `<ol>` (continuations after a `<br>` in the `<li>`).
+14. §462's `1.1.` rule counts only dotted items with a numbered parent and the same delimiter, and Tab in front of an
+    existing dotted sub-group keeps it dotted.
+15. Speed: groups in one pass with a parent stack (Tab in a 3,000-item list took 12 s, now well under 100 ms); the
+    filter and commands read only the lines around the edit, not the whole document.
+Also: spec.md no longer says Ctrl/Cmd+1-4 leave numbered items alone (they do not, §367).
+
+Built by Gemini 4 Hydrogen (its first runs here) from a brief in two rounds: the first (24 min) passed Vitest but
+could not run Playwright, and 22 of 155 list browser tests failed; the second (12 min, allowed to run the list specs)
+fixed the code where the code was wrong (Shift+Tab on a dotted item shifted its new sub-items, a split list starting
+at 4, Enter over dotted sub-items, a delimiter case) and the tests where they contradicted the rules; each test change
+was checked here. Independent tests written from the behaviour file alone by a separate Hydrogen run:
+`tests/e2e/numbered-lists-fixes.independent.spec.ts` (46 tests). Also `src/lib/editor/numberedListKeys.test.ts` (new,
+commands through a real EditorView), additions to `numberedLists.test.ts`, `numberedList.test.ts`,
+`richClipboard.test.ts`, `pasteOverEmptyMarker.test.ts` and the "review fixes (§464)" describe in
+`tests/e2e/numbered-lists.spec.ts`. Reviewed here; one change of mine: the renumber filter's min/max of the touched
+lines without `Math.min(...list)`, which overflows on a select-all delete of a very long note.

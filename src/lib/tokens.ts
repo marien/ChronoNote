@@ -243,16 +243,21 @@ export interface NumberedItem {
 }
 
 export function parseNumberedItem(line: string): NumberedItem | null {
+  let k = 0;
+  while (k < line.length && (line[k] === " " || line[k] === "\t")) k++;
+  const c = line.charCodeAt(k);
+  if (Number.isNaN(c) || (c >= 33 && c <= 126 && (c < 49 || c > 57))) return null;
   // The marker has to be followed by whitespace (a space typed after it) — "1." alone is not yet an item.
   const m = line.match(/^(\s*)((?:[1-9]\d{0,8})(?:\.[1-9]\d{0,8})*)([.)])(\s|$)/);
   if (!m) return null;
   if (m[4] === "") return null;
   const marker = m[2] + m[3];
   const indent = m[1];
+  const numbers = m[2].includes(".") ? m[2].split(".").map(Number) : [Number(m[2])];
   return {
     indent,
     marker,
-    numbers: m[2].split(".").map(Number),
+    numbers,
     delimiter: m[3] as "." | ")",
     text: line.slice(indent.length + marker.length).trim(),
     markerEnd: indent.length + marker.length,
@@ -267,44 +272,106 @@ export function nextNumberedMarker(item: NumberedItem): string {
   return numbers.join(".") + item.delimiter;
 }
 
+export function indentLen(str: string): number {
+  return str.replace(/\t/g, "  ").length;
+}
+
+/** Shift a line's leading indent by `delta` columns (never below `minIndent`), preserving leading tabs when possible. */
+export function shiftLineIndent(line: string, delta: number, minIndent = 0): string {
+  if (delta === 0) return line;
+  const lead = line.match(/^\s*/)![0];
+  const cur = indentLen(lead);
+  const target = Math.max(minIndent, cur + delta);
+  const actual = target - cur;
+  if (actual === 0) return line;
+  const body = line.slice(lead.length);
+  if (actual > 0) return lead + " ".repeat(actual) + body;
+  let trim = 0;
+  while (trim < -actual && trim < lead.length && lead[lead.length - 1 - trim] === " ") trim++;
+  if (trim === -actual) return lead.slice(0, lead.length - trim) + body;
+  return " ".repeat(target) + body;
+}
+
 /** #123: a new item was just inserted after `item` (Enter on it), taking the number `nextNumberedMarker(item)`.
  * The items after it that would now repeat a number are pushed down by one, in a chain: `1. 2. 3. 4.` with a new
  * item after `1.` becomes `1. 2. 3. 4. 5.`. Only a real collision shifts anything, so a list that already had a gap
  * keeps it past the first free number (`1. 2. 4.` + a new item after `1.` gives `1. 2. 3. 4.`, not `1. 2. 3. 5.`).
- * Sub-items (`2.1.`) follow their parent's new number. The walk stops at a blank line, a line shallower than the
- * list, a line that is not part of it (another delimiter, another list), or the first sibling that does not collide;
- * continuation lines and deeper text in between are skipped over, left as they are.
+ * Sub-items (`2.1.`) follow their parent's new number; deeper lines in between never stop sibling renumbering, and
+ * subtrees shift along when a marker changes width (`9.` to `10.`). The walk stops at a blank line, a line shallower
+ * than the list, a non-matching line at the same indent, or the first sibling that does not collide.
  * `following` are the lines after the one Enter was pressed on; returns the lines to rewrite, by index into it. */
 export function renumberAfterInsert(following: string[], item: NumberedItem): { index: number; text: string }[] {
   const depth = item.numbers.length;
+  const itemIndentLen = indentLen(item.indent);
   const prefix = item.numbers.slice(0, -1);
   const samePrefix = (n: number[]) => prefix.every((v, i) => n[i] === v);
   const out: { index: number; text: string }[] = [];
   const bumped = new Map<number, number>(); // old last number → new last number, for sub-items to follow
+  const stack: { origIndent: number; newIndent: number; shift: number }[] = [];
   let taken = item.numbers[depth - 1] + 1; // the number the new item has just claimed
   const rewrite = (line: string, p: NumberedItem, numbers: number[]) =>
-    p.indent + numbers.join(".") + p.delimiter + line.slice(p.indent.length + p.marker.length);
+    p.indent + numbers.join(".") + p.delimiter + line.slice(p.markerEnd);
+
   for (let i = 0; i < following.length; i++) {
     const line = following[i];
     if (line.trim() === "") break;
+    const origIndent = indentLen(line.match(/^\s*/)![0]);
+    while (stack.length > 0 && stack[stack.length - 1].origIndent >= origIndent) stack.pop();
+    const parent = stack[stack.length - 1];
+    const parentShift = parent ? parent.shift : 0;
+
     const p = parseNumberedItem(line);
     if (!p) {
-      if ((line.match(/^\s*/)![0].length) > item.indent.length) continue; // continuation / deeper text
-      break;
+      if (origIndent <= itemIndentLen) break;
+      if (parentShift !== 0) {
+        const minInd = parent ? parent.newIndent + 1 : 0;
+        const shifted = shiftLineIndent(line, parentShift, minInd);
+        if (shifted !== line) out.push({ index: i, text: shifted });
+      }
+      continue;
     }
-    if (p.indent.length < item.indent.length) break;
-    if (p.indent === item.indent && p.numbers.length === depth && samePrefix(p.numbers) && p.delimiter === item.delimiter) {
+
+    const pIndentLen = indentLen(p.indent);
+    if (pIndentLen < itemIndentLen) break;
+
+    let newLine = line;
+    let markerDelta = 0;
+
+    if (pIndentLen === itemIndentLen && p.numbers.length === depth && samePrefix(p.numbers) && p.delimiter === item.delimiter) {
       const last = p.numbers[depth - 1];
       if (last !== taken) break;
       taken += 1;
       bumped.set(last, taken);
-      out.push({ index: i, text: rewrite(line, p, [...prefix, taken]) });
-    } else if (p.numbers.length > depth && samePrefix(p.numbers) && p.delimiter === item.delimiter && bumped.has(p.numbers[depth - 1])) {
+      const newNums = [...prefix, taken];
+      newLine = rewrite(line, p, newNums);
+      markerDelta = newNums.join(".").length + 1 - p.marker.length;
+    } else if (
+      pIndentLen > itemIndentLen &&
+      p.numbers.length > depth &&
+      samePrefix(p.numbers) &&
+      p.delimiter === item.delimiter &&
+      (p.numbers[depth - 1] === item.numbers[depth - 1] || bumped.has(p.numbers[depth - 1]))
+    ) {
       const numbers = [...p.numbers];
-      numbers[depth - 1] = bumped.get(p.numbers[depth - 1])!;
-      out.push({ index: i, text: rewrite(line, p, numbers) });
+      numbers[depth - 1] =
+        p.numbers[depth - 1] === item.numbers[depth - 1] ? item.numbers[depth - 1] + 1 : bumped.get(p.numbers[depth - 1])!;
+      newLine = rewrite(line, p, numbers);
+      markerDelta = numbers.join(".").length + 1 - p.marker.length;
+    } else if (pIndentLen > itemIndentLen) {
+      // Deeper item (plain sub-item, different delimiter, etc.): never stops sibling renumbering.
     } else {
       break;
+    }
+
+    let newIndent = origIndent;
+    if (parentShift !== 0) {
+      const minInd = parent ? parent.newIndent + 1 : 0;
+      newLine = shiftLineIndent(newLine, parentShift, minInd);
+      newIndent = Math.max(minInd, origIndent + parentShift);
+    }
+    if (newLine !== line) out.push({ index: i, text: newLine });
+    if (parentShift !== 0 || markerDelta !== 0) {
+      stack.push({ origIndent, newIndent, shift: parentShift + markerDelta });
     }
   }
   return out;

@@ -4,7 +4,10 @@ import {
   backspaceMarker,
   continuationStops,
   emptySubItemEnter,
+  getAllListBlocks,
+  getGroupsInBlock,
   listGroups,
+  matchGroupStarts,
   renumberLists,
   shiftTabIndentTarget,
   tabIndentTarget,
@@ -281,5 +284,71 @@ describe("continuationStops: Tab stops for a line under a list item", () => {
     expect(continuationStops(["1. a", "", "b"], 2)).toEqual([]);
     expect(continuationStops(["1. a", "text", "b"], 2)).toEqual([]);
     expect(continuationStops(["b"], 0)).toEqual([]);
+  });
+});
+
+describe("NL-F rules in numberedLists.ts", () => {
+  const apply = (lines: string[], touched: number[], starts?: Map<number, number>) => {
+    const out = [...lines];
+    for (const e of renumberLists(lines, touched, starts)) out[e.line] = e.text;
+    return out;
+  };
+
+  it("rule 2: tabIndentTarget scans only within the parent", () => {
+    const lines = ["1. a", "   1.1. b", "2. c", "   1. d"];
+    expect(tabIndentTarget(lines, 3)).toBeNull();
+  });
+
+  it("rule 4: matchGroupStarts gives only the first part the old start; split-off parts start at 1", () => {
+    const oldLines = ["4. a", "5. b", "6. c"];
+    const newLines = ["4. a", "b", "5. c"];
+    const starts = matchGroupStarts(listGroups(oldLines, [0, 1, 2]), listGroups(newLines, [0, 1, 2]), (f) => f);
+    expect(starts.get(0)).toBe(4);
+    expect(starts.get(2)).toBe(1);
+    expect(apply(newLines, [0, 1, 2], starts)).toEqual(["4. a", "b", "1. c"]);
+  });
+
+  it("rule 6: backspaceContinuation skips sub-items and bullets between the line and the item it continues", () => {
+    expect(backspaceContinuation(["1. a", "   1.1. sub", "   c"], 2, 3)).toBe("c");
+    expect(backspaceContinuation(["1. a", "   - bullet", "   c"], 2, 3)).toBe("c");
+    expect(backspaceContinuation(["10. a", "   1. sub", "    c"], 2, 4)).toBe("c");
+  });
+
+  it("rule 10: marker width changes shift sub-items and continuation lines along", () => {
+    const grown = ["8. z", "9. a", "   sub text", "   1. sub"];
+    expect(apply(grown, [0], new Map([[0, 9]]))).toEqual(["9. z", "10. a", "    sub text", "    1. sub"]);
+
+    const nestedGrown = ["9. a", "   9.1. b", "        cont"];
+    expect(apply(nestedGrown, [0], new Map([[0, 10]]))).toEqual(["10. a", "    10.1. b", "          cont"]);
+
+    const shrunk = ["10. a", "    sub text", "    1. sub"];
+    expect(apply(shrunk, [0], new Map([[0, 9]]))).toEqual(["9. a", "   sub text", "   1. sub"]);
+
+    const dottedGrown = ["9.9. a", "     sub"];
+    expect(apply(dottedGrown, [0], new Map([[0, 10]]))).toEqual(["9.10. a", "      sub"]);
+  });
+
+  it("rule 11: backspaceMarker keeps leading tabs and tab width (2 cols) is compared everywhere", () => {
+    expect(backspaceMarker(["\t1. a", "\t2. b"], 1, 4)).toBe("\t   b");
+    expect(tabIndentTarget(["\t1. a", "  2. b"], 1)).toBe("     ");
+    expect(shiftTabIndentTarget(["\t1. a", "     1. b"], 1)).toBe("\t");
+  });
+
+  it("rule 2: tabIndentTarget requires the preceding item at the same indent to share delimiter", () => {
+    expect(tabIndentTarget(["1. a", "   1. b", "   1) c", "   2) d"], 2)).toBeNull();
+  });
+
+  it("rule 15: getGroupsInBlock is linear on a 3,000-item nested list", () => {
+    const lines: string[] = [];
+    for (let i = 1; i <= 1500; i++) {
+      lines.push(`${i}. parent`);
+      lines.push(`   1. child`);
+    }
+    const block = getAllListBlocks(lines)[0];
+    const t0 = performance.now();
+    const groups = getGroupsInBlock(lines, block);
+    const elapsed = performance.now() - t0;
+    expect(groups).toHaveLength(1501);
+    expect(elapsed).toBeLessThan(100);
   });
 });

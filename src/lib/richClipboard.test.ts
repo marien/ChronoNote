@@ -303,10 +303,33 @@ describe("richClipboard", () => {
     });
 
     it("converts leading spaces of non-list lines to &nbsp;", () => {
-      const text = "- Item\n  Indented non-list";
+      const text = "- Item\n\n  Indented non-list";
       const html = noteTextToHtml(text);
       expect(html).toBe(
-        own("<ul><li>Item</li></ul><div>&nbsp;&nbsp;Indented non-list</div>")
+        own("<ul><li>Item</li></ul><div><br></div><div>&nbsp;&nbsp;Indented non-list</div>")
+      );
+    });
+
+    it("rule 13: keeps continuation lines inside one list with <br>", () => {
+      const text = "1. a\n   cont\n2. b";
+      const html = noteTextToHtml(text);
+      expect(html).toBe(own("<ol><li>a<br>cont</li><li>b</li></ol>"));
+      expect(htmlToNoteText(html!.replace(' data-chrononote=""', ""))).toBe(text);
+
+      expect(noteTextToHtml("- Item\n  Indented non-list")).toBe(
+        own("<ul><li>Item<br>Indented non-list</li></ul>"),
+      );
+      expect(noteTextToHtml("1. a\n   - sub\n   cont of 1\n2. b")).toBe(
+        own("<ol><li>a<ul><li>sub</li></ul><br>cont of 1</li><li>b</li></ol>"),
+      );
+    });
+
+    it("rule 11: compares tab indents by 2-column width in noteTextToHtml", () => {
+      expect(noteTextToHtml("\t1. a\n\t\t1.1. b\n\t2. c")).toBe(
+        own("<ol><li>a<ol><li>b</li></ol></li><li>c</li></ol>"),
+      );
+      expect(noteTextToHtml("\t- a\n\t  1. b")).toBe(
+        own("<ul><li>a<ol><li>b</li></ol></li></ul>"),
       );
     });
 
