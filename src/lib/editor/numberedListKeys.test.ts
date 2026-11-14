@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { defaultKeymap, history, historyKeymap, indentWithTab, moveLineDown } from "@codemirror/commands";
 import { EditorSelection, EditorState } from "@codemirror/state";

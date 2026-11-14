@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { describe, expect, it, vi } from "vitest";
 import { get } from "svelte/store";
 import { backendKind, tabs, activeTabId } from "./stores";

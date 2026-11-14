@@ -17,12 +17,10 @@ export default defineConfig(async () => ({
       : undefined,
     watch: { ignored: ["**/src-tauri/**"] },
   },
-  // `jsdom` is only needed by the handful of tests exercising DOM-touching
-  // logic (the `closeOnOutsideClick`/`focusScrollableList` actions,
-  // `controller.ts`'s `applyColorModeToDom`) — everything else in the
-  // suite is plain function calls against Node's own globals.
+  // Plain TS tests run in `node` by default; the handful of files that
+  // touch the DOM opt into `jsdom` via `// @vitest-environment jsdom`.
   test: {
-    environment: "jsdom",
+    environment: "node",
     include: ["src/**/*.test.ts"],
   },
 }));
