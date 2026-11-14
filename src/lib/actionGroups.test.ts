@@ -424,4 +424,15 @@ describe("actionTree", () => {
     expect(flat[2].kind).toBe("line");
     expect(flat[2].lineIdx).toBe(1);
   });
+
+  it("Rule 1: excludes # / ! title lines above === or --- from actionTree, but keeps them after blank lines", () => {
+    expect(actionTree(["# Title", "===", "# real"])).toHaveLength(1);
+    expect(actionTree(["# Title", "===", "# real"])[0].lineIdx).toBe(2);
+
+    expect(actionTree(["# Sub", "---", "# real"])).toHaveLength(1);
+    expect(actionTree(["# Sub", "---", "# real"])[0].lineIdx).toBe(2);
+
+    expect(actionTree(["# Not a title", "", "---", "# also real"])).toHaveLength(2);
+    expect(actionTree(["# Not a title", "", "---", "# also real"]).map((n) => n.lineIdx)).toEqual([0, 3]);
+  });
 });

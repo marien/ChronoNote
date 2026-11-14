@@ -9,7 +9,7 @@
   import { noteToMarkdown } from "../exportFormats";
   import { spellSuggest, spellAdd, spellIgnore } from "../tauriApi";
   import { recheckAll } from "../editor/spellcheck";
-  import { tokenizeLine, getLineActionParts } from "../grammar/tokenize";
+  import { lineMenuStateAt } from "../tokens";
   import { buildPasteDataTransfer } from "../editor/clipboardPaste";
 
   let menuEl = $state<HTMLDivElement>();
@@ -72,16 +72,18 @@
     return !selRange || selRange.anchor === selRange.head;
   });
 
-  const line = $derived($editorContextMenu?.line ?? "");
-  const isAction = $derived(/^\s*(=>\s)?[#vx>]\s/.test(line));
-  const isTopic = $derived(/^\s*[o.,]\s/.test(line));
-  const hasActionPart = $derived(getLineActionParts(line, tokenizeLine(line)).length > 0);
-
   // A section's title and underline are not lines to turn into an action or topic, to copy forward or to make a
   // section of; Section history, Copy to next occurrence and Peek need a section, so they are off above the first one.
   const role = $derived($editorContextMenu?.role ?? "body");
   const onTitle = $derived(role === "title");
-  const inSection = $derived(role !== "outside");
+  const inSection = $derived($editorContextMenu?.inSection ?? role !== "outside");
+
+  const line = $derived($editorContextMenu?.line ?? "");
+  const col = $derived($editorContextMenu?.col);
+  const menuState = $derived(lineMenuStateAt(line, col, { title: onTitle }));
+  const isAction = $derived(menuState.kind === "action");
+  const isTopic = $derived(menuState.kind === "topic");
+  const hasActionPart = $derived(menuState.hasActionPart);
 
   const lineItemCount = $derived(onTitle ? 0 : isAction ? 4 : isTopic ? 3 : 2);
   const otherItemCount = $derived((onTitle ? 1 : 3 + (hasActionPart ? 1 : 0)) + ($backendKind === "desktop" ? 1 : 0) + (!isSelectionEmpty ? 1 : 0));
@@ -294,7 +296,7 @@
         type="button"
         class="editor-context-item"
         role="menuitem"
-        onclick={() => run((api) => api.setActionStateOnSelection?.("#"))}
+        onclick={() => run((api) => api.setActionStateOnSelection?.("#", col))}
       >
         <span class="glyph-open">☐</span>
         <span class="editor-context-label">{$t("commandPalette.line.setOpen")}</span>
@@ -304,7 +306,7 @@
         type="button"
         class="editor-context-item"
         role="menuitem"
-        onclick={() => run((api) => api.setActionStateOnSelection?.("v"))}
+        onclick={() => run((api) => api.setActionStateOnSelection?.("v", col))}
       >
         <span class="glyph-done">☑</span>
         <span class="editor-context-label">{$t("commandPalette.line.setDone")}</span>
@@ -314,7 +316,7 @@
         type="button"
         class="editor-context-item"
         role="menuitem"
-        onclick={() => run((api) => api.setActionStateOnSelection?.(">"))}
+        onclick={() => run((api) => api.setActionStateOnSelection?.(">", col))}
       >
         <span class="glyph-progress">☐</span>
         <span class="editor-context-label">{$t("commandPalette.line.setDeferred")}</span>
@@ -324,7 +326,7 @@
         type="button"
         class="editor-context-item"
         role="menuitem"
-        onclick={() => run((api) => api.setActionStateOnSelection?.("x"))}
+        onclick={() => run((api) => api.setActionStateOnSelection?.("x", col))}
       >
         <span class="glyph-cancelled">☒</span>
         <span class="editor-context-label">{$t("commandPalette.line.setWontDo")}</span>
@@ -335,7 +337,7 @@
         type="button"
         class="editor-context-item"
         role="menuitem"
-        onclick={() => run((api) => api.setTopicStateOnSelection?.("o"))}
+        onclick={() => run((api) => api.setTopicStateOnSelection?.("o", col))}
       >
         <span class="glyph-topic-open">○</span>
         <span class="editor-context-label">{$t("commandPalette.line.setTopicToDiscuss")}</span>
@@ -345,7 +347,7 @@
         type="button"
         class="editor-context-item"
         role="menuitem"
-        onclick={() => run((api) => api.setTopicStateOnSelection?.("."))}
+        onclick={() => run((api) => api.setTopicStateOnSelection?.(".", col))}
       >
         <span class="glyph-topic-done">◉</span>
         <span class="editor-context-label">{$t("commandPalette.line.setTopicDiscussed")}</span>
@@ -355,7 +357,7 @@
         type="button"
         class="editor-context-item"
         role="menuitem"
-        onclick={() => run((api) => api.setTopicStateOnSelection?.(","))}
+        onclick={() => run((api) => api.setTopicStateOnSelection?.(",", col))}
       >
         <span class="glyph-topic-skipped">◌</span>
         <span class="editor-context-label">{$t("commandPalette.line.setTopicNotDiscussed")}</span>
@@ -366,7 +368,7 @@
         type="button"
         class="editor-context-item"
         role="menuitem"
-        onclick={() => run((api) => api.setActionStateOnSelection?.("#"))}
+        onclick={() => run((api) => api.setActionStateOnSelection?.("#", col))}
       >
         <span class="glyph-open">☐</span>
         <span class="editor-context-label">{$t("commandPalette.line.setOpen")}</span>
@@ -376,7 +378,7 @@
         type="button"
         class="editor-context-item"
         role="menuitem"
-        onclick={() => run((api) => api.setTopicStateOnSelection?.("o"))}
+        onclick={() => run((api) => api.setTopicStateOnSelection?.("o", col))}
       >
         <span class="glyph-topic-open">○</span>
         <span class="editor-context-label">{$t("commandPalette.line.setTopicToDiscuss")}</span>

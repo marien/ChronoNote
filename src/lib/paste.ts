@@ -8,6 +8,7 @@ import { get } from "svelte/store";
 import { currentDateISO, editorApi, showToast, tabs } from "./stores";
 import { writeTabContent } from "./persistence";
 import { dueWordExtra, todayISO } from "./date";
+import { hasOpenAction, tokenizeNoteLine } from "./grammar/tokenize";
 import { getSectionHeaderForLine, rewriteDueWords, stateFirst } from "./tokens";
 import { locale, t } from "./i18n";
 
@@ -22,25 +23,6 @@ export function takePendingPasteFrom(): string[] | null {
   pendingPasteFrom = null;
   return val;
 }
-
-/** Indentation-tolerant (§50, same as everywhere else an open-action
- * symbol is recognized) and multi-line: a copied block only needs *some*
- * line to be an open action, not the whole selection to start with one —
- * copying a few lines together (a mix of open actions and plain text, or
- * several open actions at once) is exactly the case this needs to keep
- * working for.
- *
- * #67: also matches a `=> #` open *consequence*-action (§41) — not just a
- * leading `# ` — since `innermostActionSymbol()` (`tokens.ts`) already
- * treats those as equally "open," and the rest of the app (the Action
- * Drawer's "Only Open" toggle, `openActionLineIndices`) agrees. The first
- * alternative anchors to line-start (optionally indented) the same as
- * before; the second requires the literal `=> ` prefix immediately before
- * the `#`, so a bare `#` elsewhere on the line never matches either way.
- * Capture group 1 is the prefix to preserve as-is (indentation, or the
- * `=> `); group 2 is the trailing space, also preserved. */
-export const OPEN_ITEM_LINE = /(^\s*|=>\s)([#o])(\s)/;
-export const OPEN_ACTION_LINE = /(^\s*|=>\s)#\s/;
 
 /** The forward links a paste adds (§371): `(>2026-10-14#Weekly Sync)` on the source line (where it went) and
  * `(<2026-10-13#Standup)` on the pasted line (where it came from). Ordinary note text, always at the end of the line. */
@@ -65,30 +47,30 @@ export function withFromLink(line: string, link: string): string {
   return line.replace(TRAILING_LINKS, "").trimEnd() + suffix;
 }
 
+function isOpenDeferrableToken(kind: string, symbol?: string): boolean {
+  return ((kind === "action" || kind === "consequence") && symbol === "#") ||
+    ((kind === "topic" || kind === "consequenceTopic") && symbol === "o");
+}
+
 /** Flips every open action within `text` (a leading `# `, or a `=> #`
  * consequence-action) to deferred `> ` / `=> > `, and open topics `o ` to skipped `, `,
  * leaving everything else byte-for-byte unchanged. When `toSuffix` is passed, appends
  * the `(>…)` link only to lines where an action was deferred, replacing an existing trailing `(>…)`;
  * a `(<…)` stays, so a line forwarded again reads `> task (<where it came from) (>where it went)`. */
 export function deferOpenActionsInText(text: string, toSuffix?: string): string {
-  if (!toSuffix) {
-    return text.replace(new RegExp(OPEN_ITEM_LINE, "gm"), (_m, p1, sym, p2) => {
-      const replacement = sym === "#" ? ">" : ",";
-      return `${p1}${replacement}${p2}`;
-    });
-  }
-  return text
-    .split("\n")
-    .map((line) => {
+  const lines = text.split("\n");
+  return lines
+    .map((line, i) => {
+      const tokens = tokenizeNoteLine(lines, i).filter((tok) => isOpenDeferrableToken(tok.kind, tok.symbol));
+      if (tokens.length === 0) return line;
       let isAction = false;
-      let replaced = false;
-      let deferred = line.replace(new RegExp(OPEN_ITEM_LINE, "g"), (_m, p1, sym, p2) => {
-        replaced = true;
-        if (sym === "#") isAction = true;
-        const replacement = sym === "#" ? ">" : ",";
-        return `${p1}${replacement}${p2}`;
-      });
-      if (replaced && isAction) {
+      let deferred = line;
+      for (const tok of tokens) {
+        if (tok.symbol === "#") isAction = true;
+        const replacement = tok.symbol === "#" ? ">" : ",";
+        deferred = deferred.slice(0, tok.from) + replacement + deferred.slice(tok.from + 1);
+      }
+      if (toSuffix && isAction) {
         deferred = withToLink(deferred, toSuffix);
       }
       return deferred;
@@ -98,7 +80,14 @@ export function deferOpenActionsInText(text: string, toSuffix?: string): string 
 
 /** How many open actions or topics `deferOpenActionsInText` would flip in `text`. */
 export function countOpenActionsInText(text: string): number {
-  return (text.match(new RegExp(OPEN_ITEM_LINE, "gm")) ?? []).length;
+  const lines = text.split("\n");
+  let count = 0;
+  for (let i = 0; i < lines.length; i++) {
+    for (const tok of tokenizeNoteLine(lines, i)) {
+      if (isOpenDeferrableToken(tok.kind, tok.symbol)) count++;
+    }
+  }
+  return count;
 }
 
 /** Called on every `copy` inside the editor. `lastCopiedAction` is only
@@ -106,7 +95,7 @@ export function countOpenActionsInText(text: string): number {
  * replace it. `sourceOffset` records the exact character offset in the source document
  * to disambiguate identical action lines. */
 export function recordCopiedAction(text: string, sourceTabId: string, sourceOffset?: number) {
-  lastCopiedAction = new RegExp(OPEN_ITEM_LINE, "m").test(text) ? { text, sourceTabId, sourceOffset } : null;
+  lastCopiedAction = countOpenActionsInText(text) > 0 ? { text, sourceTabId, sourceOffset } : null;
 }
 
 /** §86 (#9): links the most recent paste-forward to the `# ` → `> ` defer
@@ -290,13 +279,12 @@ export function handlePasteIntoTab(
         : 0;
     // One `(<…)` per copied line, each with the section that line was in: a multi-line copy can span sections.
     // Open agenda topics get no links; only open actions get from-links.
-    const fromSuffixes = copied.text
-      .split("\n")
-      .map((l, i) =>
-        OPEN_ACTION_LINE.test(l)
-          ? forwardLink("<", srcDate, getSectionHeaderForLine(srcLines, srcStartLineIdx + i).trim())
-          : "",
-      );
+    const copiedLines = copied.text.split("\n");
+    const fromSuffixes = copiedLines.map((l, i) =>
+      hasOpenAction(l, copiedLines[i + 1])
+        ? forwardLink("<", srcDate, getSectionHeaderForLine(srcLines, srcStartLineIdx + i).trim())
+        : "",
+    );
 
     // Defer every open action *within* the copied block, not just one at
     // its start — pasting a multi-line copy that happens to carry several
@@ -332,12 +320,13 @@ export function handlePasteIntoTab(
       translate("dueDate.words.today", undefined) ?? "",
       translate("dueDate.words.tomorrow", undefined) ?? "",
     );
-    const pastedBlock = copied.text
-      .split("\n")
-      .map((line, i) => {
-        let l = stateFirst(line) ?? line;
-        l = rewriteDueWords(l, today, loc, extra) ?? l;
-        if (!OPEN_ACTION_LINE.test(l) || !fromSuffixes[i]) return l;
+    const rewrittenLines = copiedLines.map((line) => {
+      let l = stateFirst(line) ?? line;
+      return rewriteDueWords(l, today, loc, extra) ?? l;
+    });
+    const pastedBlock = rewrittenLines
+      .map((l, i) => {
+        if (!hasOpenAction(l, rewrittenLines[i + 1]) || !fromSuffixes[i]) return l;
         return withFromLink(l, fromSuffixes[i]);
       })
       .join("\n");

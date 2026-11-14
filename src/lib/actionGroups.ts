@@ -1,5 +1,4 @@
-import { getLineActionParts, tokenizeLine } from "./grammar/tokenize";
-import { isSetextUnderline } from "./tokens";
+import { columnOf, getLineActionParts, tokenizeNoteLine } from "./grammar/tokenize";
 
 export type ActionState = "#" | "v" | ">" | "x";
 
@@ -19,6 +18,8 @@ export interface ActionNode {
   delegated: boolean;
   /** Index of the line's first non-blank character. */
   lineStart: number;
+  /** Visual column of `lineStart` (tabs count as 2 columns). */
+  indent: number;
   /** 0 for a root; a child or step is its parent's depth + 1. */
   depth: number;
   /** 1-based position among its parent line's steps; steps only. */
@@ -37,27 +38,6 @@ interface StackEntry {
   isArrowLine: boolean;
 }
 
-/** Setext underline: === (H1) or --- (H2 / hr). */
-function isUnderline(line: string): boolean {
-  return isSetextUnderline(line) || /^-{3,}$/.test(line.trim());
-}
-
-/** Width of leading whitespace, tabs count as 2 spaces. */
-function computeIndent(line: string): number {
-  let indent = 0;
-  for (let i = 0; i < line.length; i++) {
-    const ch = line[i];
-    if (ch === " ") {
-      indent += 1;
-    } else if (ch === "\t") {
-      indent += 2;
-    } else {
-      break;
-    }
-  }
-  return indent;
-}
-
 /** Every action in the note as a forest, roots in line order. Lines without action parts give no node. */
 export function actionTree(lines: string[]): ActionNode[] {
   const roots: ActionNode[] = [];
@@ -65,19 +45,17 @@ export function actionTree(lines: string[]): ActionNode[] {
 
   for (let lineIdx = 0; lineIdx < lines.length; lineIdx++) {
     const line = lines[lineIdx];
-    const tokens = tokenizeLine(line);
+    const tokens = tokenizeNoteLine(lines, lineIdx);
     const actionParts = getLineActionParts(line, tokens);
 
-    const nextLine = lineIdx + 1 < lines.length ? lines[lineIdx + 1] : undefined;
-    const isSectionTitle = nextLine !== undefined && isUnderline(nextLine);
-
     const lineStart = line.search(/\S/);
+    const indent = lineStart === -1 ? 0 : columnOf(line.slice(0, lineStart));
 
     let isGroupLine = false;
     let isActionLine = false;
     let isArrowLine = false;
 
-    if (!isSectionTitle && lineStart !== -1) {
+    if (lineStart !== -1) {
       if (tokens[0]?.kind === "action") {
         isGroupLine = true;
         isActionLine = true;
@@ -114,6 +92,7 @@ export function actionTree(lines: string[]): ActionNode[] {
           state: sym,
           delegated,
           lineStart: lineStart === -1 ? 0 : lineStart,
+          indent,
           depth: 0,
           whole: true,
           children: [],
@@ -121,8 +100,6 @@ export function actionTree(lines: string[]): ActionNode[] {
       }
       continue;
     }
-
-    const indent = computeIndent(line);
 
     // Pop deeper levels, and siblings unless an arrow child immediately follows an action parent.
     while (stack.length > 0) {
@@ -156,6 +133,7 @@ export function actionTree(lines: string[]): ActionNode[] {
       state: ownPart.state,
       delegated: ownPart.delegated,
       lineStart,
+      indent,
       depth: 0,
       whole: false,
       children: [],
@@ -177,6 +155,7 @@ export function actionTree(lines: string[]): ActionNode[] {
         state: stepPart.state,
         delegated: stepPart.delegated,
         lineStart,
+        indent,
         depth: 0, // Assigned below relative to lineNode.depth
         stepIndex: sIdx,
         whole: false,

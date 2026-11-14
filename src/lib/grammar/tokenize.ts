@@ -46,6 +46,48 @@ export interface ActionPart {
   assignee?: string;
 }
 
+export function isSetextUnderline(line: string): boolean {
+  return /^={3,}$/.test(line.trim());
+}
+
+/** True for section (`===`) or subsection (`---`) underlines (three or more `=` or `-`). */
+export function isTitleUnderline(line: string): boolean {
+  let i = 0;
+  const len = line.length;
+  while (i < len && line.charCodeAt(i) <= 32) i++;
+  if (i >= len) return false;
+  const ch = line.charCodeAt(i);
+  if (ch !== 61 && ch !== 45) return false; // '=' or '-'
+  let count = 0;
+  while (i < len && line.charCodeAt(i) === ch) {
+    count++;
+    i++;
+  }
+  if (count < 3) return false;
+  while (i < len && line.charCodeAt(i) <= 32) i++;
+  return i === len;
+}
+
+/** True when `line` is a non-blank title line directly above a title underline (`===` or `---`).
+ * Blank lines and underline lines themselves are not title lines. */
+export function isTitleLine(line: string, nextLine?: string): boolean {
+  return nextLine !== undefined && isTitleUnderline(nextLine) && line.trim() !== "" && !isTitleUnderline(line);
+}
+
+/** Visual column width of a leading-whitespace string (each tab counts as 2 columns). */
+export function columnOf(indent: string): number {
+  let col = 0;
+  for (let i = 0; i < indent.length; i++) {
+    col += indent[i] === "\t" ? 2 : 1;
+  }
+  return col;
+}
+
+export interface TokenizeOptions {
+  /** When true, the line sits directly above a `===` or `---` underline and has no tokens. */
+  title?: boolean;
+}
+
 export function isValidCalendarDate(year: number, month: number, day: number): boolean {
   if (month < 1 || month > 12 || day < 1 || day > 31) return false;
   const d = new Date(Date.UTC(year, month - 1, day));
@@ -141,7 +183,8 @@ function pushBulletAfterEmphasis(tokens: Token[], line: string, scanFrom: number
   return scanFrom + bullet[0].length;
 }
 
-export function tokenizeLine(line: string): Token[] {
+export function tokenizeLine(line: string, options?: TokenizeOptions): Token[] {
+  if (options?.title) return [];
   const tokens: Token[] = [];
   let scanFrom = 0;
 
@@ -298,4 +341,25 @@ export function tokenizeLine(line: string): Token[] {
 
   tokens.sort((a, b) => a.from - b.from || a.to - b.to);
   return tokens;
+}
+
+/** Tokenizes line `lineIdx` of a split note, treating a non-blank title line above `===` or `---` as plain text. */
+export function tokenizeNoteLine(lines: readonly string[], lineIdx: number): Token[] {
+  const line = lines[lineIdx] ?? "";
+  return tokenizeLine(line, { title: isTitleLine(line, lines[lineIdx + 1]) });
+}
+
+/** Tokenizes a 1-based document line (e.g. CodeMirror `Text`), treating title lines above `===` or `---` as plain text. */
+export function tokenizeDocLine(
+  doc: { lines: number; line(n: number): { text: string } },
+  line: { number: number; text: string },
+): Token[] {
+  const nextText = line.number < doc.lines ? doc.line(line.number + 1).text : undefined;
+  return tokenizeLine(line.text, { title: isTitleLine(line.text, nextText) });
+}
+
+/** True when a line has at least one open (`#`) action part (and is not a title line above `===` or `---`). */
+export function hasOpenAction(line: string, nextLine?: string): boolean {
+  const tokens = tokenizeLine(line, { title: isTitleLine(line, nextLine) });
+  return getLineActionParts(line, tokens).some((p) => p.state === "#");
 }

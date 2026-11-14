@@ -10,7 +10,7 @@ import { isMac } from "../platform";
 import { isMobile } from "../controller";
 import { get } from "svelte/store";
 import { isValidCalendarDate, openDateLink } from "../dateLinks";
-import { isSetextUnderline } from "../tokens";
+import { isTitleLine } from "../grammar/tokenize";
 import { locale, t } from "../i18n";
 
 export const DATE_LINK_REGEX =
@@ -29,7 +29,7 @@ const dateLinkMatcher = new MatchDecorator({
     const line = view.state.doc.lineAt(from);
     if (line.number < view.state.doc.lines) {
       const nextLine = view.state.doc.line(line.number + 1);
-      if (isSetextUnderline(nextLine.text)) {
+      if (isTitleLine(line.text, nextLine.text)) {
         return;
       }
     }
@@ -62,7 +62,9 @@ export const dateLinksPlugin = ViewPlugin.fromClass(
       this.decorations = dateLinkMatcher.createDeco(view);
     }
     update(update: ViewUpdate) {
-      this.decorations = dateLinkMatcher.updateDeco(update, this.decorations);
+      this.decorations = update.docChanged
+        ? dateLinkMatcher.createDeco(update.view)
+        : dateLinkMatcher.updateDeco(update, this.decorations);
     }
   },
   {

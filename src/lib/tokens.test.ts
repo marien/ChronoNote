@@ -40,6 +40,10 @@ import {
   dueStatus,
   rewriteDueWords,
   withDueDate,
+  withoutLineMarker,
+  lineMenuStateAt,
+  isTitleLine,
+  isTitleUnderline,
 } from "./tokens";
 
 describe("countActions", () => {
@@ -1410,5 +1414,88 @@ describe("Rule 2: Enter right after a leading symbol is a plain line break", () 
     expect(isCaretInLeadingSymbol("- item", 2)).toBe(false);
     expect(isCaretInLeadingSymbol("! hello", 5)).toBe(false);
     expect(isCaretInLeadingSymbol("Talked to Sam => # follow up", 15)).toBe(false);
+  });
+});
+
+describe("Rules 5 & 6: lineMenuStateAt and withoutLineMarker use the tokenizer", () => {
+  it("withoutLineMarker strips the leading marker and its indentation", () => {
+    expect(withoutLineMarker("# task")).toBe("task");
+    expect(withoutLineMarker("  # task")).toBe("task");
+    expect(withoutLineMarker("  o agenda")).toBe("agenda");
+    expect(withoutLineMarker("! urgent")).toBe("urgent");
+    expect(withoutLineMarker("  - bullet")).toBe("bullet");
+    expect(withoutLineMarker("  plain text")).toBe("  plain text");
+  });
+
+  it("lineMenuStateAt picks consequence vs leading symbol by column", () => {
+    const noteConseq = "Notes => # call Sam";
+    expect(lineMenuStateAt(noteConseq, 12)).toEqual({
+      kind: "action",
+      symbol: "#",
+      hasActionPart: true,
+    });
+    expect(lineMenuStateAt(noteConseq, 2)).toEqual({
+      kind: "action",
+      symbol: "#",
+      hasActionPart: true,
+    });
+
+    const chained = "v done => # next";
+    expect(lineMenuStateAt(chained, 2)).toEqual({
+      kind: "action",
+      symbol: "v",
+      hasActionPart: true,
+    });
+    expect(lineMenuStateAt(chained, 14)).toEqual({
+      kind: "action",
+      symbol: "#",
+      hasActionPart: true,
+    });
+
+    expect(lineMenuStateAt("o agenda => # task", 1)).toEqual({
+      kind: "topic",
+      symbol: "o",
+      hasActionPart: true,
+    });
+
+    expect(lineMenuStateAt("# Heading", 2, { title: true })).toEqual({
+      kind: "plain",
+      symbol: null,
+      hasActionPart: false,
+    });
+  });
+});
+
+describe("Rules 1 & 2: title lines and per-part action counting/navigation", () => {
+  it("isTitleLine requires non-blank line directly above === or ---", () => {
+    expect(isTitleLine("# Heading", "===")).toBe(true);
+    expect(isTitleLine("# Heading", "---")).toBe(true);
+    expect(isTitleLine("# Heading", "  ---  ")).toBe(true);
+    expect(isTitleLine("", "---")).toBe(false);
+    expect(isTitleLine("===", "---")).toBe(false);
+    expect(isTitleLine("---", "===")).toBe(false);
+    expect(isTitleLine("# Heading", "--")).toBe(false);
+    expect(isTitleUnderline("---")).toBe(true);
+    expect(isTitleUnderline("===")).toBe(true);
+  });
+
+  it("title lines are plain text in countActions and openActionLineIndices", () => {
+    const doc = ["# Header", "---", "# real task", "", "---", "> not a title above blank", "", "---"].join("\n");
+    expect(countActions(doc)).toEqual({ open: 1, closed: 0, forwarded: 1 });
+    expect(openActionLineIndices(doc)).toEqual([2]);
+  });
+
+  it("countActions and openActionLineIndices agree on multi-part and topic consequence lines", () => {
+    expect(countActions("# first => v resolved")).toEqual({ open: 1, closed: 1, forwarded: 0 });
+    expect(openActionLineIndices("# first => v resolved")).toEqual([0]);
+
+    expect(countActions("v done => # next")).toEqual({ open: 1, closed: 1, forwarded: 0 });
+    expect(openActionLineIndices("v done => # next")).toEqual([0]);
+
+    expect(countActions("Notes => # call Sam")).toEqual({ open: 1, closed: 0, forwarded: 0 });
+    expect(openActionLineIndices("Notes => # call Sam")).toEqual([0]);
+
+    expect(countActions("o topic => v closed")).toEqual({ open: 0, closed: 1, forwarded: 0 });
+    expect(openActionLineIndices("o topic => v closed")).toEqual([]);
   });
 });

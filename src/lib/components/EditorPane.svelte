@@ -26,6 +26,7 @@
   import { t } from "../i18n";
   import {
     closeOpenAction,
+    getSectionHeaderForLine,
     isSetextUnderline,
     reopenDoneAction,
     setActionSymbolTo,
@@ -34,7 +35,8 @@
   } from "../tokens";
   import * as controller from "../controller";
   import { editorContextMenu, findMatch, findOpen, readableLineLength, spellCheck, wordWrap } from "../controller";
-  import { currentLineKind, editorFocused } from "../stores";
+  import { isTitleLine } from "../grammar/tokenize";
+import { currentLineKind, editorFocused } from "../stores";
   import { lineKind } from "../lineKind";
   import { htmlToNoteText, noteTextToHtml } from "../richClipboard";
 
@@ -368,8 +370,9 @@
         if (u.selectionSet || u.docChanged) {
           const pos = u.state.selection.main.head;
           const line = u.state.doc.lineAt(pos);
+          const nextText = line.number < u.state.doc.lines ? u.state.doc.line(line.number + 1).text : undefined;
           controller.setStatusPosition(line.number, pos - line.from + 1);
-          currentLineKind.set(lineKind(line.text));
+          currentLineKind.set(lineKind(line.text, { title: isTitleLine(line.text, nextText) }));
           // #37/#38: how many document lines the selection spans (0 chars
           // selected across every multi-cursor range → nothing selected).
           const selChars = u.state.selection.ranges.reduce((n, r) => n + (r.to - r.from), 0);
@@ -398,9 +401,12 @@
           const pos = v.posAtCoords({ x: event.clientX, y: event.clientY });
           if (pos != null && v.state.selection.main.empty) v.dispatch({ selection: { anchor: pos } });
           const at = v.state.doc.lineAt(v.state.selection.main.head);
-          const role = lineSectionRole(v.state.doc.toString().split("\n"), at.number - 1);
+          const col = pos != null && pos >= at.from && pos <= at.to ? pos - at.from : v.state.selection.main.head - at.from;
+          const docLines = v.state.doc.toString().split("\n");
+          const role = lineSectionRole(docLines, at.number - 1);
+          const inSection = role === "title" ? getSectionHeaderForLine(docLines, at.number - 1) !== "" : role !== "outside";
           const misspelled = (get(controller.backendKind) !== "web" && pos != null) ? misspelledAt(v.state, pos) : null;
-          editorContextMenu.set({ x: event.clientX, y: event.clientY, line: at.text, role, misspelled });
+          editorContextMenu.set({ x: event.clientX, y: event.clientY, line: at.text, role, col, inSection, misspelled });
           return true;
         },
         // Deferred: the browser also fires `blur` while Svelte is tearing this
@@ -483,8 +489,12 @@
           const overLine = !!block && event.clientY >= v.documentTop + block.top && event.clientY <= v.documentTop + block.bottom;
           if (pos !== null && overLine) {
             const line = v.state.doc.lineAt(pos);
-            const onTitle = line.text.trim() !== "" && !isSetextUnderline(line.text) && isHeaderLine(v, line.number);
-            const onUnderline = isSetextUnderline(line.text) && line.number > 1 && isHeaderLine(v, line.number - 1);
+            const onTitle =
+              line.text.trim() !== "" &&
+              !isSetextUnderline(line.text) &&
+              line.number < v.state.doc.lines &&
+              isSetextUnderline(v.state.doc.line(line.number + 1).text);
+            const onUnderline = isSetextUnderline(line.text) && line.number > 1 && v.state.doc.line(line.number - 1).text.trim() !== "";
             if (onTitle || onUnderline) target = controller.sectionTargetAt(v.state.doc.toString(), line.number - 1);
           }
           if (get(controller.hoverSection) !== target) controller.hoverSection.set(target);
@@ -652,10 +662,10 @@
       closeCurrentOpenAction: () => (view ? applyToCurrentLine(view, closeOpenAction) : false),
       reopenCurrentDoneAction: () => (view ? applyToCurrentLine(view, reopenDoneAction) : false),
       convertCurrentLineToSection: () => (view ? convertLineToSection(view) : false),
-      setActionStateOnSelection: (symbol: "#" | "v" | ">" | "x") =>
-        view ? applyActionStateToSelection(view, (line, col) => setActionSymbolTo(line, symbol, col), symbol) : false,
-      setTopicStateOnSelection: (symbol: "o" | "." | ",") =>
-        view ? applyActionStateToSelection(view, (line, col) => setTopicSymbolTo(line, symbol, col), symbol) : false,
+      setActionStateOnSelection: (symbol: "#" | "v" | ">" | "x", col?: number) =>
+        view ? applyActionStateToSelection(view, (line, c) => setActionSymbolTo(line, symbol, c), symbol, col) : false,
+      setTopicStateOnSelection: (symbol: "o" | "." | ",", col?: number) =>
+        view ? applyActionStateToSelection(view, (line, c) => setTopicSymbolTo(line, symbol, c), symbol, col) : false,
       jumpAdjacentOpenAction: (direction: 1 | -1) =>
         view ? jumpToAdjacentOpenAction(view, direction, { showToast: (msg) => controller.showToast(msg) }) : false,
       pulseLine: (lineIdx: number) => {
@@ -771,8 +781,9 @@
     // from it directly instead of assuming (1, 1).
     const initialPos = view.state.selection.main.head;
     const initialLine = view.state.doc.lineAt(initialPos);
+    const initialNext = initialLine.number < view.state.doc.lines ? view.state.doc.line(initialLine.number + 1).text : undefined;
     controller.setStatusPosition(initialLine.number, initialPos - initialLine.from + 1);
-    currentLineKind.set(lineKind(initialLine.text));
+    currentLineKind.set(lineKind(initialLine.text, { title: isTitleLine(initialLine.text, initialNext) }));
     const initChars = view.state.selection.ranges.reduce((n, r) => n + (r.to - r.from), 0);
     controller.setStatusSelection(
       initChars === 0

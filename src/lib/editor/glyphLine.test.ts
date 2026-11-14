@@ -251,4 +251,40 @@ describe("parseGlyphLine", () => {
       expect(pills[1].parts?.[0].cls).toBe("cm-fwd-dir cm-fwd-dir-to");
     });
   });
+
+  describe("Rule 3 & Rule 1: emphasis preserves inline tokens, and title lines stay plain text", () => {
+    it("keeps ! emphasis bold while preserving @assignee, due dates, => consequences, and bullets", () => {
+      const withAssignee = parseGlyphLine("! check @alice");
+      expect(withAssignee).toContainEqual({ text: "@alice", cls: "glyph-assignee" });
+      expect(withAssignee.some((p) => p.cls?.includes("glyph-emphasis-line") && p.text.includes("check"))).toBe(true);
+
+      const withDue = parseGlyphLine("# ! finish by:2026-10-15");
+      expect(withDue.some((p) => p.cls?.startsWith("cm-due") && p.text === "by:2026-10-15")).toBe(true);
+      expect(withDue.some((p) => p.cls?.includes("glyph-emphasis-line") && p.text.includes("finish"))).toBe(true);
+
+      const withFwd = parseGlyphLine("! finish (>2026-10-26)");
+      expect(withFwd.some((p) => p.cls === "cm-fwd-link")).toBe(true);
+      expect(withFwd.some((p) => p.cls?.includes("glyph-emphasis-line") && p.text.includes("finish"))).toBe(true);
+
+      const withConsequence = parseGlyphLine("! a => # b");
+      expect(withConsequence).toContainEqual({ text: "➔", cls: "glyph-followup" });
+      expect(withConsequence).toContainEqual({ text: "☐", cls: "glyph-open" });
+      expect(withConsequence.some((p) => p.cls?.includes("glyph-emphasis-line") && p.text.includes("a"))).toBe(true);
+      expect(withConsequence.some((p) => p.cls?.includes("glyph-emphasis-line") && p.text.includes("b"))).toBe(true);
+
+      const withBullet = parseGlyphLine("! - item");
+      expect(withBullet).toContainEqual({ text: "•", cls: "glyph-bullet glyph-bullet-emphasis" });
+      expect(withBullet).toContainEqual({ text: "item", cls: "glyph-emphasis-line" });
+
+      const combined = parseGlyphLine("# ! - task");
+      expect(combined[0]).toEqual({ text: "☐", cls: "glyph-open" });
+      expect(combined).toContainEqual({ text: "•", cls: "glyph-bullet glyph-bullet-emphasis" });
+      expect(combined).toContainEqual({ text: "task", cls: "glyph-emphasis-line" });
+    });
+
+    it("renders title lines as plain text without glyph parsing", () => {
+      expect(parseGlyphLine("# Section", { title: true })).toEqual([{ text: "# Section" }]);
+      expect(parseGlyphLine("! Heading => @alice", { title: true })).toEqual([{ text: "! Heading => @alice" }]);
+    });
+  });
 });

@@ -4,7 +4,7 @@ import { cursorLineBoundaryBackward, isolateHistory, selectLineBoundaryBackward 
 import { lineStateAnnouncement } from "./glyphs";
 import { exitNumberedListSpec, moveEmptySubItemOutSpec, shiftTabCommand, tabCommand } from "./numberedListKeys";
 import { leadingMarkerCharEnd, leadingMarkerTextColumn } from "./wrapIndent";
-import { tokenizeLine } from "../grammar/tokenize";
+import { isTitleLine, tokenizeLine } from "../grammar/tokenize";
 import { underlineFor } from "../sectionFormat";
 import type { EditorApi } from "../stores";
 import {
@@ -30,14 +30,10 @@ import {
 
 export type LineToken = Parameters<NonNullable<EditorApi["applyToken"]>>[0];
 
-/** True if `lineNumber` (1-based) is a section's title line — the line
- * directly above a setext `====` underline. `cycleActionSymbolOrCreate`
- * and `setActionSymbolTo` have no way to recognize this from a single line
- * in isolation (§69's own doc comment on `replaceActionSymbol`), so
- * every caller here checks it first and skips the line entirely rather
- * than ever promoting a section header into an action line by mistake. */
+/** True if `lineNumber` (1-based) is a non-blank title line directly above a `===` or `---` underline. */
 export function isHeaderLine(v: EditorView, lineNumber: number): boolean {
-  return lineNumber < v.state.doc.lines && isSetextUnderline(v.state.doc.line(lineNumber + 1).text);
+  if (lineNumber >= v.state.doc.lines) return false;
+  return isTitleLine(v.state.doc.line(lineNumber).text, v.state.doc.line(lineNumber + 1).text);
 }
 
 /** Where `before` and `after` start to differ (the length of their common prefix). A caret at or after this
@@ -150,6 +146,7 @@ export function applyActionStateToSelection(
   v: EditorView,
   transform: (line: string, col: number) => string | null,
   targetSymbol?: string,
+  colOverride?: number,
 ): boolean {
   const sel = v.state.selection.main;
   const { firstLine, lastLine } = selectedLineRange(v.state.doc, sel.from, sel.to);
@@ -157,7 +154,7 @@ export function applyActionStateToSelection(
   let firstResult: string | null = null;
   for (let n = firstLine.number; n <= lastLine.number; n++) {
     const docLine = v.state.doc.line(n);
-    const updated = isHeaderLine(v, n) ? null : transform(docLine.text, referenceColumn(sel, docLine));
+    const updated = isHeaderLine(v, n) ? null : transform(docLine.text, colOverride ?? referenceColumn(sel, docLine));
     if (updated !== null && firstResult === null) firstResult = updated;
     if (updated !== null && updated !== docLine.text) {
       edits.push(minimalLineEdit(docLine, updated));
@@ -294,7 +291,7 @@ export function smartHome(v: EditorView, extend: boolean): boolean {
 export function convertLineToSection(v: EditorView): boolean {
   const pos = v.state.selection.main.head;
   const line = v.state.doc.lineAt(pos);
-  if (isHeaderLine(v, line.number) || isSetextUnderline(line.text)) return false;
+  if (isHeaderLine(v, line.number) || isTitleUnderline(line.text)) return false;
   const title = line.text.trim();
   if (!title) return false;
   const insertText = "\n" + underlineFor(title) + "\n";
@@ -544,7 +541,9 @@ function toggleBulletOrEmphasis(lineText: string, token: "-" | "!"): string {
     return lineText.slice(0, first.from) + lineText.slice(emEnd);
   }
   const indent = lineText.match(/^(\s*)/)?.[1] ?? "";
-  return `${indent}${token} ${withoutLineMarker(lineText)}`;
+  const stripped = withoutLineMarker(lineText);
+  const rest = stripped === lineText ? lineText.slice(indent.length) : stripped;
+  return `${indent}${token} ${rest}`;
 }
 
 /** Phone-toolbar token toggle/setter across all lines touched by the selection. */
@@ -554,13 +553,15 @@ export function applyLineToken(view: EditorView, token: LineToken): void {
   const edits: LineEdit[] = [];
   for (let l = firstLine.number; l <= lastLine.number; l++) {
     const line = view.state.doc.line(l);
+    if (isHeaderLine(view, l) || isTitleUnderline(line.text)) continue;
     let updated: string | null = null;
     if (token === "#" || token === "v" || token === ">" || token === "x") {
       updated = setActionSymbolTo(line.text, token, referenceColumn(sel, line));
     } else if (token === "-" || token === "!") {
       updated = toggleBulletOrEmphasis(line.text, token);
     } else if (token === "=>") {
-      updated = line.text.includes("=> ") ? line.text.replace(/=>\s/, "") : `${line.text} => `;
+      const arrow = tokenizeLine(line.text).find((t) => t.kind === "arrow");
+      updated = arrow ? line.text.slice(0, arrow.from) + line.text.slice(arrow.to) : `${line.text} => `;
     } else if (token === "o" || token === "." || token === ",") {
       updated = setTopicSymbolTo(line.text, token, referenceColumn(sel, line));
     }

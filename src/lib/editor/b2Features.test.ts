@@ -3,7 +3,8 @@ import { EditorSelection } from "@codemirror/state";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { get } from "svelte/store";
 import { createTestEditor, type TestEditor } from "../testing/testEditor";
-import { applyLineToken, indentLines } from "./commands";
+import { applyActionStateToSelection, applyLineToken, indentLines } from "./commands";
+import { setActionSymbolTo } from "../tokens";
 import { readClipboardPastePayload } from "./clipboardPaste";
 import { htmlToNoteText } from "../richClipboard";
 import * as controller from "../controller";
@@ -153,5 +154,35 @@ describe("B2 features (items 16-20)", () => {
     });
     expect(ed.view.state.selection.ranges).toHaveLength(1);
     expect(ed.view.state.selection.main.head).toBe(0);
+  });
+
+  it("B3 rules 5 & 6: Bullet/Emphasis preserve topic symbol, title lines stay untouched, and col targets consequence", () => {
+    const ed = openEditor("o |agenda");
+    applyLineToken(ed.view, "-");
+    expect(ed.text()).toBe("o - agenda");
+    applyLineToken(ed.view, "-");
+    expect(ed.text()).toBe("o agenda");
+    applyLineToken(ed.view, "!");
+    expect(ed.text()).toBe("o ! agenda");
+    applyLineToken(ed.view, "-");
+    expect(ed.text()).toBe("o ! - agenda");
+    applyLineToken(ed.view, "-");
+    expect(ed.text()).toBe("o ! agenda");
+    applyLineToken(ed.view, "!");
+    expect(ed.text()).toBe("o agenda");
+
+    const ed2 = openEditor("  |plain indented");
+    applyLineToken(ed2.view, "-");
+    expect(ed2.text()).toBe("  - plain indented");
+    applyLineToken(ed2.view, "-");
+    expect(ed2.text()).toBe("  plain indented");
+
+    const edTitle = openEditor("# Title|\n---");
+    applyLineToken(edTitle.view, "!");
+    expect(edTitle.text()).toBe("# Title\n---");
+
+    const edConseq = openEditor("v |done => # next");
+    applyActionStateToSelection(edConseq.view, (line, col) => setActionSymbolTo(line, "v", col), "v", 14);
+    expect(edConseq.text()).toBe("v done => v next");
   });
 });

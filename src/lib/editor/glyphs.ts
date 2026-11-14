@@ -4,7 +4,7 @@ import { RangeSetBuilder, type EditorState } from "@codemirror/state";
 import { Decoration, DecorationSet, EditorView, ViewPlugin, ViewUpdate, WidgetType } from "@codemirror/view";
 import { lineSectionRole, symbolAfterClick, toggleOpenClosedAtIndex } from "../tokens";
 import { ARROW_GLYPH, GLYPHS, glyphSpecForSymbol } from "../grammar/glyphs";
-import { tokenizeLine } from "../grammar/tokenize";
+import { isTitleLine, tokenizeDocLine, tokenizeLine } from "../grammar/tokenize";
 import { editorContextMenu } from "../stores";
 
 export function glyphAriaLabel(sym: string): string | undefined {
@@ -232,6 +232,8 @@ const ATOMIC = Decoration.replace({});
  * §463: a token a caret in `held` sits strictly inside stays text and is not atomic. That only happens right after
  * typing: `v` typed in front of a space that was already there (a line that looked empty) completes `v ` with the
  * caret between them, and drawing it would hide the letter and push the caret past the space, mid-word. */
+const TITLE_TOKENIZE_OPTS = { title: true } as const;
+
 export function buildGlyphDecorations(
   view: EditorView,
   held: readonly number[] = [],
@@ -241,13 +243,14 @@ export function buildGlyphDecorations(
   const doc = view.state.doc;
   let doneTo = -1; // end of the last line handled, so touching visible ranges never repeat a line
   for (const { from, to } of view.visibleRanges) {
-    let pos = Math.max(from, doneTo + 1);
-    while (pos <= to) {
-      const line = doc.lineAt(pos);
+    const startPos = Math.max(from, doneTo + 1);
+    let line = startPos <= to ? doc.lineAt(startPos) : null;
+    while (line && line.from <= to) {
+      const nextLine = line.to < doc.length ? doc.lineAt(line.to + 1) : null;
+      const title = nextLine !== null && isTitleLine(line.text, nextLine.text);
       doneTo = line.to;
-      pos = line.to + 1;
       let afterEmphasis = false; // #208: a bullet right after `! ` takes the emphasis colour
-      for (const t of tokenizeLine(line.text)) {
+      for (const t of title ? tokenizeLine(line.text, TITLE_TOKENIZE_OPTS) : tokenizeLine(line.text)) {
         const emphasisBullet = afterEmphasis && t.kind === "bullet";
         afterEmphasis = t.kind === "emphasis";
         const a = line.from + t.from;
@@ -287,6 +290,7 @@ export function buildGlyphDecorations(
           // paren draws nothing in the editor.
         }
       }
+      line = nextLine && nextLine.from <= to ? nextLine : null;
     }
   }
   return { decorations: deco.finish(), atomic: atomic.finish() };
@@ -301,7 +305,7 @@ function heldCarets(state: EditorState): number[] {
     const line = state.doc.lineAt(r.head);
     const col = r.head - line.from;
     if (col === 0 || col === line.length) continue;
-    if (tokenizeLine(line.text).some((t) => t.replaced && t.from < col && t.to > col)) out.push(r.head);
+    if (tokenizeDocLine(state.doc, line).some((t) => t.replaced && t.from < col && t.to > col)) out.push(r.head);
   }
   return out;
 }

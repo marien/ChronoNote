@@ -128,27 +128,30 @@ describe("buildWrapIndentDecorations", () => {
     ]);
   });
 
-  it("does not decorate section header title lines or setext underlines", () => {
-    const doc = [
+  it("does not decorate section header title lines or setext/dashed underlines", () => {
+    const collect = (lines: string[]) => {
+      const state = EditorState.create({ doc: lines.join("\n") });
+      const view = new EditorView({ state });
+      const decos = buildWrapIndentDecorations(view);
+      const decoratedLines: number[] = [];
+      decos.between(0, state.doc.length, (from) => {
+        decoratedLines.push(state.doc.lineAt(from).number);
+      });
+      view.destroy();
+      return decoratedLines;
+    };
+
+    // Rule 1: a line directly above === or --- is a plain title line, never decorated.
+    expect(collect(["# Section Header Title", "====================", "# Subsection Title", "--------------------"])).toEqual([]);
+
+    // Separated from --- by a blank line, `# Action under header` is an action again;
+    // the underline itself is still undecorated.
+    expect(collect([
       "Section Header Title",
       "====================",
       "# Action under header",
+      "",
       "--------------------",
-    ].join("\n");
-
-    const state = EditorState.create({ doc });
-    const view = new EditorView({ state });
-    const decos = buildWrapIndentDecorations(view);
-
-    const decoratedLines: number[] = [];
-    decos.between(0, state.doc.length, (from) => {
-      const line = state.doc.lineAt(from);
-      decoratedLines.push(line.number);
-    });
-
-    view.destroy();
-
-    // Only line 3 ("# Action under header") should be decorated
-    expect(decoratedLines).toEqual([3]);
+    ])).toEqual([3]);
   });
 });

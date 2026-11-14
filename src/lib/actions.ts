@@ -15,6 +15,7 @@ import {
 import { refreshAllNotesCache, updateNoteOnDisk, writeTabContent } from "./persistence";
 import { openOrCreateDatedFile } from "./tabs";
 import { compareTabsByRecency, sortFilenamesByRecency } from "./tabSort";
+import { isTitleLine, tokenizeNoteLine } from "./grammar/tokenize";
 import {
   cycleActionSymbol,
   cycleActionSymbolAt,
@@ -158,6 +159,7 @@ export function forwardActionToToday(tabId: string, lineIdx: number) {
   if (!src) return;
   const lines = src.content.split("\n");
   const target = lines[lineIdx];
+  if (isTitleLine(target, lines[lineIdx + 1])) return;
   // Indented (§50), same as everywhere else an action symbol is
   // recognized. Deliberately not extended to the `=> <symbol>` form
   // (§41) — forwarding a delegated consequence-action raises questions

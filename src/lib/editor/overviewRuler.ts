@@ -1,6 +1,6 @@
 import { Facet, type Extension } from "@codemirror/state";
 import { EditorView, ViewPlugin, type ViewUpdate } from "@codemirror/view";
-import { innermostActionSymbol, isSetextUnderline } from "../tokens";
+import { hasOpenAction } from "../grammar/tokenize";
 
 export interface OverviewRulerConfig {
   onJump?: (lineIdx: number) => void;
@@ -43,14 +43,8 @@ export function buildMarkers(
   for (let lineNum = 1; lineNum <= numLines; lineNum++) {
     const line = doc.line(lineNum);
     const text = line.text;
-
-    // Skip section header title lines directly above a setext `====` underline
-    if (lineNum < numLines && isSetextUnderline(doc.line(lineNum + 1).text)) {
-      continue;
-    }
-
-    const actionSym = innermostActionSymbol(text);
-    if (actionSym !== "#") continue;
+    const nextText = lineNum < numLines ? doc.line(lineNum + 1).text : undefined;
+    if (!hasOpenAction(text, nextText)) continue;
 
     // Compute proportional vertical position
     let fraction = 0;

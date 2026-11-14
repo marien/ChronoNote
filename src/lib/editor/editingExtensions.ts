@@ -36,6 +36,9 @@ export function editingExtensions(
 ): Extension[] {
   return [
     EditorState.allowMultipleSelections.of(false),
+    // A tab is two columns everywhere (§468 rule 7): drawn that wide too, so a tab-indented line sits where the
+    // tree connectors and wrap indent (which count it as 2) expect it.
+    EditorState.tabSize.of(2),
     history(),
     ...(ui.afterHistory ?? []),
     indentUnit.of("  "),

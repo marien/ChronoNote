@@ -52,7 +52,8 @@ import {
   type WriteGuard,
 } from "./persistence";
 import { extractSectionBody, findNextSectionOccurrenceOnDisk } from "./history";
-import { countOpenActionsInText, deferOpenActionsInText, forwardLink, OPEN_ACTION_LINE, withFromLink } from "./paste";
+import { countOpenActionsInText, deferOpenActionsInText, forwardLink, withFromLink } from "./paste";
+import { hasOpenAction } from "./grammar/tokenize";
 import { getSectionHeaderForLine, normalizeHeaderTitle, titleForMatching } from "./tokens";
 import { underlineFor } from "./sectionFormat";
 import { t } from "./i18n";
@@ -228,7 +229,7 @@ async function commitCopyForward(
   const srcDate = sourceFilename.replace(/\.txt$/, "");
   const baseInsertLines = insertLinesOverride ?? selectedLines;
   const insertLines = baseInsertLines.map((line, i) => {
-    if (!OPEN_ACTION_LINE.test(line)) return line;
+    if (!hasOpenAction(line, baseInsertLines[i + 1])) return line;
     const srcSection = getSectionHeaderForLine(srcLines, fromLine + i).trim();
     const fromSuffix = forwardLink("<", srcDate, srcSection);
     return withFromLink(line, fromSuffix);

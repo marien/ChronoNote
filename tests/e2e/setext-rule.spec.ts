@@ -118,9 +118,17 @@ test.describe("sub-section underline rule", () => {
     await expect(single(page)).toHaveCount(0);
   });
 
-  test("a sub-section is not a section: History and the section count ignore it", async ({ page }) => {
-    // The title above `---` gets no occurrence hint or section role; the line menu treats it as a body line.
+  test("a sub-section is not a section: History ignores it while its title stays a plain-text title line (D5)", async ({ page }) => {
+    // Rule 1 (D5): the title above `---` is a plain-text title line, so the line menu hides body actions and Make section;
+    // History still belongs to the enclosing `===` section ("Weekly Planning"), not "Budget".
     await cmLine(page, 3).click({ button: "right" });
-    await expect(page.getByRole("menuitem", { name: /Make section/i })).toBeVisible();
+    await expect(page.getByRole("menuitem", { name: /Make section/i })).toHaveCount(0);
+    await expect(page.getByRole("menuitem", { name: /Set to Open|To discuss/i })).toHaveCount(0);
+    const historyItem = page.getByRole("menuitem", { name: /Section history/i });
+    await expect(historyItem).toBeEnabled();
+    await historyItem.click();
+    await expect(
+      page.getByRole("complementary", { name: /Section history/i }).or(page.getByRole("dialog")),
+    ).toContainText("Weekly Planning");
   });
 });

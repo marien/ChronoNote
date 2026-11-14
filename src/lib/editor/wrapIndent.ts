@@ -10,11 +10,8 @@ import {
   ViewPlugin,
   type ViewUpdate,
 } from "@codemirror/view";
-import {
-  isSetextUnderline,
-  parseNumberedItem,
-} from "../tokens";
-import { tokenizeLine } from "../grammar/tokenize";
+import { columnOf, isTitleLine, isTitleUnderline, tokenizeLine } from "../grammar/tokenize";
+import { parseNumberedItem } from "../tokens";
 
 /** Character offset in `lineText` right after any leading ChronoNote marker (`- `, `# `, `# ! - `, `o 1. `, `=> # `, etc.), or `null` when the line starts with plain/indented text. */
 export function leadingMarkerCharEnd(lineText: string): number | null {
@@ -56,7 +53,7 @@ export function leadingMarkerCharEnd(lineText: string): number | null {
 export function leadingMarkerTextColumn(lineText: string): number | null {
   const charEnd = leadingMarkerCharEnd(lineText);
   if (charEnd === null) return null;
-  return lineText.slice(0, charEnd).replace(/\t/g, "  ").length;
+  return columnOf(lineText.slice(0, charEnd));
 }
 
 /**
@@ -74,19 +71,17 @@ export function getLineWrapIndent(lineText: string): number {
   // Plain indented text: e.g. "  text", "    text"
   const leading = lineText.match(/^(\s+)\S/);
   if (leading) {
-    return leading[1].replace(/\t/g, "  ").length;
+    return columnOf(leading[1]);
   }
 
   return 0;
 }
 
-/** Returns true if the line at 1-based lineNumber is a section header title line
- * directly followed by a setext `====` underline. */
+/** Returns true if the line at 1-based lineNumber is a non-blank title line
+ * directly followed by a `===` or `---` underline. */
 function isHeaderLine(view: EditorView, lineNumber: number): boolean {
-  return (
-    lineNumber < view.state.doc.lines &&
-    isSetextUnderline(view.state.doc.line(lineNumber + 1).text)
-  );
+  if (lineNumber >= view.state.doc.lines) return false;
+  return isTitleLine(view.state.doc.line(lineNumber).text, view.state.doc.line(lineNumber + 1).text);
 }
 
 /** Builds line decorations applying hanging indentation to wrapped lines. */
@@ -96,7 +91,7 @@ export function buildWrapIndentDecorations(view: EditorView): DecorationSet {
     let pos = from;
     while (pos <= to) {
       const line = view.state.doc.lineAt(pos);
-      if (!isHeaderLine(view, line.number) && !isSetextUnderline(line.text)) {
+      if (!isHeaderLine(view, line.number) && !isTitleUnderline(line.text)) {
         const indent = getLineWrapIndent(line.text);
         if (indent > 0) {
           builder.add(

@@ -1,7 +1,7 @@
 import { Prec, RangeSetBuilder, type EditorSelection } from "@codemirror/state";
 import { Decoration, type DecorationSet, EditorView, ViewPlugin, type ViewUpdate } from "@codemirror/view";
 import { get } from "svelte/store";
-import { tokenizeLine } from "../grammar/tokenize";
+import { tokenizeDocLine } from "../grammar/tokenize";
 import { openDateLink } from "../dateLinks";
 import { isMac } from "../platform";
 import { isMobile } from "../controller";
@@ -44,7 +44,7 @@ function buildOutline(view: EditorView): DecorationSet {
       if (line.number <= lastLine) continue;
       lastLine = line.number;
 
-      const tokens = tokenizeLine(line.text);
+      const tokens = tokenizeDocLine(view.state.doc, line);
       for (const tok of tokens) {
         if (tok.kind !== "forwardLink") continue;
         const from = line.from + tok.from;
@@ -79,7 +79,7 @@ function buildInner(view: EditorView): DecorationSet {
       if (line.number <= lastLine) continue;
       lastLine = line.number;
 
-      const tokens = tokenizeLine(line.text);
+      const tokens = tokenizeDocLine(view.state.doc, line);
       for (const tok of tokens) {
         if (tok.kind !== "forwardLink") continue;
         const from = line.from + tok.from;
