@@ -2,7 +2,7 @@ import { derived, type Readable } from "svelte/store";
 import { allNotesCache, currentDateISO, tabs } from "./stores";
 import * as tokens from "./tokens";
 import { addDaysISO } from "./date";
-import { getLineActionParts, tokenizeLine } from "./grammar/tokenize";
+import { getLineActionParts, tokenizeNoteLine } from "./grammar/tokenize";
 
 /** Module-level memoisation map: key -> { text, today, count }
  * Preserved across keystrokes so only texts that change are recounted. */
@@ -137,7 +137,7 @@ export const dueSummary: Readable<{
           if (d.date === $currentDateISO) dueToday++;
 
           const line = lines[d.lineIdx] ?? "";
-          const lineTokens = tokenizeLine(line);
+          const lineTokens = tokenizeNoteLine(lines, d.lineIdx);
           const parts = getLineActionParts(line, lineTokens);
           const part = parts.find((p) => d.from >= p.from && d.from < p.to);
           const actionText = part

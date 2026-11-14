@@ -3,7 +3,7 @@ import { Decoration, type DecorationSet, EditorView, ViewPlugin, type ViewUpdate
 import { get } from "svelte/store";
 import { currentDateISO, activeTabId, dueDatePending } from "../stores";
 import { locale, t } from "../i18n";
-import { tokenizeLine, getLineActionParts } from "../grammar/tokenize";
+import { getLineActionParts, tokenizeDocLine } from "../grammar/tokenize";
 import { dueStatus } from "../tokens";
 import { dueWordExtra, longDate, parseDueWord, parseISODateLocal } from "../date";
 import { openDateLink } from "../dateLinks";
@@ -40,7 +40,7 @@ function build(view: EditorView): { decorations: DecorationSet; atomic: Decorati
       if (line.number <= lastLine) continue;
       lastLine = line.number;
 
-      const tokens = tokenizeLine(line.text);
+      const tokens = tokenizeDocLine(view.state.doc, line);
       if (!tokens.some((tok) => tok.kind === "due" || tok.kind === "dueWord")) continue;
       const isTouched = view.state.selection.ranges.some((r) => r.from <= line.to && r.to >= line.from);
       const actionParts = getLineActionParts(line.text, tokens);
@@ -91,7 +91,9 @@ function openPickerAt(view: EditorView, el: HTMLElement) {
   const pos = view.posAtDOM(el);
   const line = view.state.doc.lineAt(pos);
   const offset = pos - line.from;
-  const part = getLineActionParts(line.text, tokenizeLine(line.text)).find((p) => offset >= p.from && offset < p.to);
+  const part = getLineActionParts(line.text, tokenizeDocLine(view.state.doc, line)).find(
+    (p) => offset >= p.from && offset < p.to,
+  );
   const rect = el.getBoundingClientRect();
   dueDatePending.set({
     tabId: get(activeTabId),

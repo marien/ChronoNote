@@ -34,7 +34,8 @@
   } from "../tokens";
   import * as controller from "../controller";
   import { editorContextMenu, findMatch, findOpen, readableLineLength, spellCheck, wordWrap } from "../controller";
-  import { currentLineKind, editorFocused } from "../stores";
+  import { isTitleLine } from "../grammar/tokenize";
+import { currentLineKind, editorFocused } from "../stores";
   import { lineKind } from "../lineKind";
   import { htmlToNoteText, noteTextToHtml } from "../richClipboard";
 
@@ -368,8 +369,9 @@
         if (u.selectionSet || u.docChanged) {
           const pos = u.state.selection.main.head;
           const line = u.state.doc.lineAt(pos);
+          const nextText = line.number < u.state.doc.lines ? u.state.doc.line(line.number + 1).text : undefined;
           controller.setStatusPosition(line.number, pos - line.from + 1);
-          currentLineKind.set(lineKind(line.text));
+          currentLineKind.set(lineKind(line.text, { title: isTitleLine(line.text, nextText) }));
           // #37/#38: how many document lines the selection spans (0 chars
           // selected across every multi-cursor range → nothing selected).
           const selChars = u.state.selection.ranges.reduce((n, r) => n + (r.to - r.from), 0);
@@ -483,8 +485,12 @@
           const overLine = !!block && event.clientY >= v.documentTop + block.top && event.clientY <= v.documentTop + block.bottom;
           if (pos !== null && overLine) {
             const line = v.state.doc.lineAt(pos);
-            const onTitle = line.text.trim() !== "" && !isSetextUnderline(line.text) && isHeaderLine(v, line.number);
-            const onUnderline = isSetextUnderline(line.text) && line.number > 1 && isHeaderLine(v, line.number - 1);
+            const onTitle =
+              line.text.trim() !== "" &&
+              !isSetextUnderline(line.text) &&
+              line.number < v.state.doc.lines &&
+              isSetextUnderline(v.state.doc.line(line.number + 1).text);
+            const onUnderline = isSetextUnderline(line.text) && line.number > 1 && v.state.doc.line(line.number - 1).text.trim() !== "";
             if (onTitle || onUnderline) target = controller.sectionTargetAt(v.state.doc.toString(), line.number - 1);
           }
           if (get(controller.hoverSection) !== target) controller.hoverSection.set(target);
@@ -771,8 +777,9 @@
     // from it directly instead of assuming (1, 1).
     const initialPos = view.state.selection.main.head;
     const initialLine = view.state.doc.lineAt(initialPos);
+    const initialNext = initialLine.number < view.state.doc.lines ? view.state.doc.line(initialLine.number + 1).text : undefined;
     controller.setStatusPosition(initialLine.number, initialPos - initialLine.from + 1);
-    currentLineKind.set(lineKind(initialLine.text));
+    currentLineKind.set(lineKind(initialLine.text, { title: isTitleLine(initialLine.text, initialNext) }));
     const initChars = view.state.selection.ranges.reduce((n, r) => n + (r.to - r.from), 0);
     controller.setStatusSelection(
       initChars === 0

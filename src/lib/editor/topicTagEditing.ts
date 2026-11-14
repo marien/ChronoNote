@@ -1,6 +1,6 @@
 import { RangeSetBuilder } from "@codemirror/state";
 import { Decoration, type DecorationSet, type EditorView, ViewPlugin, type ViewUpdate } from "@codemirror/view";
-import { tokenizeLine } from "../grammar/tokenize";
+import { tokenizeDocLine } from "../grammar/tokenize";
 
 /** §422: a `(topic)` pill shows its parentheses only while it is being edited: when the caret is inside the pill or
  * right next to it, on either side, or when a selection covers (part of) it. Hovering or merely being on the line no
@@ -14,7 +14,7 @@ function build(view: EditorView): DecorationSet {
   const marks = new Map<number, number>(); // from -> to
   const visit = (lineNumber: number, touches: (from: number, to: number) => boolean) => {
     const line = doc.line(lineNumber);
-    for (const tag of tokenizeLine(line.text)) {
+    for (const tag of tokenizeDocLine(doc, line)) {
       if (tag.kind !== "topicTag") continue;
       const from = line.from + tag.from;
       const to = line.from + tag.to;

@@ -7,11 +7,12 @@ import {
   type ViewUpdate,
 } from "@codemirror/view";
 import { actionTree, type ActionNode } from "../actionGroups";
+import { columnOf } from "../grammar/tokenize";
 
 export interface TreeConnector {
   parentLineIdx: number;
-  parentCol: number; // parent's lineStart
-  children: { lineIdx: number; col: number }[]; // the parent's direct children of kind "line" (steps are left out), col = child's lineStart
+  parentCol: number; // parent's visual start column
+  children: { lineIdx: number; col: number }[]; // the parent's direct children of kind "line" (steps are left out), col = child's visual start column
   resolved: boolean; // parent and every descendant line/step with a state are v, x or > (delegated parts ignored)
 }
 
@@ -28,8 +29,15 @@ function isNodeResolved(node: ActionNode): boolean {
   return true;
 }
 
+function nodeCol(node: ActionNode, lines?: readonly string[]): number {
+  if (lines && lines[node.lineIdx] !== undefined) {
+    return columnOf(lines[node.lineIdx].slice(0, node.lineStart));
+  }
+  return node.indent;
+}
+
 /** Extracts connectors joining an action line to its direct child lines. */
-export function treeConnectors(roots: ActionNode[]): TreeConnector[] {
+export function treeConnectors(roots: ActionNode[], lines?: readonly string[]): TreeConnector[] {
   const connectors: TreeConnector[] = [];
 
   function visit(node: ActionNode) {
@@ -37,8 +45,8 @@ export function treeConnectors(roots: ActionNode[]): TreeConnector[] {
     if (lineChildren.length > 0) {
       connectors.push({
         parentLineIdx: node.lineIdx,
-        parentCol: node.lineStart,
-        children: lineChildren.map((c) => ({ lineIdx: c.lineIdx, col: c.lineStart })),
+        parentCol: nodeCol(node, lines),
+        children: lineChildren.map((c) => ({ lineIdx: c.lineIdx, col: nodeCol(c, lines) })),
         resolved: isNodeResolved(node),
       });
     }
@@ -62,7 +70,7 @@ export const actionTreeLinesField = StateField.define<TreeConnector[]>({
     for (let i = 1; i <= state.doc.lines; i++) {
       lines.push(state.doc.line(i).text);
     }
-    return treeConnectors(actionTree(lines));
+    return treeConnectors(actionTree(lines), lines);
   },
   update(value, tr) {
     if (!tr.docChanged) return value;
@@ -70,7 +78,7 @@ export const actionTreeLinesField = StateField.define<TreeConnector[]>({
     for (let i = 1; i <= tr.state.doc.lines; i++) {
       lines.push(tr.state.doc.line(i).text);
     }
-    return treeConnectors(actionTree(lines));
+    return treeConnectors(actionTree(lines), lines);
   },
 });
 

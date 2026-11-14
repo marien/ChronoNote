@@ -6,8 +6,7 @@ import {
   ViewPlugin,
   type ViewUpdate,
 } from "@codemirror/view";
-import { isSetextUnderline } from "../tokens";
-import { tokenizeLine } from "../grammar/tokenize";
+import { isTitleLine, tokenizeLine, type TokenizeOptions } from "../grammar/tokenize";
 
 const RESOLVED = new Set(["v", "x", ">", ".", ","]);
 
@@ -15,8 +14,8 @@ const RESOLVED = new Set(["v", "x", ">", ".", ","]);
  * (the leading action/topic, or the action/topic right after its arrow) is done, deferred, won't do, discussed or not
  * discussed. A follow-up part without a symbol of its own (`=> he agreed`, `=> @dana`) belongs to the part before it.
  * A first part without a symbol is never resolved. "all" when every part is resolved, else the resolved ranges. */
-export function resolvedParts(line: string): "all" | { from: number; to: number }[] {
-  const tokens = tokenizeLine(line);
+export function resolvedParts(line: string, options?: TokenizeOptions): "all" | { from: number; to: number }[] {
+  const tokens = tokenizeLine(line, options);
   const parts: { from: number; to: number; resolved: boolean }[] = [];
   const lead = tokens[0]?.kind === "action" || tokens[0]?.kind === "topic" ? tokens[0].symbol! : null;
   parts.push({ from: 0, to: line.length, resolved: lead !== null && RESOLVED.has(lead) });
@@ -33,10 +32,11 @@ export function resolvedParts(line: string): "all" | { from: number; to: number 
   return real.filter((p) => p.resolved).map(({ from, to }) => ({ from, to }));
 }
 
-/** Returns true if the line at 1-based lineNumber is a section header title line
- * directly followed by a setext `====` underline. */
+/** Returns true if the line at 1-based lineNumber is a non-blank title line
+ * directly followed by a `===` or `---` underline. */
 function isHeaderLine(view: EditorView, lineNumber: number): boolean {
-  return lineNumber < view.state.doc.lines && isSetextUnderline(view.state.doc.line(lineNumber + 1).text);
+  if (lineNumber >= view.state.doc.lines) return false;
+  return isTitleLine(view.state.doc.line(lineNumber).text, view.state.doc.line(lineNumber + 1).text);
 }
 
 function isLineTouchedBySelection(view: EditorView, lineFrom: number, lineTo: number): boolean {

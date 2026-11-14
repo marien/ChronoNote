@@ -1,6 +1,6 @@
 import { RangeSet, StateEffect, StateField, type Range, type EditorState } from "@codemirror/state";
 import { Decoration, type DecorationSet, EditorView, ViewPlugin, type ViewUpdate } from "@codemirror/view";
-import { isSetextUnderline } from "../tokens";
+import { isTitleUnderline } from "../tokens";
 import { tokenizeLine, type TokenKind } from "../grammar/tokenize";
 import { spellCheckLines, spellLanguages } from "../tauriApi";
 
@@ -40,7 +40,7 @@ export function filterMisspelledRanges(
   ranges: [number, number][],
   caretOffset?: number | null,
 ): [number, number][] {
-  if (isSetextUnderline(lineText)) return [];
+  if (isTitleUnderline(lineText)) return [];
   if (ranges.length === 0) return [];
 
   // 1. Collect URL ranges

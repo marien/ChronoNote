@@ -3,7 +3,18 @@
  * questions are answered from `tokenizeLine` (grammar/), so there is one definition
  * of each token. */
 import { ACTION_CLASS, BULLET_CLASS, NAME_CHAR } from "./grammar/symbols";
-import { getLineActionParts, tokenizeLine, type Token } from "./grammar/tokenize";
+import {
+  columnOf,
+  getLineActionParts,
+  hasOpenAction,
+  isSetextUnderline,
+  isTitleLine,
+  isTitleUnderline,
+  tokenizeLine,
+  tokenizeNoteLine,
+  type Token,
+} from "./grammar/tokenize";
+export { columnOf, hasOpenAction, isSetextUnderline, isTitleLine, isTitleUnderline, tokenizeNoteLine };
 import { addDaysISO, parseDueWord } from "./date";
 // Matches trailing forward links at the end of a line (same as TRAILING_LINKS in paste.ts)
 const TRAILING_LINKS = /(?:\s*\([<>]\d{4}-\d{2}-\d{2}(?:#[^)]*)?\))+$/;
@@ -21,8 +32,9 @@ const LINE_MARKER = new RegExp(String.raw`^(\s*)(${ACTION_CLASS}|${BULLET_CLASS}
  * matching how bulleted lines already tolerate indentation. */
 export function countActions(text: string): { open: number; closed: number; forwarded: number } {
   const counts = { open: 0, closed: 0, forwarded: 0 };
-  for (const line of text.split("\n")) {
-    for (const tok of tokenizeLine(line)) {
+  const lines = text.split("\n");
+  for (let i = 0; i < lines.length; i++) {
+    for (const tok of tokenizeNoteLine(lines, i)) {
       // Topic symbols (o . ,) are agenda items, not actions: never counted.
       if (tok.kind !== "action" && tok.kind !== "consequence") continue;
       if (tok.symbol === "#") counts.open++;
@@ -73,7 +85,7 @@ export function openActionLineIndices(text: string): number[] {
   const out: number[] = [];
   const lines = text.split("\n");
   for (let i = 0; i < lines.length; i++) {
-    if (innermostActionSymbol(lines[i]) === "#") out.push(i);
+    if (hasOpenAction(lines[i], lines[i + 1])) out.push(i);
   }
   return out;
 }
@@ -306,7 +318,7 @@ export function nextNumberedMarker(item: NumberedItem): string {
 }
 
 export function indentLen(str: string): number {
-  return str.replace(/\t/g, "  ").length;
+  return columnOf(str);
 }
 
 /** Shift a line's leading indent by `delta` columns (never below `minIndent`), preserving leading tabs when possible. */
@@ -562,7 +574,7 @@ export function setTopicSymbolTo(line: string, symbol: "o" | "." | ",", col?: nu
     return `${prefix}${symbol} ${rest}`;
   }
   if (/=>/.test(line)) return null;
-  if (isSetextUnderline(line)) return null;
+  if (isTitleUnderline(line)) return null;
   const match = line.match(/^(\s*)(.*)$/s);
   if (!match) return null;
   const [, indent, rest] = match;
@@ -710,7 +722,7 @@ function replaceActionSymbol(line: string, next: (sym: string) => string, create
     return `${prefix}${createAs} ${rest}`;
   }
   if (/=>/.test(line)) return null; // a delegated (`=> @name`) or empty (`=> `) follow-up — leave alone
-  if (isSetextUnderline(line)) return null; // the `====` itself, not just the title line above it — leave alone
+  if (isTitleUnderline(line)) return null; // the `====` or `----` itself, not just the title line above it — leave alone
   const [, indent, rest] = line.match(/^(\s*)(.*)$/s)!;
   return `${indent}${createAs} ${rest}`;
 }
@@ -783,15 +795,6 @@ export function countWords(text: string): number {
   return n;
 }
 
-export function isSetextUnderline(line: string): boolean {
-  return /^={3,}$/.test(line.trim());
-}
-
-/** True for section (`===`) or subsection (`---`) underlines. */
-export function isTitleUnderline(line: string): boolean {
-  return isSetextUnderline(line) || /^-{3,}$/.test(line.trim());
-}
-
 export function getSectionHeaderForLine(lines: string[], lineIdx: number): string {
   if (lineIdx < 0 || lineIdx >= lines.length) return "";
   if (lineIdx + 1 < lines.length && isSetextUnderline(lines[lineIdx + 1])) {
@@ -808,13 +811,13 @@ export function getSectionHeaderForLine(lines: string[], lineIdx: number): strin
   return "";
 }
 
-/** Where a line sits for the line menu: a section's title or its `===` underline, a line inside a section, or a
+/** Where a line sits for the line menu: a title or its `===`/`---` underline, a line inside a section, or a
  * line above the first section. */
 export type LineSectionRole = "title" | "body" | "outside";
 
 export function lineSectionRole(lines: string[], lineIdx: number): LineSectionRole {
-  if (lineIdx + 1 < lines.length && isSetextUnderline(lines[lineIdx + 1]) && lines[lineIdx].trim() !== "") return "title";
-  if (lineIdx > 0 && isSetextUnderline(lines[lineIdx])) return "title";
+  if (lineIdx + 1 < lines.length && isTitleLine(lines[lineIdx], lines[lineIdx + 1])) return "title";
+  if (lineIdx > 0 && isTitleUnderline(lines[lineIdx])) return "title";
   return getSectionHeaderForLine(lines, lineIdx) ? "body" : "outside";
 }
 
@@ -902,7 +905,7 @@ export function dueItems(text: string): DueItem[] {
   const lines = text.split("\n");
   for (let lineIdx = 0; lineIdx < lines.length; lineIdx++) {
     const line = lines[lineIdx];
-    const tokens = tokenizeLine(line);
+    const tokens = tokenizeNoteLine(lines, lineIdx);
     const dueTokens = tokens.filter((t) => t.kind === "due" || t.kind === "dueWord");
     if (dueTokens.length === 0) continue;
 

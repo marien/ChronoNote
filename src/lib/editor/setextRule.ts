@@ -22,7 +22,7 @@
  * a hand-typed short/long underline renders at whatever length it is. */
 import { Decoration, type DecorationSet, EditorView, ViewPlugin, type ViewUpdate } from "@codemirror/view";
 import { RangeSetBuilder, StateEffect, StateField } from "@codemirror/state";
-import { isSetextUnderline } from "../tokens";
+import { isTitleUnderline } from "../tokens";
 
 /** 1-based line number the mouse is currently over, when that line is a
  * Setext underline; -1 otherwise. */
@@ -39,15 +39,8 @@ const hoveredUnderlineField = StateField.define<number>({
 const ruleMark = Decoration.mark({ class: "cm-setext-rule" });
 const subsectionRuleMark = Decoration.mark({ class: "cm-subsection-rule" });
 
-/** A sub-section underline: a line of three or more `-` under a sub-section title, drawn as a single rule the same way
- * a section's `===` is drawn as a double one. Purely visual for now: sections, Section History and Peek ignore it.
- * Never a bullet (a bullet needs a space after its `-`). */
-export function isSubsectionUnderline(line: string): boolean {
-  return /^-{3,}$/.test(line.trim());
-}
-
 function isRuleLine(text: string): boolean {
-  return isSetextUnderline(text) || isSubsectionUnderline(text);
+  return isTitleUnderline(text);
 }
 
 function buildDecorations(view: EditorView): DecorationSet {

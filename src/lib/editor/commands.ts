@@ -4,7 +4,7 @@ import { cursorLineBoundaryBackward, isolateHistory, selectLineBoundaryBackward 
 import { lineStateAnnouncement } from "./glyphs";
 import { exitNumberedListSpec, moveEmptySubItemOutSpec, shiftTabCommand, tabCommand } from "./numberedListKeys";
 import { leadingMarkerCharEnd, leadingMarkerTextColumn } from "./wrapIndent";
-import { tokenizeLine } from "../grammar/tokenize";
+import { isTitleLine, tokenizeLine } from "../grammar/tokenize";
 import { underlineFor } from "../sectionFormat";
 import type { EditorApi } from "../stores";
 import {
@@ -30,14 +30,10 @@ import {
 
 export type LineToken = Parameters<NonNullable<EditorApi["applyToken"]>>[0];
 
-/** True if `lineNumber` (1-based) is a section's title line — the line
- * directly above a setext `====` underline. `cycleActionSymbolOrCreate`
- * and `setActionSymbolTo` have no way to recognize this from a single line
- * in isolation (§69's own doc comment on `replaceActionSymbol`), so
- * every caller here checks it first and skips the line entirely rather
- * than ever promoting a section header into an action line by mistake. */
+/** True if `lineNumber` (1-based) is a non-blank title line directly above a `===` or `---` underline. */
 export function isHeaderLine(v: EditorView, lineNumber: number): boolean {
-  return lineNumber < v.state.doc.lines && isSetextUnderline(v.state.doc.line(lineNumber + 1).text);
+  if (lineNumber >= v.state.doc.lines) return false;
+  return isTitleLine(v.state.doc.line(lineNumber).text, v.state.doc.line(lineNumber + 1).text);
 }
 
 /** Where `before` and `after` start to differ (the length of their common prefix). A caret at or after this
@@ -294,7 +290,7 @@ export function smartHome(v: EditorView, extend: boolean): boolean {
 export function convertLineToSection(v: EditorView): boolean {
   const pos = v.state.selection.main.head;
   const line = v.state.doc.lineAt(pos);
-  if (isHeaderLine(v, line.number) || isSetextUnderline(line.text)) return false;
+  if (isHeaderLine(v, line.number) || isTitleUnderline(line.text)) return false;
   const title = line.text.trim();
   if (!title) return false;
   const insertText = "\n" + underlineFor(title) + "\n";

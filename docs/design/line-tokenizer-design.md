@@ -43,9 +43,18 @@ export interface Token {
   replaced: boolean; // drawn as a glyph widget (and atomic in the editor) vs marked in place
 }
 
-export function tokenizeLine(line: string): Token[];
+export function tokenizeLine(line: string, options?: { title?: boolean }): Token[];
+export function tokenizeNoteLine(lines: readonly string[], lineIdx: number): Token[];
+export function isTitleUnderline(line: string): boolean;
+export function isTitleLine(line: string, nextLine?: string): boolean;
+export function columnOf(indent: string): number;
+export function hasOpenAction(line: string, nextLine?: string): boolean;
 export const GLYPHS: Record<string, { char: string; cls: string }>; // the one symbol→glyph map
 ```
+
+### Title-line API (D5)
+
+A non-blank line directly above a title underline (`===` or `---`, three or more characters; recognised once by `isTitleUnderline`) is a title line (`isTitleLine(line, nextLine)`). Passing `{ title: true }` to `tokenizeLine` — or calling `tokenizeNoteLine(lines, lineIdx)` when a split note is in hand — returns `[]` so title lines stay plain text everywhere (no glyphs, action state, due pills, or counts), while a blank line above `===`/`---` is never treated as a title.
 
 Every consumer becomes a thin adapter:
 

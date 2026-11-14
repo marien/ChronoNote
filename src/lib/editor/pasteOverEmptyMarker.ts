@@ -1,8 +1,9 @@
 import { EditorState } from "@codemirror/state";
 import { get } from "svelte/store";
+import { hasOpenAction } from "../grammar/tokenize";
 import { ACTION_CLASS, BULLET_CLASS, TOPIC_CLASS } from "../grammar/symbols";
 import { rewriteDueWords, stateFirst } from "../tokens";
-import { OPEN_ACTION_LINE, takePendingPasteFrom, updatePasteDeferPastedBlock, withFromLink } from "../paste";
+import { takePendingPasteFrom, updatePasteDeferPastedBlock, withFromLink } from "../paste";
 import { currentDateISO } from "../stores";
 import { locale, t } from "../i18n";
 import { dueWordExtra } from "../date";
@@ -25,13 +26,14 @@ export function rewritePasted(text: string, fromSuffixes?: string[]): string {
     translate("dueDate.words.tomorrow", undefined) ?? "",
   );
 
-  return text
-    .split("\n")
-    .map((line, i) => {
-      let l = stateFirst(line) ?? line;
-      l = rewriteDueWords(l, today, loc, extra) ?? l;
+  const rewritten = text.split("\n").map((line) => {
+    let l = stateFirst(line) ?? line;
+    return rewriteDueWords(l, today, loc, extra) ?? l;
+  });
+  return rewritten
+    .map((l, i) => {
       const suffix = fromSuffixes?.[i];
-      if (suffix && OPEN_ACTION_LINE.test(l)) l = withFromLink(l, suffix);
+      if (suffix && hasOpenAction(l, rewritten[i + 1])) return withFromLink(l, suffix);
       return l;
     })
     .join("\n");
