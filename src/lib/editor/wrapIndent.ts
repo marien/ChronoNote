@@ -34,9 +34,9 @@ export function leadingMarkerCharEnd(lineText: string): number | null {
       }
       return second.from + 2;
     }
-    const sub = parseNumberedItem(lineText.slice(first.to));
-    if (sub && sub.indent === "") {
-      return first.to + sub.markerEnd + 1;
+    const numbered = parseNumberedItem(lineText);
+    if (numbered && numbered.lead !== "") {
+      return numbered.markerEnd + 1;
     }
     return first.to;
   }

@@ -1,4 +1,13 @@
-import { indentLen, nextNumberedMarker, parseNumberedItem, shiftLineIndent, type NumberedItem } from "./tokens";
+import { ACTION_SYMBOLS, TOPIC_SYMBOLS } from "./grammar/symbols";
+import {
+  indentLen,
+  LEAD_PREFIX_RE,
+  nextNumberedMarker,
+  nonListLineColumn,
+  parseNumberedItem,
+  shiftLineIndent,
+  type NumberedItem,
+} from "./tokens";
 
 export { indentLen };
 
@@ -10,9 +19,14 @@ export interface LineEdit {
 export interface ParsedBullet {
   kind: "bullet";
   indent: string;
+  lead: string;
   marker: string;
   text: string;
 }
+
+const BULLET_ITEM_RE = new RegExp(
+  String.raw`^(\s*)([${ACTION_SYMBOLS}${TOPIC_SYMBOLS}] )?((?:! )?[-*])(?:\s+(.*)|\s*$)`,
+);
 
 function leadingWidth(line: string): number {
   let w = 0;
@@ -29,19 +43,31 @@ function leadingWidth(line: string): number {
 export function parseBulletItem(line: string): ParsedBullet | null {
   let k = 0;
   while (k < line.length && (line[k] === " " || line[k] === "\t")) k++;
+  if (
+    k + 1 < line.length &&
+    line[k + 1] === " " &&
+    (ACTION_SYMBOLS.includes(line[k]) || TOPIC_SYMBOLS.includes(line[k]))
+  ) {
+    k += 2;
+  }
   const c = line.charCodeAt(k);
   if (Number.isNaN(c) || (c >= 33 && c <= 126 && c !== 45 && c !== 42 && c !== 33)) return null;
-  const m = line.match(/^(\s*)((?:! )?[-*])(?:\s+(.*)|\s*$)/);
+  const m = BULLET_ITEM_RE.exec(line);
   if (!m) return null;
   return {
     kind: "bullet",
     indent: m[1],
-    marker: m[2],
-    text: m[3] !== undefined ? m[3].trim() : "",
+    lead: m[2] ?? "",
+    marker: m[3],
+    text: m[4] !== undefined ? m[4].trim() : "",
   };
 }
 
 export type ParsedItem = ({ kind: "numbered" } & NumberedItem) | ParsedBullet;
+
+export function textColumn(item: ParsedItem): number {
+  return indentLen(item.indent) + item.lead.length + item.marker.length + 1;
+}
 
 export function parseListItem(line: string): ParsedItem | null {
   const num = parseNumberedItem(line);
@@ -80,7 +106,7 @@ function findBlocksInRange(
   const splitters: number[] = [];
   for (let i = start; i <= end; i++) {
     if (parsed[i - off] === null) {
-      const ind = indentLen(lines[i].match(/^\s*/)?.[0] ?? "");
+      const ind = nonListLineColumn(lines[i]);
       if (ind <= minIndent) {
         splitters.push(i);
       }
@@ -183,8 +209,7 @@ export function tabIndentTarget(lines: string[], idx: number): string | null {
   }
 
   if (P && P.kind === "numbered") {
-    const textCol = indentLen(P.indent) + P.marker.length + 1;
-    return " ".repeat(textCol);
+    return " ".repeat(textColumn(P));
   }
   return null;
 }
@@ -329,7 +354,7 @@ export function tabIndentTargetInRun(run: TouchedRun, idx: number): string | nul
     }
   }
   if (P && P.kind === "numbered") {
-    return " ".repeat(indentLen(P.indent) + P.marker.length + 1);
+    return " ".repeat(textColumn(P));
   }
   return null;
 }
@@ -434,7 +459,7 @@ function renumberRuns(
 
         const newMarker = hasPrefix ? itemNumbers.join(".") + g.delimiter : `${seq}${g.delimiter}`;
         const oldItem = g.items[j].item;
-        const newLine = oldItem.indent + newMarker + lines[lineIdx].slice(oldItem.markerEnd);
+        const newLine = oldItem.indent + oldItem.lead + newMarker + lines[lineIdx].slice(oldItem.markerEnd);
         if (newLine !== lines[lineIdx]) {
           rewritten.set(lineIdx, newLine);
         }
@@ -556,15 +581,15 @@ export function continuationStops(lines: string[], idx: number): number[] {
   let limit = Infinity;
   for (let i = idx - 1; i >= 0 && limit > 0; i--) {
     if (lines[i].trim() === "") break;
-    const ind = indentLen(lines[i].match(/^\s*/)![0]);
     const item = parseListItem(lines[i]);
     if (!item) {
-      if (ind === 0) break;
+      if (nonListLineColumn(lines[i]) === 0) break;
       continue;
     }
+    const ind = indentLen(item.indent);
     if (ind >= limit) continue;
     stops.add(ind);
-    stops.add(ind + item.marker.length + 1);
+    stops.add(textColumn(item));
     limit = ind;
   }
   return [...stops].sort((a, b) => a - b);
@@ -577,9 +602,8 @@ export function backspaceMarker(lines: string[], idx: number, col: number): stri
   const num = parseNumberedItem(line);
   if (!num) return null;
 
-  const m = line.match(/^(\s*)([0-9]+(?:\.[0-9]+)*[.)])(\s*)/);
-  if (!m) return null;
-  const textStartCol = m[1].length + m[2].length + m[3].length;
+  const afterMarkerSpaces = line.slice(num.markerEnd).match(/^\s*/)![0];
+  const textStartCol = num.markerEnd + afterMarkerSpaces.length;
   if (col !== textStartCol) return null;
 
   const block = getBlockForLine(lines, idx);
@@ -595,15 +619,17 @@ export function backspaceMarker(lines: string[], idx: number, col: number): stri
     }
   }
 
-  let targetIndent: string;
+  let targetPrefix: string;
   if (P) {
     // Keep P's own indent verbatim (so a leading tab stays a tab, rule 11), plus spaces past its marker.
-    targetIndent = P.indent + " ".repeat(P.marker.length + 1);
+    // If this line has a lead (# ), keep it at P's indent and pad only what remains to reach P's text column.
+    const extraSpaces = Math.max(0, P.lead.length + P.marker.length + 1 - num.lead.length);
+    targetPrefix = P.indent + num.lead + " ".repeat(extraSpaces);
   } else {
-    targetIndent = num.indent;
+    targetPrefix = num.indent + num.lead;
   }
 
-  return targetIndent + line.slice(textStartCol);
+  return targetPrefix + line.slice(textStartCol);
 }
 
 /** Rule 4, second Backspace: the line's new text, or null. */
@@ -612,15 +638,29 @@ export function backspaceContinuation(lines: string[], idx: number, col: number)
   const line = lines[idx];
   if (parseListItem(line) !== null) return null;
 
-  const leading = line.match(/^[ \t]*/)![0];
-  const leadingSpaces = leading.length;
-  if (leadingSpaces === 0 || col !== leadingSpaces) return null;
+  const leadMatch = LEAD_PREFIX_RE.exec(line);
+  let indent: string;
+  let lead: string;
+  let spacesAfterLead: string;
+  if (leadMatch) {
+    indent = leadMatch[1];
+    lead = leadMatch[2];
+    spacesAfterLead = line.slice(leadMatch[0].length).match(/^[ ]*/)![0];
+    if (spacesAfterLead.length === 0) return null;
+  } else {
+    indent = line.match(/^[ \t]*/)![0];
+    lead = "";
+    spacesAfterLead = "";
+    if (indent.length === 0) return null;
+  }
+  const textStartCol = indent.length + lead.length + spacesAfterLead.length;
+  if (col !== textStartCol) return null;
 
   const block = getBlockForLine(lines, idx);
   if (!block) return null;
 
-  const leadingWidth = indentLen(leading);
-  let minIndent = leadingWidth;
+  const textCol = indentLen(indent) + lead.length + spacesAfterLead.length;
+  let minIndent = textCol;
   let P: NumberedItem | null = null;
   for (let i = idx - 1; i >= block.start; i--) {
     const item = parseListItem(lines[i]);
@@ -628,7 +668,7 @@ export function backspaceContinuation(lines: string[], idx: number, col: number)
     const ind = indentLen(item.indent);
     // Skip deeper sub-items or bullets between the continuation line and the item it continues (rule 6).
     if (ind < minIndent) {
-      if (item.kind === "numbered" && ind + item.marker.length + 1 === leadingWidth) {
+      if (item.kind === "numbered" && textColumn(item) === textCol) {
         P = item;
         break;
       }
@@ -637,8 +677,8 @@ export function backspaceContinuation(lines: string[], idx: number, col: number)
   }
   if (!P) return null;
 
-  // Back to the indent of the item it continued, so an indented list keeps its place.
-  return P.indent + line.slice(leadingSpaces);
+  // Back to the indent of the item it continued, keeping any lead and its one space.
+  return P.indent + lead + line.slice(textStartCol);
 }
 
 /** Rule 7: the replacement text for an empty sub-item's line on Enter, or null when unchanged behaviour applies. */
@@ -679,6 +719,7 @@ export function emptySubItemEnter(lines: string[], idx: number): string | null {
     }
   }
 
+  const lead = num ? num.lead : bullet!.lead;
   const nextMarker = nextNumberedMarker(prevSibling);
-  return `${parentItem.indent}${nextMarker} `;
+  return `${parentItem.indent}${lead}${nextMarker} `;
 }
