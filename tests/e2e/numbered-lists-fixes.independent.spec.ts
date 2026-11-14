@@ -732,7 +732,13 @@ test.describe("rule 13: copying a list with continuation lines as HTML", () => {
       if (lis.length !== 2) return { error: `Expected 2 <li>, got ${lis.length}` };
       const br = lis[0].querySelector("br");
       if (!br) return { error: "First <li> missing <br>" };
-      const parts = lis[0].innerHTML.split(/<br\s*\/?>/i).map((s) => s.replace(/<[^>]+>/g, "").trim());
+      // The text between <br> elements, read from the DOM (no regex tag stripping).
+      const parts = [""];
+      for (const node of Array.from(lis[0].childNodes)) {
+        if (node.nodeName === "BR") parts.push("");
+        else parts[parts.length - 1] += node.textContent ?? "";
+      }
+      for (let i = 0; i < parts.length; i++) parts[i] = parts[i].trim();
       return {
         error: null,
         olCount: ols.length,
