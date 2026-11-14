@@ -78,6 +78,22 @@ line break: no continuation, and the symbol is never removed (§465).
 | `Heading\n====` | Setext H1 Display | **Section / Meeting Header** | Section delimiter for manual section import and meeting action history. |
 | `Heading\n----` | the `-` line drawn as a single rule | **Sub-section header** | Purely visual: a line of three or more `-` under a title inside a section. Not a section for Section History, Peek or the line menu (§366). |
 
+**Title lines are plain text (§468, decision D5).** A title line is a non-blank line directly above a line of three or
+more `=` or `-` (nothing else on it but spaces). It is never an action, topic, bullet, emphasis or follow-up, whatever
+it starts with: no glyph, no due flag, no date link, not counted, not in the Actions view or drawer, not reached by
+`Ctrl+J`, exported as a heading, and the line menu offers no line states or "Make section" on it. Adding the
+underline turns the line above into a title at once; deleting it gives the line its meaning back. A `---` under a
+blank line is only a rule. The rule lives in the tokenizer (`isTitleLine`, `tokenizeNoteLine`, `tokenizeDocLine` in
+`src/lib/grammar/tokenize.ts`), so every view agrees.
+
+**One line, one meaning (§468).** Every feature that reads a line reads it through the tokenizer: the editor, the
+read-only rows (Actions drawer, Section History, Week review, search), the counts, `Ctrl+J`, the Actions view,
+export and Print, the line menu and the phone toolbar. A line holds one open action for each open part
+(`# first => v resolved` is one open, one closed; `Notes => # call Sam` is one open). In read-only rows `! ` makes the
+text bold without hiding the names, due dates and `=>` glyphs after it. The line menu offers the states of the
+action part under the click. A tab in the indent is two columns everywhere, in the tree connectors, Tab alignment,
+wrapping and how the editor draws it.
+
 A line that is no longer open (done `v `, deferred `> `, won't-do `x `, a discussed `. ` or postponed `, ` topic, or a `=> v `/`=> > `/`=> x ` follow-up) is drawn slightly
 dimmed so open work stands out; it returns to full strength on hover and while the caret or selection is on the line.
 Section titles are never dimmed. Each `=> ` starts a new part of the line, and each part is dimmed by its own
@@ -209,11 +225,12 @@ at the line's indentation (§363).
   * Won't-do actions (`x `) translate to `- [x] ~~task~~ *(won't do)*`.
   * Meeting topics convert to bullet points: `o ` becomes `- `, `. ` becomes `- *(discussed)*`, `, ` becomes `- *(not discussed)*`.
   * Emphasis lines (`! `) convert to `**text**`.
-  * Follow-up arrows (`=> `) convert to `→ `.
+  * Follow-up arrows (`=> `) convert to `→ `; a symbol after the arrow becomes its glyph character (`=> # x` to `→ ☐ x`, `v` `☑`, `x` `☒`, `>` `☐ … *(deferred)*`, topics `○ ◉ ◌`), never a raw symbol (§468).
+  * A bullet or `! ` after an action or topic symbol is drawn, not exported raw: `# - task` to `- [ ] task`, `# ! urgent` to `- [ ] **urgent**`, `! - urgent` to `- **urgent**`. A title line (above `===` or `---`) is a heading whatever it starts with.
   * Indentation, bullets, numbered lists, and `@name` tags are preserved. Plain lines escape Markdown-special characters only at line starts where meaning would change.
   * Multi-note ranges separate notes with `# YYYY-MM-DD` headings.
 * **HTML & Print:**
-  * Exported HTML is a complete standalone document with inline styling, app-style glyph representations, monospace body typography, and `@media print` rules.
+  * Exported HTML is a complete standalone document with inline styling, app-style glyph representations, monospace body typography, and `@media print` rules. A deferred action (`> `, or `=> > ` after an arrow) gets the editor's box-with-chevron glyph (inline SVG) and the text `(deferred)` after its own text, so it reads right without styles (§468).
   * Printing a note (`Ctrl/Cmd+P`) renders the note as HTML and dispatches to the browser/OS print dialogue via an off-screen iframe.
 * **Entry Points:**
   * More menu (`…`) → "Export…" and "Print…".

@@ -12141,3 +12141,39 @@ file sets `Win32`, so Ctrl+Space rows test what Windows users get. Five kinds of
 length, typing plus Backspace at one spot is one undo step) and were corrected. Eleven browser specs that pressed Home
 for column 0 or Shift+Enter for a plain break now use the new keys. Built by Gemini 4 Hydrogen, reviewed here; Vitest
 3,386 and Playwright 1,534 passed on the branch.
+
+## 468. Editing review, batch 3: one line, one meaning
+
+**Status: on main, not released yet.**
+
+Batch 3 of the editor review (`docs/design/editor-review.html`, approved 2026-11-14). Several features read a line
+with their own regexes, so the editor, the drawer, the counts, export and the menu disagreed about the same line. Each
+now reads it through the tokenizer (`src/lib/grammar/tokenize.ts`), and a property test
+(`src/lib/lineAgreement.test.ts`) generates many lines and checks that the editor's glyphs, the read-only rows, the
+counts, `Ctrl+J`, export and the line menu agree on each.
+
+1. **Decision D5, title lines are plain text** (ER1-A4, A7): a line above `===` or `---` is never an action, topic,
+   bullet or emphasis: `# Title` over `===` drew a checkbox and counted as open, `v Sub` over `---` was dimmed. One
+   rule in the tokenizer (`isTitleLine`, `tokenizeNoteLine`, `tokenizeDocLine`); the editor redraws the line above
+   when an underline is added or deleted.
+2. **One meaning of "open"** (ER1-A3): `# first => v resolved` counted 1 open in the status bar while `Ctrl+J` and the
+   Actions view found none. Every check goes through `hasOpenAction` (per action part).
+3. **Read-only rows** (ER1-A1): after `! ` the Actions drawer and Section History drew the rest as one bold span;
+   names, `=>` and the consequence's checkbox are drawn again.
+4. **Export and Print** (ER1-A6, ER3-14): no raw `- ` after `#` or `!`, no raw symbol after `=>` (glyph characters
+   instead), a title line exports as a heading, and a deferred action gets its own glyph plus `(deferred)` in HTML
+   (it had the open box).
+5. **Line menu** (ER2-A5): the state items belong to the action part under the click: `Notes => # call Sam` offers
+   the action states, not "Set to Open" and "To discuss".
+6. **Phone toolbar** (ER1-A13): `withoutLineMarker` reads the tokens; Bullet on `o agenda` gives `o - agenda`.
+7. **A tab is two columns** (ER1-A8): one `columnOf` for tree connectors, wrapping and list columns, and the editor
+   now draws a tab two columns wide (it was four, so a tab-indented sub-action sat away from its connector).
+8. **Test backend** (ER3-15): `delete_note` hashes the normalised text, as `storage.rs` does (a conformance case).
+
+Built by Gemini 4 Hydrogen from a behaviour file (`agent-tools/briefs/b3-behaviour.md`, outside the repo);
+independent tests written from the same file by a second Hydrogen run (`tests/e2e/editor-batch3.independent.spec.ts`,
+20 tests, plus `*.b3.independent.test.ts`). Reviewed here. Changes of mine: the HTML export left out `(deferred)`
+(the independent tests caught it), the tab width, and corrections to independent tests that followed two mistakes
+in my behaviour file (a due date only belongs to an action, so `! urgent by:date` has no due flag in any view; the
+action menu has always listed all four states, Open included) and to three that drove the editor wrongly (Enter on an
+action line continues it, so `===` typed after it was `# ===`).
