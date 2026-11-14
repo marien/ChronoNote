@@ -13,6 +13,7 @@ interface SpecNumberedItem {
   lineIndex: number;
   indent: string;
   indentCols: number;
+  lead: string;
   numbers: number[];
   delim: "." | ")";
   body: string;
@@ -23,6 +24,7 @@ interface SpecBulletItem {
   lineIndex: number;
   indent: string;
   indentCols: number;
+  lead: string;
   body: string;
 }
 
@@ -31,6 +33,7 @@ interface SpecOtherLine {
   lineIndex: number;
   indent: string;
   indentCols: number;
+  lead: string;
   raw: string;
 }
 
@@ -52,44 +55,52 @@ function parseSpecLine(line: string, lineIndex: number): SpecLine {
       lineIndex,
       indent: ws,
       indentCols: indentColumns(ws),
+      lead: "",
       raw: line,
     };
   }
 
   // "- 1. x" is a bullet per docs/spec.md section 2.4 ("a bullet and a numbered item are exclusive per line").
-  const bulletMatch = line.match(/^([ \t]*)(?:! )?[-*](?: (.*))?$/);
+  // Under D4, an optional leading state/topic symbol ("# ", "o ", etc.) precedes either bullet or number.
+  const bulletMatch = line.match(/^([ \t]*)([#vx>o.,] )?(?:! )?[-*](?: (.*))?$/);
   if (bulletMatch) {
     return {
       kind: "bullet",
       lineIndex,
       indent: bulletMatch[1],
       indentCols: indentColumns(bulletMatch[1]),
-      body: bulletMatch[2] ?? "",
+      lead: bulletMatch[2] ?? "",
+      body: bulletMatch[3] ?? "",
     };
   }
 
-  const numMatch = line.match(/^([ \t]*)(\d+(?:\.\d+)*)([.)]) (.*)$/);
+  const numMatch = line.match(/^([ \t]*)([#vx>o.,] )?(\d+(?:\.\d+)*)([.)]) (.*)$/);
   if (numMatch) {
-    const parts = numMatch[2].split(".").map((p) => Number(p));
+    const parts = numMatch[3].split(".").map((p) => Number(p));
     if (parts.every((n) => Number.isInteger(n) && n >= 1)) {
       return {
         kind: "numbered",
         lineIndex,
         indent: numMatch[1],
         indentCols: indentColumns(numMatch[1]),
+        lead: numMatch[2] ?? "",
         numbers: parts,
-        delim: numMatch[3] as "." | ")",
-        body: numMatch[4],
+        delim: numMatch[4] as "." | ")",
+        body: numMatch[5],
       };
     }
   }
 
   const ws = line.match(/^[ \t]*/)?.[0] ?? "";
+  const leadMatch = line.slice(ws.length).match(/^([#vx>o.,] )/);
+  const lead = leadMatch ? leadMatch[1] : "";
   return {
     kind: "other",
     lineIndex,
     indent: ws,
-    indentCols: indentColumns(ws),
+    // Non-list lead lines count at their text column (indent + 2) so they don't split lists.
+    indentCols: indentColumns(ws) + lead.length,
+    lead,
     raw: line,
   };
 }
@@ -103,14 +114,19 @@ function parseSpecLine(line: string, lineIndex: number): SpecLine {
  *  3. Any dotted sub-item's prefix numbers equal its nearest numbered parent's
  *     full numbers array.
  *  4. Every surviving `[TAG=...]` body after the marker matches its expected exact
- *     text byte for byte (no trailing spaces or special chars trimmed/lost).
+ *     text byte for byte (no trailing spaces or special chars trimmed/lost), and
+ *     every surviving tagged line keeps its exact lead symbol.
  */
-function assertSpecInvariants(doc: string, expectedBodiesByTag?: Map<string, string>): void {
+function assertSpecInvariants(
+  doc: string,
+  expectedBodiesByTag?: Map<string, string>,
+  expectedLeadsByTag?: Map<string, string>,
+): void {
   const rawLines = doc.split("\n");
   const parsed = rawLines.map((line, i) => parseSpecLine(line, i));
 
-  // Verify surviving tagged lines kept their trailing text byte for byte.
-  if (expectedBodiesByTag) {
+  // Verify surviving tagged lines kept their trailing text byte for byte and kept their lead.
+  if (expectedBodiesByTag || expectedLeadsByTag) {
     for (const entry of parsed) {
       const textToCheck =
         entry.kind === "numbered"
@@ -123,9 +139,13 @@ function assertSpecInvariants(doc: string, expectedBodiesByTag?: Map<string, str
       const tagMatch = textToCheck.match(/\[T(\d+)\]/);
       if (tagMatch) {
         const tag = `T${tagMatch[1]}`;
-        const expected = expectedBodiesByTag.get(tag);
+        const expected = expectedBodiesByTag?.get(tag);
         if (expected !== undefined && entry.kind === "numbered") {
           expect(entry.body, `Byte-for-byte text mismatch on line ${entry.lineIndex}: ${JSON.stringify(rawLines[entry.lineIndex])}`).toBe(expected);
+        }
+        const expectedLead = expectedLeadsByTag?.get(tag);
+        if (expectedLead !== undefined && entry.kind !== "blank") {
+          expect(entry.lead, `Lead mismatch on line ${entry.lineIndex}: ${JSON.stringify(rawLines[entry.lineIndex])}`).toBe(expectedLead);
         }
       }
     }
@@ -255,14 +275,18 @@ function assertSpecInvariants(doc: string, expectedBodiesByTag?: Map<string, str
 interface GeneratedDoc {
   doc: string;
   bodiesByTag: Map<string, string>;
+  leadsByTag: Map<string, string>;
   lineKinds: ("numbered" | "bullet" | "cont" | "blank")[];
 }
 
+const LEAD_ARB = fc.constantFrom("", "# ", "v ", "> ", "x ", "o ", ". ", ", ");
+
 // Generate well-formed multi-level numbered lists with:
 // - '.' or ')' delimiters, plain or dotted markers
+// - optional leading action/topic symbol ("# ", "v ", "> ", "x ", "o ", ". ", ", ")
 // - start number 1, 4, or 8 for top-level lists
 // - space or tab top-level / nested indentation
-// - optional bullets and continuation lines inside lists
+// - optional bullets, lead-only note lines, and continuation lines inside lists
 // - optional blank lines splitting two lists
 const generatedListDocArb: fc.Arbitrary<GeneratedDoc> = fc
   .record({
@@ -276,6 +300,7 @@ const generatedListDocArb: fc.Arbitrary<GeneratedDoc> = fc
       fc.record({
         topItems: fc.array(
           fc.record({
+            lead: LEAD_ARB,
             tail: fc.constantFrom(
               "alpha",
               "beta  ",
@@ -284,8 +309,11 @@ const generatedListDocArb: fc.Arbitrary<GeneratedDoc> = fc
               "cafe\u0301!",
             ),
             hasCont: fc.boolean(),
+            hasNonListLead: fc.boolean(),
             hasBulletChild: fc.boolean(),
+            bulletLead: LEAD_ARB,
             subCount: fc.integer({ min: 0, max: 3 }),
+            subLead: LEAD_ARB,
             hasGrandchild: fc.boolean(),
           }),
           { minLength: 2, maxLength: 5 },
@@ -298,12 +326,14 @@ const generatedListDocArb: fc.Arbitrary<GeneratedDoc> = fc
     const lines: string[] = [];
     const lineKinds: ("numbered" | "bullet" | "cont" | "blank")[] = [];
     const bodiesByTag = new Map<string, string>();
+    const leadsByTag = new Map<string, string>();
     let tagSeq = 0;
 
-    function nextBody(tail: string): string {
+    function nextBody(tail: string, lead: string): string {
       const tag = `T${tagSeq++}`;
       const body = `[${tag}] ${tail}`;
       bodiesByTag.set(tag, body);
+      leadsByTag.set(tag, lead);
       return body;
     }
 
@@ -319,35 +349,39 @@ const generatedListDocArb: fc.Arbitrary<GeneratedDoc> = fc
       block.topItems.forEach((item, itemIdx) => {
         const n = startN + itemIdx;
         const marker = `${n}${cfg.delim}`;
-        const body = nextBody(item.tail);
-        lines.push(`${baseIndent}${marker} ${body}`);
+        const body = nextBody(item.tail, item.lead);
+        lines.push(`${baseIndent}${item.lead}${marker} ${body}`);
         lineKinds.push("numbered");
 
         if (item.hasCont) {
-          lines.push(`${baseIndent}${" ".repeat(marker.length + 1)}cont ${n}`);
+          lines.push(`${baseIndent}${" ".repeat(item.lead.length + marker.length + 1)}cont ${n}`);
+          lineKinds.push("cont");
+        }
+        if (item.hasNonListLead) {
+          lines.push(`${baseIndent}# note ${n}`);
           lineKinds.push("cont");
         }
         if (item.hasBulletChild) {
-          lines.push(`${baseIndent}${stepIndent}- bullet ${n}`);
+          lines.push(`${baseIndent}${stepIndent}${item.bulletLead}- bullet ${n}`);
           lineKinds.push("bullet");
         }
         for (let s = 1; s <= item.subCount; s++) {
           const subMarker = cfg.dottedChildren ? `${n}.${s}${cfg.delim}` : `${s}${cfg.delim}`;
-          const subBody = nextBody(item.tail);
-          lines.push(`${baseIndent}${stepIndent}${subMarker} ${subBody}`);
+          const subBody = nextBody(item.tail, item.subLead);
+          lines.push(`${baseIndent}${stepIndent}${item.subLead}${subMarker} ${subBody}`);
           lineKinds.push("numbered");
 
           if (item.hasGrandchild && s === 1) {
             const gMarker = cfg.dottedChildren ? `${n}.${s}.1${cfg.delim}` : `1${cfg.delim}`;
-            const gBody = nextBody(item.tail);
-            lines.push(`${baseIndent}${stepIndent}${stepIndent}${gMarker} ${gBody}`);
+            const gBody = nextBody(item.tail, item.subLead);
+            lines.push(`${baseIndent}${stepIndent}${stepIndent}${item.subLead}${gMarker} ${gBody}`);
             lineKinds.push("numbered");
           }
         }
       });
     });
 
-    return { doc: lines.join("\n"), bodiesByTag, lineKinds };
+    return { doc: lines.join("\n"), bodiesByTag, leadsByTag, lineKinds };
   });
 
 function lineStartOffset(lines: string[], lineIdx: number): number {
@@ -377,8 +411,8 @@ describe("Numbered list properties (docs/spec.md §2.4)", () => {
           const lineIdx = numberedIndices[targetPick % numberedIndices.length];
           const lineText = lines[lineIdx];
           const lineStart = lineStartOffset(lines, lineIdx);
-          const leadingWs = lineText.match(/^[ \t]*/)?.[0].length ?? 0;
-          const markerEnd = lineStart + lineText.indexOf(" ", leadingWs) + 1;
+          const markerMatch = lineText.match(/^[ \t]*(?:[#vx>o.,] )?\d+(?:\.\d+)*[.)] /);
+          const markerEnd = lineStart + (markerMatch ? markerMatch[0].length : 0);
 
           // Place caret depending on operation:
           // - EnterEnd at end of line to insert next sibling
@@ -416,7 +450,7 @@ describe("Numbered list properties (docs/spec.md §2.4)", () => {
             const after = ed.text();
             // For EnterMid, the split line's `[TAG]` body was intentionally split across two lines,
             // so pass expectedBodiesByTag only for operations that do not split a line's body.
-            assertSpecInvariants(after, op === "EnterMid" ? undefined : gen.bodiesByTag);
+            assertSpecInvariants(after, op === "EnterMid" ? undefined : gen.bodiesByTag, gen.leadsByTag);
 
             if (after !== before) {
               expect(ed.undo()).toBe(true);
@@ -492,15 +526,15 @@ describe("Numbered list properties (docs/spec.md §2.4)", () => {
           const i2 = numberedIndices[pickB % numberedIndices.length];
           const lo = Math.min(i1, i2);
           const hi = Math.max(i1, i2);
-          const loWs = lines[lo].match(/^[ \t]*/)?.[0].length ?? 0;
-          const selFrom = lineStartOffset(lines, lo) + lines[lo].indexOf(" ", loWs) + 1;
+          const loMatch = lines[lo].match(/^[ \t]*(?:[#vx>o.,] )?\d+(?:\.\d+)*[.)] /);
+          const selFrom = lineStartOffset(lines, lo) + (loMatch ? loMatch[0].length : 0);
           const selTo = lineStartOffset(lines, hi) + lines[hi].length;
 
           const ed = createTestEditor({ doc, anchor: selFrom, head: selTo });
           try {
             // Multi-line selection Tab or Shift-Tab, then a second single-caret structural op.
             ed.press(lo === hi ? "Shift-Tab" : "Tab");
-            assertSpecInvariants(ed.text(), gen.bodiesByTag);
+            assertSpecInvariants(ed.text(), gen.bodiesByTag, gen.leadsByTag);
 
             const curLines = ed.text().split("\n");
             const curNum = curLines
@@ -516,7 +550,7 @@ describe("Numbered list properties (docs/spec.md §2.4)", () => {
               else if (secondOp === "MoveUp") moveLineUp(ed.view);
               else moveLineDown(ed.view);
 
-              assertSpecInvariants(ed.text(), gen.bodiesByTag);
+              assertSpecInvariants(ed.text(), gen.bodiesByTag, gen.leadsByTag);
             }
           } finally {
             ed.destroy();

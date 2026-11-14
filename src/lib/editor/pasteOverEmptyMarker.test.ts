@@ -91,9 +91,9 @@ describe("drop handling (Rule 7)", () => {
       userEvent: "move.drop",
     });
     state = tr.state;
-    expect(state.doc.line(1).text).toBe("# 2. call by:2026-10-23");
-    expect(state.doc.line(2).text).toBe("1. first");
-    expect(state.doc.line(3).text).toBe("2. third");
+    expect(state.doc.line(1).text).toBe("# 1. call by:2026-10-23");
+    expect(state.doc.line(2).text).toBe("2. first");
+    expect(state.doc.line(3).text).toBe("3. third");
 
     undo({
       state,

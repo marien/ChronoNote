@@ -45,6 +45,12 @@ describe("B2 features (items 16-20)", () => {
     const ed2 = openEditor("[\t# a\n]  plain");
     expect(indentLines(ed2.view, true)).toBe(true);
     expect(ed2.caret()).toBe("[# a\n]  plain");
+
+    const edLead = openEditor("# 1. plan\n# 2. book|");
+    expect(indentLines(edLead.view, false)).toBe(true);
+    expect(edLead.caret()).toBe("# 1. plan\n     # 1. book|");
+    expect(indentLines(edLead.view, true)).toBe(true);
+    expect(edLead.caret()).toBe("# 1. plan\n# 2. book|");
   });
 
   it("item 17: applyLineToken combines and toggles bullets/emphasis on action and topic lines", () => {

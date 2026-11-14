@@ -197,6 +197,55 @@ describe("editing table: Enter & Shift-Enter", () => {
       key: "Enter",
       expected: "1. al\n2. |pha\n3. beta",
     },
+    // D4 Rule 3: Enter on numbered items behind a lead
+    {
+      label: "Enter on done action+numbered opens next as # (Rule 3.1)",
+      input: "# 1. a\nv 2. x|",
+      key: "Enter",
+      expected: "# 1. a\nv 2. x\n# 3. |",
+    },
+    {
+      label: "Enter on deferred action+numbered opens next as # (Rule 3.1)",
+      input: "> 1. x|",
+      key: "Enter",
+      expected: "> 1. x\n# 2. |",
+    },
+    {
+      label: "Enter on topic+numbered opens next as o (Rule 3.1)",
+      input: ". 1. x|",
+      key: "Enter",
+      expected: ". 1. x\no 2. |",
+    },
+    {
+      label: "Enter mid-list on lead item renumbers mixed following leads (Rule 3.2)",
+      input: "# 1. a|\n# 2. b\nv 3. c",
+      key: "Enter",
+      expected: "# 1. a\n# 2. |\n# 3. b\nv 4. c",
+    },
+    {
+      label: "Enter on empty top-level lead item exits list to empty line (Rule 3.3)",
+      input: "# 1. a\n# 2. |",
+      key: "Enter",
+      expected: "# 1. a\n|",
+    },
+    {
+      label: "Enter on empty lead sub-item promotes to parent numbered list (Rule 3.3)",
+      input: "# 1. a\n     # 1. |",
+      key: "Enter",
+      expected: "# 1. a\n# 2. |",
+    },
+    {
+      label: "Shift+Enter on lead numbered item creates indented continuation under text column (Rule 3.4)",
+      input: "# 1. plan|",
+      key: "Shift-Enter",
+      expected: "# 1. plan\n     |",
+    },
+    {
+      label: "Enter does not split unified list across non-list lead line (Rule 1.3)",
+      input: "1. a|\n# book room\n2. b",
+      key: "Enter",
+      expected: "1. a\n2. |\n# book room\n3. b",
+    },
   ]);
 
   // Rule: Enter at col 0, inside indent, or between symbol and space (§115, §201, §463, §465) is a plain line break

@@ -207,18 +207,59 @@ describe("editing table: state shortcuts & section titles", () => {
       key: "Mod-2",
       expected: "[v first\n]# second",
     },
-    // Known Bug: Mod-1 on 1. task|\n2. next renumbers remaining plain list from 1
     {
-      label: "Mod-1 on first numbered item renumbers remaining plain list from 1 (bug)",
+      label: "Mod-1 on first numbered item keeps remaining list numbering",
       input: "1. task|\n2. next",
       key: "Mod-1",
-      expected: "# 1. task|\n1. next",
+      expected: "# 1. task|\n2. next",
     },
     {
-      label: "Mod-1 on middle numbered item renumbers following plain items from 1",
+      label: "Mod-1 on middle numbered item keeps list numbering",
       input: "1. keep\n2. task|\n3. next",
       key: "Mod-1",
-      expected: "1. keep\n# 2. task|\n1. next",
+      expected: "1. keep\n# 2. task|\n3. next",
+    },
+    {
+      label: "Mod-2 marks numbered item done without renumbering",
+      input: "# 1. a\n2. b|\n# 3. c",
+      key: "Mod-2",
+      expected: "# 1. a\nv 2. b|\n# 3. c",
+    },
+    {
+      label: "Mod-3 defers numbered item without renumbering",
+      input: "# 1. a\nv 2. b|\n3. c",
+      key: "Mod-3",
+      expected: "# 1. a\n> 2. b|\n3. c",
+    },
+    {
+      label: "Mod-4 cancels numbered item without renumbering",
+      input: "1. a\n# 2. b|\n3. c",
+      key: "Mod-4",
+      expected: "1. a\nx 2. b|\n3. c",
+    },
+    {
+      label: "Mod-1 sets action state on done numbered item without renumbering",
+      input: "1. a\nv 2. b|\n3. c",
+      key: "Mod-1",
+      expected: "1. a\n# 2. b|\n3. c",
+    },
+    {
+      label: "Mod-Shift-o reopens closed numbered action without renumbering",
+      input: "1. a\nv 2. b|\n3. c",
+      key: "Mod-Shift-o",
+      expected: "1. a\n# 2. b|\n3. c",
+    },
+    {
+      label: "Mod-Shift-o reopens closed numbered topic without renumbering",
+      input: "1. a\n. 2. b|\n3. c",
+      key: "Mod-Shift-o",
+      expected: "1. a\no 2. b|\n3. c",
+    },
+    {
+      label: "Mod-5 sets topic lead on numbered item without renumbering",
+      input: "1. a\n2. b|\n3. c",
+      key: "Mod-5",
+      expected: "1. a\no 2. b|\n3. c",
     },
   ]);
 

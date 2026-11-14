@@ -58,10 +58,21 @@ describe("parseNumberedItem: what is a numbered list item", () => {
     for (const line of ["3.5 hours", "1.5", "1.1 x", "2.3.4 x", "12 monkeys", "1 . x", "1 ) x", "1: x", "1- x", "1] x"]) expect(item(line)).toBeNull();
   });
 
-  it("is not an item unless the marker is the first non-blank character", () => {
-    for (const line of ["a 1. x", "x. 1. y", "- 1. x", "* 2. x", "# 1. x", "v 2) x", "> 3. x", "=> 1. x", "! 1. x", "(1). x", "[1] x", "  # 1. x"]) {
+  it("is not an item unless the marker is the first non-blank character (or directly after a lead)", () => {
+    for (const line of ["a 1. x", "x. 1. y", "- 1. x", "* 2. x", "=> 1. x", "! 1. x", "(1). x", "[1] x", "#  1. x"]) {
       expect(item(line)).toBeNull();
     }
+  });
+
+  it("sees through an action or topic lead and computes markerEnd on the whole line", () => {
+    expect(item("# 1. x")).toMatchObject({ indent: "", lead: "# ", marker: "1.", numbers: [1], text: "x", markerEnd: 4 });
+    expect(item("v 2) x")).toMatchObject({ indent: "", lead: "v ", marker: "2)", numbers: [2], delimiter: ")", text: "x", markerEnd: 4 });
+    expect(item("> 3. x")).toMatchObject({ indent: "", lead: "> ", marker: "3.", numbers: [3], text: "x", markerEnd: 4 });
+    expect(item("x 1. x")).toMatchObject({ indent: "", lead: "x ", marker: "1.", numbers: [1], text: "x", markerEnd: 4 });
+    expect(item("o 1. x")).toMatchObject({ indent: "", lead: "o ", marker: "1.", numbers: [1], text: "x", markerEnd: 4 });
+    expect(item(". 1. x")).toMatchObject({ indent: "", lead: ". ", marker: "1.", numbers: [1], text: "x", markerEnd: 4 });
+    expect(item(", 1. x")).toMatchObject({ indent: "", lead: ", ", marker: "1.", numbers: [1], text: "x", markerEnd: 4 });
+    expect(item("  # 1. x")).toMatchObject({ indent: "  ", lead: "# ", marker: "1.", numbers: [1], text: "x", markerEnd: 6 });
   });
 
   it("is not an item for empty or blank lines", () => {
@@ -155,9 +166,20 @@ describe("numberedListEnter: what Enter does", () => {
   });
 
   it("returns null for everything that is not a numbered item", () => {
-    for (const line of ["", "plain", "3.5 hours", "1.", "- bullet", "* bullet", "# task", "=> follow", "- 1. bullet with number", "# 1. task with number"]) {
+    for (const line of ["", "plain", "3.5 hours", "1.", "- bullet", "* bullet", "# task", "=> follow", "- 1. bullet with number", "#  1. double space"]) {
       expect(at(line)).toBeNull();
     }
+  });
+
+  it("continues lead items as open (# or o) with the next number", () => {
+    expect(at("# 1. a")).toEqual({ insert: "\n# 2. " });
+    expect(at("v 2. x")).toEqual({ insert: "\n# 3. " });
+    expect(at("> 1. x")).toEqual({ insert: "\n# 2. " });
+    expect(at("x 1. x")).toEqual({ insert: "\n# 2. " });
+    expect(at("o 1. a")).toEqual({ insert: "\no 2. " });
+    expect(at(". 2. a")).toEqual({ insert: "\no 3. " });
+    expect(at(", 3) a")).toEqual({ insert: "\no 4) " });
+    expect(at("# 2. ")).toEqual({ exit: true });
   });
 });
 
@@ -168,6 +190,8 @@ describe("numberedContinuationIndent: Shift+Enter aligns under the text", () => 
     expect(numberedContinuationIndent("  2) a")).toBe("     ");
     expect(numberedContinuationIndent("1.1. a")).toBe("     ");
     expect(numberedContinuationIndent("\t1. a")).toBe("\t   ");
+    expect(numberedContinuationIndent("# 1. a")).toBe("     ");
+    expect(numberedContinuationIndent("  o 2) a")).toBe("       ");
   });
   it("is null for anything else", () => {
     for (const line of ["", "plain", "- bullet", "3.5 x", "1."]) expect(numberedContinuationIndent(line)).toBeNull();
@@ -188,8 +212,8 @@ describe("numbered items next to actions and bullets", () => {
     expect(setActionSymbolTo("1.5", "v")).toBe("v 1.5");
     expect(setActionSymbolTo("1.", "#")).toBe("# 1.");
   });
-  it("an action line that merely contains a numbered-looking text is an action, not an item", () => {
-    expect(parseNumberedItem("# 1. task")).toBeNull();
+  it("an action line with a numbered marker is both a lead item and mutable by state shortcuts", () => {
+    expect(parseNumberedItem("# 1. task")).toMatchObject({ lead: "# ", marker: "1.", text: "task" });
     expect(setActionSymbolTo("# 1. task", "v")).toBe("v 1. task");
   });
 });
