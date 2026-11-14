@@ -14,6 +14,7 @@ import { dueDatesPlugin } from "./dueDates";
 import { numberedListKeymap, numberedListRenumberFilter } from "./numberedListKeys";
 import { pasteOverEmptyMarker } from "./pasteOverEmptyMarker";
 import { stateFirstFilter } from "./stateFirst";
+import { wordMouseSelectionStyle } from "./wordSpans";
 import { editingKeymap, type EditingKeymapDeps } from "./editingKeymap";
 
 export type { EditingKeymapDeps };
@@ -45,6 +46,7 @@ export function editingExtensions(
     ...(ui.afterIndentUnit ?? []),
     liveGlyphs,
     glyphAtomicRanges,
+    wordMouseSelectionStyle,
     setextRule,
     resolvedLinesPlugin,
     actionTreeLinesExtension(),

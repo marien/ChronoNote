@@ -16,6 +16,58 @@ import { locale, t } from "../i18n";
 
 const DATE_START_RE = /(?<=\([<>]?)\d{4}-\d{2}-\d{2}|(?<![a-zA-Z0-9])\d{4}-\d{2}-\d{2}(?![a-zA-Z0-9])/g;
 
+export interface DateLinkSpan {
+  /** Offset of the first digit of YYYY-MM-DD in the line. */
+  from: number;
+  /** End offset of the link mark (includes section suffix when bracketed). */
+  to: number;
+  /** End offset of the 10-character YYYY-MM-DD date itself. */
+  dateEnd: number;
+  dateTarget: string;
+}
+
+/** Find all valid date-link spans in a non-title line, excluding URLs. */
+export function dateLinkSpansInLine(text: string): DateLinkSpan[] {
+  const spans: DateLinkSpan[] = [];
+  const urls = urlRangesInLine(text);
+  DATE_START_RE.lastIndex = 0;
+  let match: RegExpExecArray | null;
+  while ((match = DATE_START_RE.exec(text)) !== null) {
+    const start = match.index;
+    const dateStr = match[0];
+    const parts = dateStr.split("-").map((p) => parseInt(p, 10));
+    if (parts.length !== 3 || !isValidCalendarDate(parts[0], parts[1], parts[2])) continue;
+
+    const prev1 = start > 0 ? text[start - 1] : "";
+    const prev2 = start > 1 ? text[start - 2] : "";
+    const openIdx = prev1 === "(" ? start - 1 : (prev1 === "<" || prev1 === ">") && prev2 === "(" ? start - 2 : -1;
+
+    let end = start + 10;
+    const dateEnd = end;
+    let bracketed = false;
+    if (openIdx !== -1) {
+      const closeIdx = findBalancedParenEnd(text, openIdx);
+      if (closeIdx === end || (closeIdx > end + 1 && text[end] === "#")) {
+        end = closeIdx;
+        bracketed = true;
+      } else if (end < text.length && /[a-zA-Z0-9]/.test(text[end])) {
+        continue;
+      }
+    }
+
+    if (urls.some(([uFrom, uTo]) => start < uTo && end > uFrom)) {
+      DATE_START_RE.lastIndex = Math.max(DATE_START_RE.lastIndex, end);
+      continue;
+    }
+
+    const matchedText = text.slice(start, end);
+    const dateTarget = bracketed ? `(${matchedText})` : matchedText;
+    spans.push({ from: start, to: end, dateEnd, dateTarget });
+    DATE_START_RE.lastIndex = Math.max(DATE_START_RE.lastIndex, end);
+  }
+  return spans;
+}
+
 function buildDateLinkDecorations(view: EditorView): DecorationSet {
   const b = new RangeSetBuilder<Decoration>();
   const title = isMac && get(locale) === "en" ? "Cmd+Click to open this day" : get(t)("editor.dateLink.title");
@@ -35,50 +87,18 @@ function buildDateLinkDecorations(view: EditorView): DecorationSet {
         if (isTitleLine(text, nextLine.text)) continue;
       }
 
-      const urls = urlRangesInLine(text);
-      DATE_START_RE.lastIndex = 0;
-      let match: RegExpExecArray | null;
-      while ((match = DATE_START_RE.exec(text)) !== null) {
-        const start = match.index;
-        const dateStr = match[0];
-        const parts = dateStr.split("-").map((p) => parseInt(p, 10));
-        if (parts.length !== 3 || !isValidCalendarDate(parts[0], parts[1], parts[2])) continue;
-
-        const prev1 = start > 0 ? text[start - 1] : "";
-        const prev2 = start > 1 ? text[start - 2] : "";
-        const openIdx = prev1 === "(" ? start - 1 : (prev1 === "<" || prev1 === ">") && prev2 === "(" ? start - 2 : -1;
-
-        let end = start + 10;
-        let bracketed = false;
-        if (openIdx !== -1) {
-          const closeIdx = findBalancedParenEnd(text, openIdx);
-          if (closeIdx === end || (closeIdx > end + 1 && text[end] === "#")) {
-            end = closeIdx;
-            bracketed = true;
-          } else if (end < text.length && /[a-zA-Z0-9]/.test(text[end])) {
-            continue;
-          }
-        }
-
-        if (urls.some(([uFrom, uTo]) => start < uTo && end > uFrom)) {
-          DATE_START_RE.lastIndex = Math.max(DATE_START_RE.lastIndex, end);
-          continue;
-        }
-
-        const matchedText = text.slice(start, end);
-        const dateTarget = bracketed ? `(${matchedText})` : matchedText;
+      for (const span of dateLinkSpansInLine(text)) {
         b.add(
-          line.from + start,
-          line.from + end,
+          line.from + span.from,
+          line.from + span.to,
           Decoration.mark({
             class: "cm-link cm-date-link",
             attributes: {
-              "data-date-target": dateTarget,
+              "data-date-target": span.dateTarget,
               title,
             },
           }),
         );
-        DATE_START_RE.lastIndex = Math.max(DATE_START_RE.lastIndex, end);
       }
     }
   }

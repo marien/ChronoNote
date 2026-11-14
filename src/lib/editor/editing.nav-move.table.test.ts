@@ -265,3 +265,113 @@ describe("editing table: Home, Shift-Home & Alt-ArrowUp/Down", () => {
     expect(ed.caret()).toBe("|- # task\nsecond");
   });
 });
+
+interface DeleteCase {
+  label: string;
+  input: string;
+  keys: string[];
+  expected: string;
+  /** Expected caret+text after a single undo step (defaults to `input` for single-key cases). */
+  afterUndo?: string;
+}
+
+function runDeleteTable(cases: DeleteCase[]): void {
+  for (const c of cases) {
+    it(`${c.label}: ${JSON.stringify(c.input)} + ${c.keys.join(" -> ")}`, () => {
+      const ed = openEditor(c.input);
+      for (const k of c.keys) {
+        ed.press(k);
+      }
+      expect(ed.caret()).toBe(c.expected);
+      if (c.keys.length === 1 || c.afterUndo !== undefined) {
+        expect(ed.undo()).toBe(true);
+        expect(ed.caret()).toBe(c.afterUndo ?? c.input);
+        expect(ed.redo()).toBe(true);
+        expect(ed.caret()).toBe(c.expected);
+      }
+    });
+  }
+}
+
+describe("editing table: word moves and word deletes (D11)", () => {
+  runNavTable([
+    // Leading markers + combined leads
+    { label: "D11 action+tag+due forward 1", input: "|# (bug) task by:2026-11-20 fix", keys: ["Ctrl-ArrowRight"], expected: "# |(bug) task by:2026-11-20 fix" },
+    { label: "D11 action+tag+due forward 2", input: "|# (bug) task by:2026-11-20 fix", keys: ["Ctrl-ArrowRight", "Ctrl-ArrowRight"], expected: "# (bug)| task by:2026-11-20 fix" },
+    { label: "D11 action+tag+due forward 3", input: "|# (bug) task by:2026-11-20 fix", keys: ["Ctrl-ArrowRight", "Ctrl-ArrowRight", "Ctrl-ArrowRight"], expected: "# (bug) task| by:2026-11-20 fix" },
+    { label: "D11 action+tag+due forward 4", input: "|# (bug) task by:2026-11-20 fix", keys: ["Ctrl-ArrowRight", "Ctrl-ArrowRight", "Ctrl-ArrowRight", "Ctrl-ArrowRight"], expected: "# (bug) task by:2026-11-20| fix" },
+    { label: "D11 action+tag+due forward 5", input: "|# (bug) task by:2026-11-20 fix", keys: ["Ctrl-ArrowRight", "Ctrl-ArrowRight", "Ctrl-ArrowRight", "Ctrl-ArrowRight", "Ctrl-ArrowRight"], expected: "# (bug) task by:2026-11-20 fix|" },
+
+    { label: "D11 action+tag+due backward 1", input: "# (bug) task by:2026-11-20 fix|", keys: ["Ctrl-ArrowLeft"], expected: "# (bug) task by:2026-11-20 |fix" },
+    { label: "D11 action+tag+due backward 2", input: "# (bug) task by:2026-11-20 fix|", keys: ["Ctrl-ArrowLeft", "Ctrl-ArrowLeft"], expected: "# (bug) task |by:2026-11-20 fix" },
+    { label: "D11 action+tag+due backward 3", input: "# (bug) task by:2026-11-20 fix|", keys: ["Ctrl-ArrowLeft", "Ctrl-ArrowLeft", "Ctrl-ArrowLeft"], expected: "# (bug) |task by:2026-11-20 fix" },
+    { label: "D11 action+tag+due backward 4", input: "# (bug) task by:2026-11-20 fix|", keys: ["Ctrl-ArrowLeft", "Ctrl-ArrowLeft", "Ctrl-ArrowLeft", "Ctrl-ArrowLeft"], expected: "# |(bug) task by:2026-11-20 fix" },
+    { label: "D11 action+tag+due backward 5", input: "# (bug) task by:2026-11-20 fix|", keys: ["Ctrl-ArrowLeft", "Ctrl-ArrowLeft", "Ctrl-ArrowLeft", "Ctrl-ArrowLeft", "Ctrl-ArrowLeft"], expected: "|# (bug) task by:2026-11-20 fix" },
+
+    { label: "D11 indented emphasis forward 1", input: "|  ! urgent", keys: ["Ctrl-ArrowRight"], expected: "  ! |urgent" },
+    { label: "D11 indented emphasis forward 2", input: "|  ! urgent", keys: ["Ctrl-ArrowRight", "Ctrl-ArrowRight"], expected: "  ! urgent|" },
+    { label: "D11 indented emphasis backward 1", input: "  ! urgent|", keys: ["Ctrl-ArrowLeft"], expected: "  ! |urgent" },
+    { label: "D11 indented emphasis backward 2", input: "  ! urgent|", keys: ["Ctrl-ArrowLeft", "Ctrl-ArrowLeft"], expected: "  |! urgent" },
+    { label: "D11 indented emphasis backward 3", input: "  ! urgent|", keys: ["Ctrl-ArrowLeft", "Ctrl-ArrowLeft", "Ctrl-ArrowLeft"], expected: "|  ! urgent" },
+
+    { label: "D11 v 12. done forward 1", input: "|v 12. done", keys: ["Ctrl-ArrowRight"], expected: "v |12. done" },
+    { label: "D11 v 12. done forward 2", input: "|v 12. done", keys: ["Ctrl-ArrowRight", "Ctrl-ArrowRight"], expected: "v 12. |done" },
+    { label: "D11 v 12. done forward 3", input: "|v 12. done", keys: ["Ctrl-ArrowRight", "Ctrl-ArrowRight", "Ctrl-ArrowRight"], expected: "v 12. done|" },
+    { label: "D11 v 12. done backward 1", input: "v 12. done|", keys: ["Ctrl-ArrowLeft"], expected: "v 12. |done" },
+    { label: "D11 v 12. done backward 2", input: "v 12. done|", keys: ["Ctrl-ArrowLeft", "Ctrl-ArrowLeft"], expected: "v |12. done" },
+    { label: "D11 v 12. done backward 3", input: "v 12. done|", keys: ["Ctrl-ArrowLeft", "Ctrl-ArrowLeft", "Ctrl-ArrowLeft"], expected: "|v 12. done" },
+
+    { label: "D11 # - task forward", input: "|# - task", keys: ["Ctrl-ArrowRight", "Ctrl-ArrowRight"], expected: "# - |task" },
+    { label: "D11 => # call forward", input: "|=> # call", keys: ["Ctrl-ArrowRight", "Ctrl-ArrowRight"], expected: "=> # |call" },
+    { label: "D11 1.1. sub forward", input: "|1.1. sub", keys: ["Ctrl-ArrowRight"], expected: "1.1. |sub" },
+    { label: "D11 2) second backward", input: "2) second|", keys: ["Ctrl-ArrowLeft", "Ctrl-ArrowLeft"], expected: "|2) second" },
+
+    // Due variants, plain dates, forward links, assignees
+    { label: "D11 due weekday", input: "# |a by:fri", keys: ["Ctrl-ArrowRight", "Ctrl-ArrowRight"], expected: "# a by:fri|" },
+    { label: "D11 due tomorrow", input: "# |a by:tomorrow", keys: ["Ctrl-ArrowRight", "Ctrl-ArrowRight"], expected: "# a by:tomorrow|" },
+    { label: "D11 impossible by:2026-02-30", input: "# |a by:2026-02-30", keys: ["Ctrl-ArrowRight", "Ctrl-ArrowRight"], expected: "# a by:2026-02-30|" },
+    { label: "D11 plain date forward", input: "on |2026-11-20 met", keys: ["Ctrl-ArrowRight"], expected: "on 2026-11-20| met" },
+    { label: "D11 forward link stops around date only", input: "see |(>2026-11-20#Sync) end", keys: ["Ctrl-ArrowRight", "Ctrl-ArrowRight"], expected: "see (>2026-11-20|#Sync) end" },
+    { label: "D11 @dana-k one word, @dana.k splits at dot", input: "ask |@dana-k and @dana.k", keys: ["Ctrl-ArrowRight", "Ctrl-ArrowRight", "Ctrl-ArrowRight"], expected: "ask @dana-k and @dana|.k" },
+    { label: "D11 adjacent parens do not merge into @dana", input: "|(@dana)", keys: ["Ctrl-ArrowRight", "Ctrl-ArrowRight"], expected: "(@dana|)" },
+    { label: "D11 backward over (@dana) stops after paren", input: "(@dana)|", keys: ["Ctrl-ArrowLeft", "Ctrl-ArrowLeft"], expected: "(|@dana)" },
+
+    // Cross-line moves
+    { label: "D11 cross blank line into marker", input: "first|\n\n# second", keys: ["Ctrl-ArrowRight"], expected: "first\n\n# |second" },
+    { label: "D11 cross line backward stops before marker", input: "first\n|second", keys: ["Ctrl-ArrowLeft"], expected: "|first\nsecond" },
+    { label: "D11 cross line backward into trailing marker", input: "#  \n|next", keys: ["Ctrl-ArrowLeft"], expected: "|#  \nnext" },
+
+    // Shift+Ctrl+Arrow selection extensions
+    { label: "D11 Shift+Ctrl+ArrowRight over # and (bug)", input: "|# (bug) task", keys: ["Shift-Ctrl-ArrowRight", "Shift-Ctrl-ArrowRight"], expected: "[# (bug)] task" },
+    { label: "D11 Shift+Ctrl+ArrowLeft over by:2026-11-20", input: "# task by:2026-11-20|", keys: ["Shift-Ctrl-ArrowLeft"], expected: "# task ]by:2026-11-20[" },
+
+    // Plain prose & plain Arrow keys stay standard CodeMirror
+    { label: "D11 prose hyphen and apostrophe unchanged", input: "|fix-it don't", keys: ["Ctrl-ArrowRight"], expected: "fix|-it don't" },
+    { label: "D11 plain ArrowRight still steps inside by:date", input: "# by:2026-11-20|", keys: ["ArrowLeft"], expected: "# by:2026-11-2|0" },
+  ]);
+
+  runDeleteTable([
+    { label: "D11 Ctrl+Backspace removes by:2026-11-20 in 1 undo", input: "# task by:2026-11-20|", keys: ["Ctrl-Backspace"], expected: "# task |" },
+    { label: "D11 Ctrl+Backspace removes (bug)", input: "# (bug)| task", keys: ["Ctrl-Backspace"], expected: "# | task" },
+    { label: "D11 Ctrl+Backspace removes leading # ", input: "# |task", keys: ["Ctrl-Backspace"], expected: "|task" },
+    { label: "D11 Ctrl+Backspace keeps #  when deleting extra space", input: "#  |task", keys: ["Ctrl-Backspace"], expected: "# |task" },
+    { label: "D11 Ctrl+Backspace removes @dana-k after single space", input: "ping @dana-k |now", keys: ["Ctrl-Backspace"], expected: "ping |now" },
+    { label: "D11 Ctrl+Backspace removes v 12. step by step", input: "v 12. |done", keys: ["Ctrl-Backspace"], expected: "v |done" },
+    { label: "D11 Ctrl+Delete forward deletes by:2026-11-20", input: "# task| by:2026-11-20 fix", keys: ["Ctrl-Delete"], expected: "# task| fix" },
+    { label: "D11 Ctrl+Delete forward deletes # ", input: "|# task", keys: ["Ctrl-Delete"], expected: "|task" },
+    { label: "D11 Ctrl+Delete forward deletes 12. in v 12. done", input: "v |12. done", keys: ["Ctrl-Delete"], expected: "v |done" },
+    { label: "D11 Ctrl+Delete stops before @dana from (", input: "|(@dana)", keys: ["Ctrl-Delete"], expected: "|@dana)" },
+    { label: "D11 Ctrl+Backspace stops after ( in (@dana)", input: "(@dana)|", keys: ["Ctrl-Backspace"], expected: "(@dana|" },
+    { label: "D11 Ctrl+Backspace at col 0 deletes newline only", input: "first\n|# second", keys: ["Ctrl-Backspace"], expected: "first|# second" },
+    { label: "D11 Ctrl+Delete at eol deletes newline only", input: "# first|\nsecond", keys: ["Ctrl-Delete"], expected: "# first|second" },
+  ]);
+
+  it("D11 Ctrl+Backspace preserves numbered-list renumbering filter", () => {
+    const ed = openEditor("1. first\n2. second|\n3. third");
+    ed.press("Ctrl-Backspace");
+    expect(ed.caret()).toBe("1. first\n2. |\n3. third");
+    ed.press("Ctrl-Backspace");
+    // Blank line splits item 3 into a new list starting at 1.
+    expect(ed.text()).toBe("1. first\n\n1. third");
+  });
+});
