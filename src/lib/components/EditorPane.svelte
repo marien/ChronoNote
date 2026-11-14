@@ -250,6 +250,7 @@ import { currentLineKind, editorFocused } from "../stores";
   }
 
   onMount(() => {
+    let internalDragActive = false;
     const uiShortcuts = keymap.of([
       // §108: Ctrl/Cmd+F opens the floating find bar (not CodeMirror's
       // own panel). Escape from inside the bar closes it — handled in
@@ -476,6 +477,36 @@ import { currentLineKind, editorFocused } from "../stores";
             targetLineIdx: lineIdx,
             targetDocText: docText,
           });
+          return false;
+        },
+        dragstart: () => {
+          internalDragActive = true;
+          return false;
+        },
+        dragend: () => {
+          internalDragActive = false;
+          return false;
+        },
+        drop: (event, v) => {
+          const wasInternalDrag = internalDragActive;
+          internalDragActive = false;
+          if (wasInternalDrag || v.state.readOnly || !event.dataTransfer) return false;
+          const rawHtml = event.dataTransfer.getData("text/html");
+          if (rawHtml) {
+            const converted = htmlToNoteText(rawHtml);
+            if (converted !== null) {
+              event.preventDefault();
+              const dropPos = v.posAtCoords({ x: event.clientX, y: event.clientY }, false);
+              v.focus();
+              v.dispatch({
+                changes: { from: dropPos, insert: converted },
+                selection: { anchor: dropPos, head: dropPos + converted.length },
+                userEvent: "input.drop",
+                scrollIntoView: true,
+              });
+              return true;
+            }
+          }
           return false;
         },
         // The occurrence hint (and its Peek button) also shows for a section whose title line or underline the mouse

@@ -154,11 +154,11 @@ function hasList(doc: Document): boolean {
 }
 
 function extractLines(nodes: Node | Node[], options?: { ignoreSpan?: Element }): string[] {
-  const rawLines: string[] = [];
+  const rawLines: { text: string; pre: boolean }[] = [];
   let current = "";
 
   function flush() {
-    rawLines.push(current);
+    rawLines.push({ text: current, pre: false });
     current = "";
   }
 
@@ -186,6 +186,18 @@ function extractLines(nodes: Node | Node[], options?: { ignoreSpan?: Element }):
       flush();
       return;
     }
+    if (tag === "PRE") {
+      if (current.trim() !== "") {
+        flush();
+      } else {
+        current = "";
+      }
+      const preText = (el.textContent || "").replace(/\r/g, "");
+      for (const preLine of preText.split("\n")) {
+        rawLines.push({ text: preLine.replace(/\u00a0/g, " "), pre: true });
+      }
+      return;
+    }
 
     if (tag === "P" || tag === "DIV" || tag === "TR" || tag === "BLOCKQUOTE" || /^H[1-6]$/.test(tag)) {
       if (current.trim() !== "") {
@@ -196,9 +208,9 @@ function extractLines(nodes: Node | Node[], options?: { ignoreSpan?: Element }):
       }
       if (current !== "") {
         flush();
-      } else if (rawLines.length === 0 || rawLines[rawLines.length - 1] !== "") {
+      } else if (rawLines.length === 0 || rawLines[rawLines.length - 1].text !== "") {
         if (el.childNodes.length === 0 || el.textContent?.trim() === "") {
-          rawLines.push("");
+          rawLines.push({ text: "", pre: false });
         }
       }
       return;
@@ -218,13 +230,24 @@ function extractLines(nodes: Node | Node[], options?: { ignoreSpan?: Element }):
     flush();
   }
 
-  return rawLines.map(line => {
-    let l = line.replace(/\r/g, "");
+  return rawLines.map(({ text, pre }) => {
+    if (pre) return text.replace(/\r/g, "");
+    let l = text.replace(/\r/g, "");
     l = l.replace(/[ \t\n]+/g, " ");
-    l = l.replace(/^[ ]+/, "");
     l = l.replace(/\u00a0/g, " ");
+    l = l.replace(/^[ ]+/, "");
     return l.trimEnd();
   });
+}
+
+function hasDirectCheckbox(el: Element): boolean {
+  for (const child of Array.from(el.children)) {
+    const tag = child.tagName.toUpperCase();
+    if (tag === "UL" || tag === "OL" || tag === "LI") continue;
+    if (tag === "INPUT" && (child.getAttribute("type") || "").toLowerCase() === "checkbox") return true;
+    if (hasDirectCheckbox(child)) return true;
+  }
+  return false;
 }
 
 function getListDepth(el: Element): number {
@@ -270,6 +293,19 @@ export function htmlToNoteText(html: string): string | null {
   }
   const parentStack: ParentListItem[] = [];
   let wordParents: ParentListItem[] = [];
+  let ariaParents: ParentListItem[] = [];
+
+  function indentForDepth(depth: number): string {
+    if (depth <= 0) return "";
+    for (let k = depth - 1; k >= 0; k--) {
+      const p = ariaParents[k];
+      if (p) {
+        const step = p.isNumbered ? " ".repeat(String(p.number).length + 2) : "  ";
+        return p.indent + step + "  ".repeat(depth - 1 - k);
+      }
+    }
+    return "  ".repeat(depth);
+  }
 
   function processListContainer(listEl: Element) {
     wordCounters = [];
@@ -277,17 +313,40 @@ export function htmlToNoteText(html: string): string | null {
     const isOl = listEl.tagName === "OL";
     const startAttr = listEl.getAttribute("start");
     let counter = isOl ? (startAttr && !isNaN(parseInt(startAttr, 10)) ? parseInt(startAttr, 10) : 1) : 1;
+    const ariaCounters: number[] = [];
+    let lastAriaDepth = 0;
 
     let lastLiItem: ParentListItem | null = null;
 
     for (const child of Array.from(listEl.children)) {
       if (child.tagName === "LI") {
-        lastLiItem = processLi(child as Element, isOl, counter);
-        if (isOl) {
-          if (child.hasAttribute("value") && !isNaN(parseInt(child.getAttribute("value")!, 10))) {
-            counter = parseInt(child.getAttribute("value")!, 10) + 1;
-          } else {
-            counter++;
+        const ariaRaw = child.getAttribute("aria-level");
+        const ariaParsed = ariaRaw !== null ? parseInt(ariaRaw, 10) : NaN;
+        if (!isNaN(ariaParsed) && ariaParsed >= 1) {
+          const ariaDepth = ariaParsed - 1;
+          if (ariaDepth < lastAriaDepth) {
+            ariaCounters.length = ariaDepth + 1;
+          }
+          lastAriaDepth = ariaDepth;
+          if (ariaCounters[ariaDepth] === undefined) {
+            ariaCounters[ariaDepth] = ariaDepth === 0 ? counter : 1;
+          }
+          const itemCounter = ariaCounters[ariaDepth];
+          lastLiItem = processLi(child as Element, isOl, itemCounter, ariaDepth);
+          if (isOl) {
+            const valAttr = child.getAttribute("value");
+            const nextVal = valAttr && !isNaN(parseInt(valAttr, 10)) ? parseInt(valAttr, 10) + 1 : lastLiItem.number + 1;
+            ariaCounters[ariaDepth] = nextVal;
+            if (ariaDepth === 0) counter = nextVal;
+          }
+        } else {
+          lastLiItem = processLi(child as Element, isOl, counter);
+          if (isOl) {
+            if (child.hasAttribute("value") && !isNaN(parseInt(child.getAttribute("value")!, 10))) {
+              counter = parseInt(child.getAttribute("value")!, 10) + 1;
+            } else {
+              counter++;
+            }
           }
         }
       } else if (child.tagName === "UL" || child.tagName === "OL") {
@@ -304,8 +363,8 @@ export function htmlToNoteText(html: string): string | null {
     }
   }
 
-  function processLi(li: Element, isParentOl: boolean, currentCounter: number): ParentListItem {
-    const isCheckbox = li.querySelector('input[type="checkbox"]') !== null;
+  function processLi(li: Element, isParentOl: boolean, currentCounter: number, ariaDepth?: number): ParentListItem {
+    const isCheckbox = hasDirectCheckbox(li);
     const isNumbered = !isCheckbox && isParentOl;
     let number = currentCounter;
     if (isNumbered && li.hasAttribute("value") && !isNaN(parseInt(li.getAttribute("value")!, 10))) {
@@ -313,7 +372,9 @@ export function htmlToNoteText(html: string): string | null {
     }
 
     let indent = "";
-    if (parentStack.length > 0) {
+    if (ariaDepth !== undefined) {
+      indent = indentForDepth(ariaDepth);
+    } else if (parentStack.length > 0) {
       const p = parentStack[parentStack.length - 1];
       if (p.isNumbered) {
         indent = p.indent + " ".repeat(String(p.number).length + 2);
@@ -352,6 +413,9 @@ export function htmlToNoteText(html: string): string | null {
     }
 
     const currentItemInfo: ParentListItem = { isNumbered, number, indent };
+    const effectiveDepth = ariaDepth ?? parentStack.length;
+    ariaParents[effectiveDepth] = currentItemInfo;
+    ariaParents.length = effectiveDepth + 1;
 
     for (const child of Array.from(li.childNodes)) {
       if (child.nodeType === Node.ELEMENT_NODE && (child.nodeName === "UL" || child.nodeName === "OL")) {
@@ -380,10 +444,11 @@ export function htmlToNoteText(html: string): string | null {
     if (node.nodeType === Node.TEXT_NODE) {
       let t = node.nodeValue || "";
       t = t.replace(/<!?\[(?:if|endif)[^\]]*\]>?/gi, "");
-      t = t.replace(/[ \t\n]+/g, " ").replace(/^[ ]+/, "").replace(/\u00a0/g, " ").trimEnd();
+      t = t.replace(/[ \t\n]+/g, " ").replace(/\u00a0/g, " ").replace(/^[ ]+/, "").trimEnd();
       if (t !== "") {
         wordCounters = [];
         wordParents = [];
+        ariaParents = [];
         addLine(t);
       }
       return;
@@ -401,6 +466,7 @@ export function htmlToNoteText(html: string): string | null {
     const style = el.getAttribute("style") || "";
     const msoMatch = style.match(/mso-list:[^;"']*level(\d+)/i);
     if (msoMatch) {
+      ariaParents = [];
       const level = parseInt(msoMatch[1], 10);
       const depth = Math.max(0, level - 1);
 
@@ -408,7 +474,30 @@ export function htmlToNoteText(html: string): string | null {
         /mso-list:[^;"']*ignore/i.test(s.getAttribute("style") || "")
       );
 
-      const markerRaw = ignoreSpan ? (ignoreSpan.textContent || "").trim() : "";
+      const itemLines = extractLines(el, { ignoreSpan });
+      let markerRaw = ignoreSpan ? (ignoreSpan.textContent || "").trim() : "";
+      if (!ignoreSpan && itemLines.length > 0) {
+        const visibleNum = itemLines[0].match(/^(\(?([0-9]+|[a-zA-Z]|[ivxlcdmIVXLCDM]+)[.)])(?:[ ]+(.*)|$)$/);
+        if (visibleNum) {
+          markerRaw = visibleNum[1];
+          const rest = (visibleNum[3] ?? "").replace(/^[ ]+/, "");
+          if (rest !== "" || itemLines.length > 1) {
+            itemLines[0] = rest;
+          } else {
+            itemLines.shift();
+          }
+        } else {
+          const visibleBullet = itemLines[0].match(/^(?:[•·‣◦▪▫\-*\uF0B7\uF0A7]|o(?=[ ]{2,}))(?:[ ]+(.*)|$)$/);
+          if (visibleBullet) {
+            const rest = (visibleBullet[1] ?? "").replace(/^[ ]+/, "");
+            if (rest !== "" || itemLines.length > 1) {
+              itemLines[0] = rest;
+            } else {
+              itemLines.shift();
+            }
+          }
+        }
+      }
       const numMatch = markerRaw.match(/^\(?([0-9]+|[a-zA-Z]|[ivxlcdmIVXLCDM]+)[.)]$/);
 
       let markerStr = "- ";
@@ -447,7 +536,6 @@ export function htmlToNoteText(html: string): string | null {
         ? indent + " ".repeat(String(itemNumber).length + 2)
         : indent + "  ";
 
-      const itemLines = extractLines(el, { ignoreSpan });
       if (itemLines.length > 0) {
         addLine(indent + markerStr + itemLines[0]);
         for (let i = 1; i < itemLines.length; i++) {
@@ -471,6 +559,7 @@ export function htmlToNoteText(html: string): string | null {
     if (tag === "PRE") {
       wordCounters = [];
       wordParents = [];
+      ariaParents = [];
       const text = el.textContent || "";
       const preLines = text.split(/\r?\n/);
       for (const l of preLines) {
@@ -494,6 +583,7 @@ export function htmlToNoteText(html: string): string | null {
       }
     } else {
       wordCounters = [];
+      ariaParents = [];
       const blockLines = extractLines(el);
       if (blockLines.length === 0) {
         addLine("");

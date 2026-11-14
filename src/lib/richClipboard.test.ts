@@ -243,6 +243,42 @@ describe("richClipboard", () => {
       const html = "<ol><li>One<ol><li>Sub</li></ol></li></ol>";
       expect(htmlToNoteText(html)).toBe("1. One\n   1. Sub");
     });
+
+    it("strips leading &nbsp; after bullet to produce a single space", () => {
+      expect(htmlToNoteText("<ul><li>&nbsp;item</li></ul>")).toBe("- item");
+      expect(htmlToNoteText("<ul><li>&nbsp;&nbsp;  item</li></ul>")).toBe("- item");
+    });
+
+    it("does not mistake a nested checkbox for the parent item being a checkbox", () => {
+      const html = '<ol><li>Step<ul><li><input type="checkbox"> sub</li></ul></li></ol>';
+      expect(htmlToNoteText(html)).toBe("1. Step\n   - sub");
+    });
+
+    it("preserves <pre> newlines and indents continuation lines inside <li>", () => {
+      const html = "<ul><li>run:<pre>npm i\nnpm test</pre></li></ul>";
+      expect(htmlToNoteText(html)).toBe("- run:\n  npm i\n  npm test");
+    });
+
+    it("handles Google Docs wrapper with aria-level nesting", () => {
+      const flatDocs =
+        '<b id="docs-internal-guid-1234"><ul><li aria-level="1"><p><span>Top</span></p></li><li aria-level="2"><p><span>Sub</span></p></li><li aria-level="1"><p><span>Next</span></p></li></ul></b>';
+      expect(htmlToNoteText(flatDocs)).toBe("- Top\n  - Sub\n- Next");
+
+      const orderedDocs =
+        '<b id="docs-internal-guid-5678"><ol><li aria-level="1"><p>One</p></li><li aria-level="2"><p>Sub</p></li><li aria-level="1"><p>Two</p></li></ol></b>';
+      expect(htmlToNoteText(orderedDocs)).toBe("1. One\n   1. Sub\n2. Two");
+    });
+
+    it("strips visible marker on Word/Outlook mso-list paragraphs without mso-list:Ignore", () => {
+      const outlookNum =
+        '<p class="MsoListParagraph" style="mso-list:l0 level1 lfo1">1.&#9;<span>text</span></p>';
+      expect(htmlToNoteText(outlookNum)).toBe("1. text");
+
+      const outlookSpaces =
+        '<p class="MsoListParagraph" style="mso-list:l0 level1 lfo1">1.<span>&nbsp;&nbsp;&nbsp; </span>text</p>' +
+        '<p class="MsoListParagraph" style="mso-list:l0 level2 lfo1">a.  sub item</p>';
+      expect(htmlToNoteText(outlookSpaces)).toBe("1. text\n   1. sub item");
+    });
   });
 
   describe("noteTextToHtml", () => {
