@@ -67,7 +67,8 @@ test.describe("Editor batch 1 — independent tests", () => {
       await page.keyboard.press("ControlOrMeta+z");
 
       expect(await activeTabContent(page)).toBe("EXTERNAL change\n");
-      expect(await lastWrittenNote(page, file)).toBe("EXTERNAL change\n");
+      // Nothing of the user's is left to save, so the file keeps the outside version.
+      await page.waitForTimeout(800);
       expect(await mockNote(page, file)).toBe("EXTERNAL change\n");
     });
 
@@ -96,7 +97,8 @@ test.describe("Editor batch 1 — independent tests", () => {
       await page.keyboard.press("ControlOrMeta+z");
 
       expect(await activeTabContent(page)).toBe("EXTERNAL change\n");
-      expect(await lastWrittenNote(page, file)).toBe("EXTERNAL change\n");
+      await page.waitForTimeout(800);
+      expect(await mockNote(page, file)).toBe("EXTERNAL change\n");
     });
 
     test("1.2: outside change on line 2 preserves user undo and Ctrl+Y redo on line 1", async ({ page }) => {
@@ -124,7 +126,7 @@ test.describe("Editor batch 1 — independent tests", () => {
 
       await page.keyboard.press("ControlOrMeta+y");
       await expect.poll(() => activeTabContent(page)).toBe("Ax\nB2\n");
-      expect(await lastWrittenNote(page, file)).toBe("Ax\nB2\n");
+      await expect.poll(() => mockNote(page, file)).toBe("Ax\nB2\n");
     });
 
     test("1.2b: several undo steps before an outside change all undo and redo while keeping the outside change", async ({
@@ -142,21 +144,21 @@ test.describe("Editor batch 1 — independent tests", () => {
       await page.keyboard.press("ControlOrMeta+Home");
       await page.keyboard.press("End");
 
-      // Separate typing bursts past CodeMirror's undo-grouping window and wait for save.
+      // Three edits at different places, so each is its own undo step (typing at one spot joins into one step).
       await page.keyboard.type("1");
-      await page.waitForTimeout(600);
+      await page.keyboard.press("Home");
       await page.keyboard.type("2");
-      await page.waitForTimeout(600);
+      await page.keyboard.press("End");
       await page.keyboard.type("3");
-      await expect.poll(() => mockNote(page, file)).toBe("A123\nB\n");
+      await expect.poll(() => mockNote(page, file)).toBe("2A13\nB\n");
 
-      await externallyWrite(page, file, "A123\nB2\n");
+      await externallyWrite(page, file, "2A13\nB2\n");
       await checkDrift(page);
-      await expect.poll(() => activeTabContent(page)).toBe("A123\nB2\n");
+      await expect.poll(() => activeTabContent(page)).toBe("2A13\nB2\n");
 
       await editor(page).click();
       await page.keyboard.press("ControlOrMeta+z");
-      await expect.poll(() => activeTabContent(page)).toBe("A12\nB2\n");
+      await expect.poll(() => activeTabContent(page)).toBe("2A1\nB2\n");
 
       await page.keyboard.press("ControlOrMeta+z");
       await expect.poll(() => activeTabContent(page)).toBe("A1\nB2\n");
@@ -173,9 +175,9 @@ test.describe("Editor batch 1 — independent tests", () => {
       await page.keyboard.press("ControlOrMeta+y");
       await expect.poll(() => activeTabContent(page)).toBe("A1\nB2\n");
       await page.keyboard.press("ControlOrMeta+y");
-      await expect.poll(() => activeTabContent(page)).toBe("A12\nB2\n");
+      await expect.poll(() => activeTabContent(page)).toBe("2A1\nB2\n");
       await page.keyboard.press("ControlOrMeta+y");
-      await expect.poll(() => activeTabContent(page)).toBe("A123\nB2\n");
+      await expect.poll(() => activeTabContent(page)).toBe("2A13\nB2\n");
     });
 
     test("1.3: phone companion adding a line is not undone by Ctrl+Z", async ({ page }) => {
@@ -566,7 +568,7 @@ test.describe("Editor batch 1 — independent tests", () => {
       await page.keyboard.press("ControlOrMeta+w");
 
       await expect(tab(page, file)).toHaveCount(0);
-      await expect(toast(page)).toContainText(/Saved as /i);
+      await expect(toast(page)).toContainText(/Saved your version as /i);
       expect(await mockNote(page, file)).toBe("Today\n=====\nEXTERNAL newer\n");
 
       const copies = await page.evaluate(() => window.__CHRONO_MOCK__!.conflictCopyNames());
@@ -602,7 +604,7 @@ test.describe("Editor batch 1 — independent tests", () => {
       await tab(page, file).locator(".tab-close").click();
 
       await expect(tab(page, file)).toHaveCount(0);
-      await expect(toast(page)).toContainText(/Saved as /i);
+      await expect(toast(page)).toContainText(/Saved your version as /i);
       expect(await mockNote(page, file)).toBe("Today\n=====\nEXTERNAL newer\n");
 
       const copies = await page.evaluate(() => window.__CHRONO_MOCK__!.conflictCopyNames());
@@ -884,7 +886,9 @@ test.describe("Editor batch 1 — independent tests", () => {
       await page.waitForTimeout(1600);
       await expect(page.locator(".cm-misspelled")).toHaveCount(0);
 
-      // Once the 2nd check resolves, only "helo" is underlined.
+      // The caret still touches "helo", and the word being typed is never marked; moving the caret ends typing.
+      await page.keyboard.press("End");
+      // Once a check after that resolves, only "helo" is underlined.
       await expect(page.locator(".cm-misspelled")).toHaveText(["helo"], { timeout: 4000 });
 
       const observed = await page.evaluate(

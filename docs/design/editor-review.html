@@ -1,0 +1,424 @@
+<title>ChronoNote Editor Review</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* Layout: one reading column (~1000px): verdict, the bugs grouped into fix batches (tables), decision cards with a sticky decisions bar, the test plan. Same system as the feature review. */
+:root {
+  --bg: #f3f4f6; --surface: #ffffff; --fg: #1a1c20; --muted: #5a606b; --line: #dde0e5;
+  --accent: #0a6fc2; --accent-fg: #ffffff; --ok: #1f8a5b; --warn: #a8650f; --bad: #b8433b;
+  --chip: #eceef2;
+  --ui: "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --display: "Segoe UI Variable Display", "Segoe UI", system-ui, sans-serif;
+  --mono: "Cascadia Code", "Cascadia Mono", Consolas, ui-monospace, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #141518; --surface: #1d1f23; --fg: #e7e8eb; --muted: #a0a6b0; --line: #2f3238;
+  --accent: #4cc2ff; --accent-fg: #06223a; --ok: #4bbf87; --warn: #e0a94e; --bad: #e07b73; --chip: #272a30; color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #141518; --surface: #1d1f23; --fg: #e7e8eb; --muted: #a0a6b0; --line: #2f3238;
+  --accent: #4cc2ff; --accent-fg: #06223a; --ok: #4bbf87; --warn: #e0a94e; --bad: #e07b73; --chip: #272a30; color-scheme: dark; }
+
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--fg); font: 15px/1.55 var(--ui); }
+.wrap { max-width: 1000px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 32px 96px; }
+h1 { font: 600 32px/1.2 var(--display); margin: 0 0 8px; text-wrap: balance; letter-spacing: -.01em; }
+h2 { font: 600 22px/1.3 var(--display); margin: 56px 0 6px; text-wrap: balance; }
+h3 { font: 600 18px/1.35 var(--display); margin: 0; text-wrap: balance; }
+p { margin: 0 0 10px; max-width: 72ch; }
+.lede { font-size: 16.5px; color: var(--muted); max-width: 70ch; }
+.eyebrow { font: 600 11.5px/1 var(--ui); text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin-bottom: 10px; }
+code, kbd { font-family: var(--mono); font-size: .86em; }
+kbd { background: var(--chip); border-radius: 3px; padding: 1px 4px; }
+a { color: var(--accent); }
+ul, ol { margin: 0 0 10px; padding-left: 20px; } li { margin: 3px 0; max-width: 72ch; }
+.st { font-size: 12.5px; color: var(--muted); }
+
+.premise { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; margin: 24px 0; }
+.premise div { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; min-width: 0; }
+.premise b { display: block; font: 600 26px/1.1 var(--display); font-variant-numeric: tabular-nums; margin-bottom: 4px; }
+.premise b.bad { color: var(--bad); }
+.premise span { font-size: 13.5px; color: var(--muted); }
+
+.batch { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 20px 20px 14px; margin: 18px 0; }
+.batch.first { border-color: color-mix(in srgb, var(--bad) 50%, var(--line)); }
+.bhead { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: baseline; margin-bottom: 8px; }
+.bhead .n { font: 600 13px var(--mono); color: var(--muted); }
+.tablewrap { overflow-x: auto; margin: 10px 0 6px; }
+table { border-collapse: collapse; width: 100%; font-size: 13.5px; min-width: 720px; }
+th, td { text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font: 600 11.5px var(--ui); text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+tr:last-child td { border-bottom: none; }
+td:first-child { font: 12px var(--mono); color: var(--muted); white-space: nowrap; }
+td code { white-space: pre-wrap; }
+.tag { display: inline-block; font: 600 11.5px/1 var(--ui); padding: 4px 7px; border-radius: 999px; background: var(--chip); color: var(--fg); white-space: nowrap; }
+.tag.loss { background: color-mix(in srgb, var(--bad) 15%, transparent); color: var(--bad); }
+.tag.wrong { background: color-mix(in srgb, var(--warn) 16%, transparent); color: var(--warn); }
+.tag.rec { background: color-mix(in srgb, var(--ok) 16%, transparent); color: var(--ok); }
+.tag.opt { background: color-mix(in srgb, var(--accent) 14%, transparent); color: var(--accent); }
+.tag.call { background: color-mix(in srgb, var(--warn) 16%, transparent); color: var(--warn); }
+
+.bar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 10; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 10px 14px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-top: 16px; }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--bg); }
+.bar .counts { display: flex; gap: 14px; font-size: 13.5px; font-variant-numeric: tabular-nums; flex-wrap: wrap; }
+.bar .counts b { font-weight: 600; }
+.bar .spacer { flex: 1; }
+.btn { font: 600 13.5px var(--ui); border-radius: 4px; padding: 6px 12px; border: 1px solid var(--line); background: var(--surface); color: var(--fg); cursor: pointer; }
+.btn.primary { background: var(--accent); color: var(--accent-fg); border-color: transparent; }
+.btn:focus-visible, .dec button:focus-visible, textarea:focus-visible { outline: 2px solid var(--fg); outline-offset: 2px; }
+#copied { font-size: 13px; color: var(--ok); }
+
+.proposal { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 20px 20px 16px; margin: 16px 0; scroll-margin-top: 80px; }
+.phead { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: baseline; margin-bottom: 8px; }
+.pid { font: 600 13px var(--mono); color: var(--muted); }
+.meta { display: flex; gap: 6px; flex-wrap: wrap; margin-left: auto; }
+.cols { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 24px; margin: 8px 0 4px; }
+.cols > div { min-width: 0; }
+.cols h4 { font: 600 12px var(--ui); text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 0 0 4px; }
+@media (max-width: 720px) { .cols { grid-template-columns: 1fr; } }
+.why { font-size: 13.5px; color: var(--muted); border-left: 3px solid var(--line); padding-left: 12px; margin: 10px 0 0; max-width: 74ch; }
+.dec { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; border-top: 1px solid var(--line); margin-top: 14px; padding-top: 12px; }
+.dec button { font: 600 13px var(--ui); padding: 5px 12px; border-radius: 999px; border: 1px solid var(--line); background: transparent; color: var(--fg); cursor: pointer; }
+.dec button[aria-pressed="true"][data-v="approve"] { background: var(--ok); border-color: var(--ok); color: var(--surface); }
+.dec button[aria-pressed="true"][data-v="discuss"] { background: var(--warn); border-color: var(--warn); color: var(--surface); }
+.dec button[aria-pressed="true"][data-v="reject"] { background: var(--bad); border-color: var(--bad); color: var(--surface); }
+.dec textarea { flex: 1 1 260px; min-width: 0; font: 13.5px/1.4 var(--ui); border: 1px solid var(--line); border-radius: 6px; padding: 6px 9px; background: var(--bg); color: var(--fg); resize: vertical; }
+
+.steps { counter-reset: s; list-style: none; padding: 0; }
+.steps > li { counter-increment: s; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px 10px 52px; margin: 10px 0; position: relative; max-width: none; }
+.steps > li::before { content: counter(s); position: absolute; left: 16px; top: 13px; width: 24px; height: 24px; border-radius: 50%; background: var(--chip); font: 600 13px/24px var(--ui); text-align: center; }
+.steps b { font-family: var(--display); }
+</style>
+
+<div class="wrap">
+  <div class="eyebrow">ChronoNote · editor review · 14 November 2026</div>
+  <h1>How solid is editing?</h1>
+  <p class="lede">Four Gemini 4 Hydrogen reviewers each took one area: tokens and glyphs, typing and the editing keys,
+  text going in and out (clipboard, saving, outside changes), and the test suite. They reported 42 bugs. I re-ran every
+  one myself with throwaway tests, or read the code where a test wasn't practical. All 42 held up; none was a false
+  alarm.</p>
+
+  <div class="premise">
+    <div><b class="bad">5</b><span>can lose text or break the editor. These need fixing first.</span></div>
+    <div><b>17</b><span>keys and commands that give the wrong text in some caret position or selection</span></div>
+    <div><b>10</b><span>places where one line means something different in the editor, the counts, export or a menu</span></div>
+    <div><b>10</b><span>tokenizer edge cases, pasting from Word, Google Docs and web pages, and three tests that can't fail</span></div>
+  </div>
+
+  <h2>The verdict</h2>
+  <p>Ordinary typing is in good shape: a line of prose, a bullet, an action, Enter at the end of a line all behave. The
+  bugs sit at the edges, and they cluster for three reasons. Fixing those reasons matters more than fixing the 42 one by one.</p>
+  <ol>
+    <li><b>The grammar is re-implemented in seven places.</b> The editor uses the tokenizer, but the Actions drawer
+      (<code>glyphLine</code>), the counts, export and print, the line menu, the phone toolbar and
+      <code>withoutLineMarker</code> each have their own regexes. Each copy drifted: <code># a =&gt; v b</code> counts as open in
+      the status bar but Ctrl+J finds nothing; <code>! urgent @alice by:…</code> loses its name and date in the drawer.</li>
+    <li><b>Each key handler was written for one caret position.</b> The handlers assume a caret at the end of a line with
+      no selection. With a selection, a caret before the marker, a line above a title underline, or a §463 held caret,
+      they do something odd. Nothing tests the grid of "every key × every kind of line × every caret position".</li>
+    <li><b>The editing commands live inside <code>EditorPane.svelte</code>.</b> So they can only be tested in a browser,
+      one hand-picked case at a time. That is why the suite has 1,429 browser tests and still missed these: the tests are
+      many, but each covers one case.</li>
+  </ol>
+  <p>The test suite is broad but has blind spots. Three state-first tests can never fail: they skip the event type the
+  filter listens to. There are no tests for multiple cursors, IME or dead keys (you type on US-International), the
+  phone toolbar's edits, undo after each command, or byte-exact round trips of CRLF or tab files. There are 82 fixed
+  sleeps in the browser tests.</p>
+
+  <h2>The bugs, as fix batches</h2>
+  <p class="st">"Checked" says how I confirmed it: <b>ran</b> = my own throwaway test reproduced it;
+  <b>code</b> = confirmed by reading the code (with the reviewer's own reproduction). IDs refer to the reviewer reports
+  (ER1 tokens, ER2 editing, ER3 clipboard and saving, ER4 tests), kept in <code>agent-tools/runs/</code>.</p>
+
+  <div class="batch first">
+    <div class="bhead"><span class="n">Batch 1</span><h3>Text loss and crashes</h3><span class="tag loss">first, small</span></div>
+    <div class="tablewrap"><table>
+      <thead><tr><th>ID</th><th>What happens</th><th>Should</th><th>Checked</th></tr></thead>
+      <tbody>
+        <tr><td>ER3-12</td><td>After the phone companion, a sync or a reload changes the open note, <kbd>Ctrl+Z</kbd> undoes <em>that</em> change (and your typing before it). Autosave then writes the old text back over the newer version.</td><td>An outside change is never undone by Ctrl+Z (decision D1)</td><td>ran</td></tr>
+        <tr><td>ER2-A9</td><td>Type <code>x</code> on a line that has spaces after the caret (the §463 case), press Enter: the whole line is deleted. On <code>#|hello</code> Enter gives <code>#\n#  hello</code>.</td><td>A plain line break</td><td>ran</td></tr>
+        <tr><td>ER3-1</td><td>Closing a tab with unsaved typing, right after the file changed on disk, overwrites the newer file without the conflict dialog (the save's on-disk check is skipped).</td><td>Conflict dialog, as on any other save</td><td>code</td></tr>
+        <tr><td>ER3-13</td><td>When a phone-companion write fails, the tab is reset to the old text, wiping anything typed meanwhile.</td><td>Keep the typing; only undo the phone's change</td><td>code</td></tr>
+        <tr><td>ER3-10</td><td>Spell check underlines the wrong words, or throws a RangeError that stops the editor from redrawing, when the note changes while a check is running.</td><td>Drop results for a note that changed</td><td>code</td></tr>
+      </tbody>
+    </table></div>
+  </div>
+
+  <div class="batch">
+    <div class="bhead"><span class="n">Batch 2</span><h3>Keys and commands</h3><span class="tag wrong">wrong text</span></div>
+    <div class="tablewrap"><table>
+      <thead><tr><th>ID</th><th>What happens</th><th>Should</th><th>Checked</th></tr></thead>
+      <tbody>
+        <tr><td>ER2-A1</td><td>Enter and Shift+Enter ignore a selection: <code># buy [milk]</code> + Enter keeps "milk"; a two-line selection gives <code>- one\n- t\n- wo</code></td><td>Replace the selection, then continue</td><td>ran</td></tr>
+        <tr><td>ER2-A2</td><td>Shift+Enter at the very start of <code>- task</code>, <code>1. item</code>, <code>o topic</code> indents the pushed-down line</td><td>Plain line break, as Enter does</td><td>ran</td></tr>
+        <tr><td>ER2-A3</td><td>Shift+Down to select one line, then Ctrl+2: the next line is marked done too</td><td>A line with nothing selected is left alone</td><td>ran</td></tr>
+        <tr><td>ER2-A4</td><td>Ctrl+Shift+S on a title or its <code>===</code> adds a second underline</td><td>Nothing (it is already a title)</td><td>ran</td></tr>
+        <tr><td>ER2-A8</td><td>Enter at the end of <code># Title</code> above <code>=====</code> puts <code># </code> between title and underline</td><td>Plain line break</td><td>ran</td></tr>
+        <tr><td>ER2-A10</td><td>Enter on <code>o ! - item</code> drops the <code>! - </code></td><td>Continue <code>o ! - </code></td><td>ran</td></tr>
+        <tr><td>ER2-A11</td><td>Alt+Down on <code>- # task</code> leaves it un-normalised; on the line above it, the untouched <code>- # second</code> is rewritten</td><td>Normalise the line you left, only that one</td><td>ran</td></tr>
+        <tr><td>ER2-A12</td><td>Ctrl+1 on <code>1. task</code> gives <code># 1. task</code> and leaves <code>2. next</code> orphaned</td><td>Renumber the rest of the list</td><td>ran</td></tr>
+        <tr><td>ER1-A2</td><td>Typing <code>by</code> in front of an existing <code>:2026-10-30</code>: one Backspace deletes both letters (no §463 hold for <code>by:</code>)</td><td>Backspace deletes one letter</td><td>ran</td></tr>
+        <tr><td>ER1-A11</td><td>Shift+Enter on <code># - item</code>, <code># ! urgent</code>, <code># 1. item</code> goes to column 0 (on <code>o - item</code> it aligns)</td><td>See decision D3</td><td>ran</td></tr>
+        <tr><td>ER1-A12</td><td>Pasting <code>=&gt; item</code> onto an empty <code>  =&gt; </code> gives <code>=&gt; =&gt; item</code>; same for <code># - </code>; a two-line paste onto <code>  # </code> loses the indent on line 2</td><td>Merge the markers; keep the indent</td><td>ran</td></tr>
+        <tr><td>ER4-A3</td><td>Shift+Enter leaving <code># send by:tomorrow</code> keeps the word; Enter turns it into a date</td><td>Both turn it into a date</td><td>ran</td></tr>
+        <tr><td>ER3-3</td><td>Pasting a numbered action into a numbered list: renumbering runs before the paste merge, so <code>by:tomorrow</code> stays and numbers go wrong</td><td>Merge first, then renumber</td><td>code</td></tr>
+        <tr><td>ER3-2</td><td>Paste-forward then Ctrl+Z: when the pasted text was rewritten (<code>by:tomorrow</code>, indent), the source line stays deferred</td><td>Source goes back to open</td><td>code</td></tr>
+        <tr><td>ER2-A6</td><td>Phone toolbar Indent on a numbered item adds two spaces instead of the Tab rules (sub-item, renumber)</td><td>Same as Tab</td><td>code</td></tr>
+        <tr><td>ER2-A7</td><td>Phone toolbar Bullet on <code># task</code> gives <code>- task</code> (the action is lost)</td><td><code># - task</code>, as on desktop</td><td>code</td></tr>
+        <tr><td>ER3-4</td><td>Right-click Paste pastes plain text only, so a Word or web list arrives flat</td><td>Same as Ctrl+V</td><td>code</td></tr>
+      </tbody>
+    </table></div>
+  </div>
+
+  <div class="batch">
+    <div class="bhead"><span class="n">Batch 3</span><h3>One line, one meaning</h3><span class="tag wrong">inconsistent</span></div>
+    <div class="tablewrap"><table>
+      <thead><tr><th>ID</th><th>What happens</th><th>Should</th><th>Checked</th></tr></thead>
+      <tbody>
+        <tr><td>ER1-A1</td><td>Actions drawer, Section History: after <code>! </code> the rest of the line is one bold span, so <code>@alice</code>, <code>by:</code> and <code>=&gt; #</code> aren't drawn</td><td>Same glyphs as the editor</td><td>ran</td></tr>
+        <tr><td>ER1-A3</td><td><code># first =&gt; v resolved</code>: the status bar counts 1 open, Ctrl+J and the Actions view find none</td><td>One rule for "open" everywhere</td><td>ran</td></tr>
+        <tr><td>ER1-A4</td><td><code># Title</code> over <code>===</code> draws an open checkbox and counts as an action</td><td>See decision D5</td><td>ran</td></tr>
+        <tr><td>ER1-A7</td><td><code>v Sub</code> over <code>---</code> is dimmed as a finished action (the <code>===</code> case is handled)</td><td>A subtitle is never dimmed</td><td>ran</td></tr>
+        <tr><td>ER1-A6</td><td>Markdown/HTML export keeps raw <code>- </code> after <code>#</code> and <code>!</code>, and a raw <code>#</code> after <code>=&gt;</code></td><td>Export what the editor shows</td><td>ran</td></tr>
+        <tr><td>ER3-14</td><td>HTML export and Print draw a deferred <code>&gt;</code> action with the same empty box as an open one</td><td>The deferred glyph</td><td>ran</td></tr>
+        <tr><td>ER2-A5</td><td>Right-click on <code>Notes =&gt; # call Sam</code> offers "Set to Open", not Done/Defer/Won't do</td><td>The action's own state items</td><td>ran</td></tr>
+        <tr><td>ER1-A13</td><td><code>withoutLineMarker</code> (phone toolbar) ignores topics and turns <code># - task</code> into <code>- task</code></td><td>Use the tokenizer</td><td>ran</td></tr>
+        <tr><td>ER1-A8</td><td>A tab-indented child action gets a too-short tree connector (tab counted as 1 column, elsewhere as 2)</td><td>Tab = 2 columns everywhere</td><td>code</td></tr>
+        <tr><td>ER3-15</td><td>The test backend's delete check fails on CRLF notes (the real backend is fine)</td><td>Mirror <code>storage.rs</code></td><td>code</td></tr>
+      </tbody>
+    </table></div>
+    <p class="st">Fix by making every one of these read the tokenizer, then add one property test that says: for any
+    line, the editor's glyphs, the drawer, the counts, export and the menu agree.</p>
+  </div>
+
+  <div class="batch">
+    <div class="bhead"><span class="n">Batch 4</span><h3>Tokenizer edges and pasting from other apps</h3><span class="tag">rare</span></div>
+    <div class="tablewrap"><table>
+      <thead><tr><th>ID</th><th>What happens</th><th>Should</th><th>Checked</th></tr></thead>
+      <tbody>
+        <tr><td>ER1-A5</td><td>A date inside a URL becomes a date link, cutting the URL link in three</td><td>The URL wins</td><td>ran</td></tr>
+        <tr><td>ER1-A9</td><td>A forward link to a section called <code>Sync (Part 1)</code> stops at the first <code>)</code></td><td>Balanced parentheses</td><td>ran</td></tr>
+        <tr><td>ER1-A10</td><td><code>=&gt;  #  (bug)</code> with double spaces gets a topic tag without an action</td><td>See decision D6</td><td>ran</td></tr>
+        <tr><td>ER3-11</td><td>Outside changes next to an emoji can split it in half; on a 5,000-line note the caret jumps to the top</td><td>Never split a character</td><td>ran</td></tr>
+        <tr><td>ER3-5</td><td>A web list item starting with a non-breaking space gets a double space</td><td>One space</td><td>ran</td></tr>
+        <tr><td>ER3-6</td><td>A numbered item with a checkbox sub-list becomes a bullet</td><td>Stay numbered</td><td>ran</td></tr>
+        <tr><td>ER3-7</td><td>Code (<code>&lt;pre&gt;</code>) inside a list item collapses to one line</td><td>Keep its lines</td><td>ran</td></tr>
+        <tr><td>ER3-8</td><td>Google Docs nested lists come in one level too deep</td><td>Right level</td><td>ran</td></tr>
+        <tr><td>ER3-9</td><td>Word/Outlook list HTML without the hidden marker span keeps <code>1.</code> twice (rare: Word normally includes it)</td><td>One marker</td><td>ran</td></tr>
+        <tr><td>ER4-A1</td><td>Three state-first tests can never fail</td><td>Fix them</td><td>code</td></tr>
+      </tbody>
+    </table></div>
+  </div>
+
+  <h2>Decisions for you</h2>
+  <p>These are gaps in the design, not bugs: the spec doesn't say what should happen, or says something you may want to
+  change. Batch 1 doesn't wait for any of them. Each card has my recommendation.</p>
+  <p><b>Decided 14 November 2026:</b> Marien approved all twelve.</p>
+
+  <div class="bar" role="region" aria-label="Your decisions">
+    <div class="counts"><span><b id="c-approve">0</b> approved</span><span><b id="c-discuss">0</b> discuss</span><span><b id="c-reject">0</b> rejected</span><span><b id="c-open">0</b> undecided</span></div>
+    <div class="spacer"></div>
+    <span id="copied" aria-live="polite"></span>
+    <button class="btn primary" id="copy" type="button">Copy decisions</button>
+  </div>
+  <p class="st">Your choices and notes are kept in this browser. When you're done, use "Copy decisions" and paste the result into the chat.</p>
+
+  <div class="proposal" data-decision="approved" data-id="P1" data-adv="rec" data-title="Fix in four batches, data loss first">
+    <div class="phead"><span class="pid">P1</span><h3>Fix in four batches, data loss first</h3></div>
+    <p>Batch 1 as one small PR right away. Then test plan steps 1 and 2 (below) <em>before</em> batch 2: once the commands
+    can be tested in a table, the batch 2 fixes come with tests for every caret position, and the table will find what the
+    reviewers missed. Then batch 3, batch 4, and the rest of the test plan. Each batch is a PR: Hydrogen builds it, an
+    independent tester writes tests from the brief, another model reviews it. Release as 0.38.0 after one beta.</p>
+    <p class="why">Batch 1 is about 5 small fixes, each with a test that reproduces it. The rest is roughly a week of
+    agent work spread over several sessions.</p>
+  </div>
+
+  <div class="proposal" data-decision="approved" data-id="D1" data-adv="rec" data-title="Ctrl+Z never undoes an outside change">
+    <div class="phead"><span class="pid">D1</span><h3>Ctrl+Z never undoes an outside change</h3></div>
+    <div class="cols">
+      <div><h4>Today</h4><p>A change from the phone companion, a OneDrive sync or a reload from disk becomes an undo step. Ctrl+Z reverts it, and autosave makes that permanent.</p></div>
+      <div><h4>Proposal</h4><p>Outside changes skip the undo history. Your own earlier undo steps still work: they move along with the outside change, so undoing your typing doesn't touch the phone's edit.</p></div>
+    </div>
+  </div>
+
+  <div class="proposal" data-decision="approved" data-id="D2" data-adv="rec" data-title="Smart Home">
+    <div class="phead"><span class="pid">D2</span><h3>Home stops after the glyph</h3></div>
+    <div class="cols">
+      <div><h4>Today</h4><p>Home on <code># (tag) buy milk</code> puts the caret before the glyph. Typing there turns the action back into prose (<code>Z# (tag)…</code>).</p></div>
+      <div><h4>Proposal</h4><p>The first Home goes to where the text starts (after the glyph and any <code>(topic)</code>). A second Home goes to column 0. Same for Shift+Home. This is what code editors and outliners do.</p></div>
+    </div>
+  </div>
+
+  <div class="proposal" data-decision="approved" data-id="D3" data-adv="rec" data-title="Shift+Enter continues under the text on actions and follow-ups">
+    <div class="phead"><span class="pid">D3</span><h3>Shift+Enter continues under the text everywhere</h3></div>
+    <div class="cols">
+      <div><h4>Today</h4><p>Shift+Enter on a bullet, numbered item or topic starts a continuation line aligned under the text. On an action (<code># </code>, <code># - </code>, <code># ! </code>) or a follow-up (<code>=&gt; </code>) it goes to column 0.</p></div>
+      <div><h4>Proposal</h4><p>Align under the text on every line kind, the way word wrap already aligns those lines.</p></div>
+    </div>
+  </div>
+
+  <div class="proposal" data-decision="approved" data-id="D4" data-adv="rec" data-title="List keys work behind a state symbol">
+    <div class="phead"><span class="pid">D4</span><h3>Tab and Enter list rules work behind a state symbol</h3></div>
+    <div class="cols">
+      <div><h4>Today</h4><p>On <code># 1. item</code>, <code>o - point</code> or <code>v 2. done</code>, Tab and Shift+Tab are plain indents. The numbered-list rules (sub-items, renumbering) only see plain <code>1. </code> lines.</p></div>
+      <div><h4>Proposal</h4><p>The list rules see through a leading state symbol, so a list of numbered actions indents and renumbers like any list.</p></div>
+    </div>
+  </div>
+
+  <div class="proposal" data-decision="approved" data-id="D5" data-adv="rec" data-title="Title lines are plain text everywhere">
+    <div class="phead"><span class="pid">D5</span><h3>Title lines are plain text everywhere</h3></div>
+    <div class="cols">
+      <div><h4>Today</h4><p>A line above <code>===</code> or <code>---</code> that starts with <code># </code> or <code>v </code> is a title for some features (dimming, date links) and an action for others (glyph, counts, Ctrl+J).</p></div>
+      <div><h4>Proposal</h4><p>A title line is never an action or topic: no glyph, not counted. Written in the spec once and applied in the tokenizer, so every feature agrees.</p></div>
+    </div>
+  </div>
+
+  <div class="proposal" data-decision="approved" data-id="D6" data-adv="rec" data-title="One space rule after a marker">
+    <div class="phead"><span class="pid">D6</span><h3>One spacing rule after a marker</h3></div>
+    <div class="cols">
+      <div><h4>Today</h4><p><code>#  task</code> (two spaces) is an action, <code>=&gt;  # x</code> is not a follow-up action, and a topic tag is still found after the double space.</p></div>
+      <div><h4>Proposal</h4><p>A marker is the symbol plus exactly one space, everywhere; extra spaces belong to the text. <code>=&gt;  # x</code> becomes a follow-up action like <code>#  task</code> is an action.</p></div>
+    </div>
+  </div>
+
+  <div class="proposal" data-decision="approved" data-id="D7" data-adv="call" data-title="Way to write a literal leading symbol">
+    <div class="phead"><span class="pid">D7</span><h3>A way to write <code># </code> or <code>v </code> as plain text</h3></div>
+    <div class="cols">
+      <div><h4>Today</h4><p>Any line starting with a symbol and a space becomes a glyph: a pasted <code># config</code> comment, <code>v 2.0 released</code>, <code>x = 5</code>. There is no way out.</p></div>
+      <div><h4>Proposal</h4><p>A backslash in front (<code>\# config</code>) keeps the line as text. The editor shows the backslash dimmed; the file keeps it, so it stays readable in any text editor.</p></div>
+    </div>
+    <p class="why">Your call: it adds a rule to learn. A lighter alternative is to do nothing and leave a leading space (<code> # config</code>), which you can't see. I lean towards the backslash, because it is a convention people know from Markdown.</p>
+  </div>
+
+  <div class="proposal" data-decision="approved" data-id="D8" data-adv="rec" data-title="Switch off multiple cursors">
+    <div class="phead"><span class="pid">D8</span><h3>Switch off multiple cursors</h3></div>
+    <div class="cols">
+      <div><h4>Today</h4><p>The editor allows several cursors (Ctrl+click, Alt+drag), but every ChronoNote command (Enter, Ctrl+1–4, paste merging, list keys) acts on the first cursor only and silently drops the others.</p></div>
+      <div><h4>Proposal</h4><p>One cursor and one selection. Making every command multi-cursor-safe is a lot of work and testing for a feature a keyboard note app doesn't need.</p></div>
+    </div>
+  </div>
+
+  <div class="proposal" data-decision="approved" data-id="D9" data-adv="rec" data-title="Dragging text follows the paste rules">
+    <div class="phead"><span class="pid">D9</span><h3>Dragging text follows the paste rules</h3></div>
+    <div class="cols">
+      <div><h4>Today</h4><p>Dropping dragged text onto an empty <code># </code> line doubles the marker, and <code>by:tomorrow</code> isn't turned into a date. Ctrl+V does both.</p></div>
+      <div><h4>Proposal</h4><p>A drop goes through the same rules as a paste.</p></div>
+    </div>
+  </div>
+
+  <div class="proposal" data-decision="approved" data-id="D10" data-adv="opt" data-title="Warn about impossible due dates">
+    <div class="phead"><span class="pid">D10</span><h3>Warn about an impossible due date</h3></div>
+    <div class="cols">
+      <div><h4>Today</h4><p><code>by:2026-02-30</code> or a misspelled <code>by:fridy</code> looks like ordinary text. The action has no due date and nothing tells you.</p></div>
+      <div><h4>Proposal</h4><p>A wavy underline like a spelling mistake, with a tooltip "Not a date". Due words the app will rewrite (<code>by:fri</code>) look as they do now.</p></div>
+    </div>
+  </div>
+
+  <div class="proposal" data-decision="approved" data-id="D11" data-adv="opt" data-title="Written rule for word moves and double-click around glyphs">
+    <div class="phead"><span class="pid">D11</span><h3>A written rule for word moves and double-click around glyphs</h3></div>
+    <div class="cols">
+      <div><h4>Today</h4><p>Ctrl+Arrow, double-click and Shift+Arrow around a glyph, <code>by:</code> or a <code>(topic)</code> pill each behave as their own code happens to do. None of it is in the spec, and the tests are scattered.</p></div>
+      <div><h4>Proposal</h4><p>A glyph with its space counts as one word; <code>by:date</code> as one word; a topic pill as one word. Written in the spec and covered by the test table (step 2).</p></div>
+    </div>
+  </div>
+
+  <h2>Test plan</h2>
+  <p>Based on the test reviewer's plan, with my changes. The aim: every editing rule tested in a table across every
+  kind of line and caret position, quickly, in Vitest, with the browser kept for what only a browser can show.</p>
+  <ol class="steps">
+    <li><b>Move the editing commands out of the component.</b> Enter, Shift+Enter, Ctrl+1–7, section titles, phone toolbar
+      edits and the context menu's edits move from <code>EditorPane.svelte</code> into <code>src/lib/editor/commands.ts</code>, plus a
+      <code>createTestEditor()</code> that builds a real EditorView with the same extensions in the same order. The reviewer
+      checked that the extensions already run in Vitest. Also: only DOM tests get jsdom, which cuts <code>npm test</code> by
+      about 3 minutes of CPU.</li>
+    <li><b>The table.</b> Every command × every line kind (empty, prose, bullet, each action state, topic, <code>! </code>,
+      follow-up, numbered, title, continuation, tab-indented) × caret positions (line start, inside the marker, text
+      start, middle, end, §463 held) × selections (none, inside a line, ending at column 0, across lines). Each row
+      checks the text, the caret, and that one Ctrl+Z restores the exact old text and caret. Roughly 1,000 generated
+      cases in seconds; the expected values are written by hand for each rule, never copied from the code. Fix the three
+      state-first tests that can't fail.</li>
+    <li><b>Properties.</b> With fast-check: (a) one line means the same everywhere (editor, drawer, counts, export, menu);
+      (b) open, type, save, reload gives the same bytes for CRLF, BOM, tabs, trailing spaces, no final newline, emoji;
+      (c) outside changes never split a character and keep the caret on its line; (d) dotted numbered lists and mixed
+      tab/space indents.</li>
+    <li><b>A small browser suite for what jsdom can't do.</b> IME composition and US-International dead keys
+      (<code>'</code> then <code>e</code>) while typing <code># </code>, <code>by:</code> and Enter; touch on the phone layout;
+      right-click Paste with HTML; drag and drop; spell check while typing. About 20 tests.</li>
+    <li><b>Clean up.</b> Replace the 82 fixed sleeps with polling, and fold the overlapping
+      <code>*.independent.spec.ts</code> files into the table where it now covers them.</li>
+    <li><b>CI.</b> Add the remaining pill and alignment specs to the Windows layout job. The reviewer also proposes running
+      the native tests on every PR; I'd keep those on main (slow, and they rarely catch editing bugs) unless you want them.</li>
+  </ol>
+
+  <h2>Cost</h2>
+  <p class="st">Four Gemini 4 Hydrogen reviewer runs, 2,181k tokens on the Google budget. My own share (briefs, checking
+  42 claims, this page) is in the usage log under <code>editor-review</code>.</p>
+</div>
+
+<script>
+(function () {
+  var KEY = "chrononote-editor-review-v1";
+  var state = {};
+  try { state = JSON.parse(localStorage.getItem(KEY) || "{}") || {}; } catch (e) { state = {}; }
+  function save() { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {} }
+  var advText = { rec: "Recommended", opt: "Optional", call: "Your call" };
+  var cards = Array.prototype.slice.call(document.querySelectorAll(".proposal"));
+  cards.forEach(function (card) {
+    var id = card.dataset.id;
+    card.id = "p-" + id;
+    var meta = document.createElement("div");
+    meta.className = "meta";
+    meta.innerHTML = (card.dataset.decision === "approved" ? '<span class="tag rec">Approved</span>' : "") +
+      '<span class="tag ' + card.dataset.adv + '">' + advText[card.dataset.adv] + "</span>";
+    card.querySelector(".phead").appendChild(meta);
+    if (card.dataset.decision) return;
+    var dec = document.createElement("div");
+    dec.className = "dec";
+    dec.innerHTML =
+      '<button type="button" data-v="approve" aria-pressed="false">Approve</button>' +
+      '<button type="button" data-v="discuss" aria-pressed="false">Discuss</button>' +
+      '<button type="button" data-v="reject" aria-pressed="false">Reject</button>' +
+      '<textarea id="note-' + id + '" rows="1" placeholder="Note for ' + id + ' (optional)" aria-label="Note for ' + id + '"></textarea>';
+    card.appendChild(dec);
+    var ta = dec.querySelector("textarea");
+    ta.value = (state[id] || {}).note || "";
+    function paint() {
+      dec.querySelectorAll("button").forEach(function (b) { b.setAttribute("aria-pressed", String((state[id] || {}).v === b.dataset.v)); });
+      count();
+    }
+    dec.querySelectorAll("button").forEach(function (b) {
+      b.addEventListener("click", function () {
+        var cur = state[id] || {};
+        cur.v = cur.v === b.dataset.v ? undefined : b.dataset.v;
+        state[id] = cur; save(); paint();
+      });
+    });
+    ta.addEventListener("input", function () { var cur = state[id] || {}; cur.note = ta.value; state[id] = cur; save(); });
+    paint();
+  });
+  function count() {
+    var c = { approve: 0, discuss: 0, reject: 0, open: 0 };
+    cards.forEach(function (card) { var v = (state[card.dataset.id] || {}).v; c[v || "open"]++; });
+    Object.keys(c).forEach(function (k) { var el = document.getElementById("c-" + k); if (el) el.textContent = c[k]; });
+  }
+  count();
+  if (cards.every(function (c) { return c.dataset.decision; })) {
+    var bar = document.querySelector(".bar"); bar.hidden = true; bar.nextElementSibling.hidden = true;
+  }
+  var words = { approve: "Approve", discuss: "Discuss", reject: "Reject" };
+  document.getElementById("copy").addEventListener("click", function () {
+    var lines = ["Editor review decisions:"];
+    cards.forEach(function (card) {
+      var s = state[card.dataset.id] || {};
+      lines.push(card.dataset.id + " " + card.dataset.title + ": " + (s.v ? words[s.v] : "undecided") + (s.note ? " (" + s.note.trim() + ")" : ""));
+    });
+    var text = lines.join("\n");
+    var msg = document.getElementById("copied");
+    function fallback() {
+      var t = document.createElement("textarea"); t.value = text; document.body.appendChild(t); t.select();
+      msg.textContent = "Selected: press Ctrl+C";
+    }
+    try {
+      navigator.clipboard.writeText(text).then(function () { msg.textContent = "Copied"; }, fallback);
+    } catch (e) { fallback(); }
+  });
+})();
+</script>
