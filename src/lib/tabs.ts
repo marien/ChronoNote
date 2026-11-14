@@ -29,8 +29,8 @@ import {
   deleteNoteAndInvalidateCache,
   flushSave,
   flushScratchpadDrafts,
-  isWriteConflictError,
   noteClosingWithContent,
+  persistClosingTab,
   updateNoteOnDisk,
   writeNoteAndInvalidateCache,
 } from "./persistence";
@@ -185,20 +185,6 @@ interface ClosedTabSnapshot {
 const closedTabHistory: ClosedTabSnapshot[] = [];
 const MAX_CLOSED_HISTORY = 20;
 
-async function saveClosingTab(filename: string, content: string, baseline: string | undefined): Promise<void> {
-  if (baseline && (await sha256Hex(content)) === baseline) return;
-  const guard = baseline ? ({ kind: "hash", hash: baseline } as const) : ({ kind: "none" } as const);
-  try {
-    await writeNoteAndInvalidateCache(filename, content, guard);
-  } catch (e) {
-    if (isWriteConflictError(e)) {
-      await saveConflictCopy(filename, content);
-    } else {
-      showToast(get(t)("toast.persistence.failedToSaveNote", undefined));
-    }
-  }
-}
-
 export function closeTab(tabId: string) {
   const preCloseList = get(tabs);
   const preCloseIdx = preCloseList.findIndex((t) => t.id === tabId);
@@ -220,8 +206,7 @@ export function closeTab(tabId: string) {
     // Capture baseline and content before the tab and its clean hash are cleared below;
     // otherwise a guarded write finds no tab and overwrites without an expected hash.
     cancelScheduledSave(tabId);
-    const baseline = getTabCleanHash(tabId);
-    void saveClosingTab(closingTab.filename, closingTab.content, baseline);
+    persistClosingTab(closingTab.filename, closingTab.content, getTabCleanHash(tabId), saveConflictCopy);
   } else {
     flushSave(tabId);
   }

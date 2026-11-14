@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { get } from "svelte/store";
 import { closeTab } from "./tabs";
+import { writeNoteAndInvalidateCache } from "./persistence";
 import {
   activeTabId,
   getTabCleanHash,
@@ -97,6 +98,32 @@ describe("Rule 3: Closing a tab never overwrites a newer file", () => {
     expect(apiMock.writeConflictCopy).toHaveBeenCalledWith(expectedCopy, localUnsaved);
     expect(backend.conflictCopy(expectedCopy)).toBe(localUnsaved);
     expect(get(toastMessage)).toContain(expectedCopy);
+  });
+
+  it("a save still running at close is not mistaken for someone else's change", async () => {
+    const meta = await invoke("write_note", { filename: FILE, content: "initial\n", expectedHash: null });
+    const tabId = "tab-1";
+    tabs.set([makeTab({ id: tabId, filename: FILE, content: "autosaved\n" })]);
+    activeTabId.set(tabId);
+    markTabClean(tabId, meta.contentHash!);
+
+    // The autosave of "autosaved" is on its way to disk when the user types more and closes the tab.
+    let release!: () => void;
+    const held = new Promise<void>((r) => (release = r));
+    const realWrite = apiMock.writeNote.getMockImplementation()!;
+    apiMock.writeNote.mockImplementationOnce(async (...args) => {
+      await held;
+      return realWrite(...args);
+    });
+    const autosave = writeNoteAndInvalidateCache(FILE, "autosaved\n", { kind: "tabBaseline" });
+    await Promise.resolve();
+    tabs.set([makeTab({ id: tabId, filename: FILE, content: "autosaved\nmore\n" })]);
+    closeTab(tabId);
+    release();
+    await autosave;
+
+    await vi.waitFor(() => expect(backend.getNote(FILE)).toBe("autosaved\nmore\n"));
+    expect(apiMock.writeConflictCopy).not.toHaveBeenCalled();
   });
 
   it("writes normally once when closing a tab with unsaved typing and disk did not change", async () => {

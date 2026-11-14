@@ -29,6 +29,9 @@ import { t } from "./i18n";
 export type WriteGuard =
   | { kind: "tabBaseline" } // the open tab's clean hash, read right before the write
   | { kind: "hash"; hash: string } // a hash the caller read itself
+  // A tab being closed: its clean hash is gone by the time the write runs, so the baseline travels with the write.
+  // A save of the same file still running at close lands after that baseline was taken; its hash wins.
+  | { kind: "closing"; baseline: string | undefined }
   | { kind: "none" };
 
 /** Writes to one filename run in order, so each reads its expected hash after the previous one landed. */
@@ -426,10 +429,11 @@ function writeNoteRaw(
 ): Promise<void> {
   const previous = writeChains.get(filename) ?? Promise.resolve();
   const p = previous
-    .catch(() => {})
-    .then(() => {
+    .catch(() => undefined)
+    .then((previousHash) => {
       let expected: string | undefined;
       if (guard.kind === "hash") expected = guard.hash;
+      else if (guard.kind === "closing") expected = (typeof previousHash === "string" ? previousHash : undefined) ?? guard.baseline;
       else if (guard.kind === "tabBaseline") {
         const tab = get(tabs).find((t) => !t.isScratchpad && t.filename === filename);
         expected = tab ? getTabCleanHash(tab.id) : undefined;
@@ -449,6 +453,7 @@ function writeNoteRaw(
       const tab = get(tabs).find((t) => !t.isScratchpad && t.filename === filename);
       if (tab) markTabClean(tab.id, meta?.contentHash);
       scheduleCloudPush();
+      return meta?.contentHash; // read by the next write in this chain (the `closing` guard)
     },
     async (err) => {
       inFlightWrites.delete(p);
@@ -471,7 +476,28 @@ function writeNoteRaw(
     .finally(() => {
       if (writeChains.get(filename) === done) writeChains.delete(filename);
     });
-  return done;
+  return done.then(() => undefined);
+}
+
+/** Saves a tab that is being closed (its store entry is gone by the time the write runs). Registered as in flight at
+ * once, like `persistTab`, so quitting right after a close still waits for it. A refused write hands the text to
+ * `onConflict`, which keeps it as a conflict copy. */
+export function persistClosingTab(
+  filename: string,
+  content: string,
+  baseline: string | undefined,
+  onConflict: (filename: string, content: string) => Promise<void>,
+): void {
+  const p: Promise<void> = (async () => {
+    if (baseline && !inFlightFilenames.has(filename) && (await sha256Hex(content)) === baseline) return;
+    await writeNoteAndInvalidateCache(filename, content, { kind: "closing", baseline });
+  })()
+    .catch(async (e) => {
+      if (isWriteConflictError(e)) await onConflict(filename, content);
+      else showToast(get(t)("toast.persistence.failedToSaveNote", undefined));
+    })
+    .finally(() => inFlightWrites.delete(p));
+  inFlightWrites.add(p);
 }
 
 // --- Editing ---
