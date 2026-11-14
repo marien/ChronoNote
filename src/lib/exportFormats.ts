@@ -6,6 +6,8 @@ import { isSetextUnderline, isTitleLine, isTitleUnderline, tokenizeLine, type To
 const DEFERRED_GLYPH_HTML =
   '<span class="glyph-progress" role="img" aria-label="deferred"><svg class="glyph-progress-svg" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5.6 2.8l5.2 5.2-5.2 5.2"/></svg></span>';
 
+const DEFERRED_TEXT_HTML = '<em class="deferred-note">(deferred)</em>';
+
 export function escapeHtml(str: string): string {
   return str
     .replaceAll("&", "&amp;")
@@ -89,26 +91,35 @@ function formatMarkdownEmphasized(body: string): string {
 function renderHtmlInline(line: string, from: number, tokens: Token[]): string {
   const parts: string[] = [];
   let pos = from;
+  // A deferred consequence's ` (deferred)` goes after its own text, i.e. before the next arrow or at the end,
+  // so the export reads right without styles (as Markdown's `*(deferred)*`).
+  let pendingDeferred = false;
+  const pushText = (text: string) => {
+    if (!pendingDeferred) return void parts.push(escapeHtml(text));
+    parts.push(`${escapeHtml(text.trimEnd())} ${DEFERRED_TEXT_HTML}${text.endsWith(" ") ? " " : ""}`);
+    pendingDeferred = false;
+  };
 
   for (const t of tokens) {
     if (t.from < from) continue;
     if (t.kind !== "arrow" && t.kind !== "consequence" && t.kind !== "consequenceTopic") continue;
 
-    if (t.from > pos) {
-      parts.push(escapeHtml(line.slice(pos, t.from)));
+    if (t.from > pos || (pendingDeferred && t.kind === "arrow")) {
+      pushText(line.slice(pos, t.from));
     }
     if (t.kind === "arrow") {
       parts.push(`${ARROW_GLYPH.char} `);
     } else if (t.kind === "consequence" && t.symbol === ">") {
       parts.push(`${DEFERRED_GLYPH_HTML} `);
+      pendingDeferred = true;
     } else {
       parts.push(`${glyphSpecForSymbol(t.symbol!).char} `);
     }
     pos = t.to;
   }
 
-  if (pos < line.length) {
-    parts.push(escapeHtml(line.slice(pos)));
+  if (pos < line.length || pendingDeferred) {
+    pushText(line.slice(pos));
   }
   return parts.join("");
 }
@@ -244,7 +255,8 @@ function renderNoteContentHtml(text: string): string {
     const { indentFrom, action, topic, emphasis, bullet, restFrom } = leadingParts(tokens);
     const indent = line.slice(0, indentFrom);
     const bodyHtml = renderHtmlInline(line, restFrom, tokens);
-    const restHtml = emphasis ? `<strong>${bodyHtml}</strong>` : bodyHtml;
+    const deferredLine = action?.symbol === ">" ? ` ${DEFERRED_TEXT_HTML}` : "";
+    const restHtml = (emphasis ? `<strong>${bodyHtml}</strong>` : bodyHtml) + deferredLine;
 
     const glyphs: string[] = [];
     if (action) {
