@@ -36,7 +36,7 @@ describe("pasteOverEmptyMarker filter", () => {
     expect(paste("Notes\n# ", 8, "# call Dana")).toEqual({ doc: "Notes\n# call Dana", caret: 17 });
   });
   it("keeps the pasted symbol and every pasted line", () => {
-    expect(paste("  # ", 4, "v sent\n# follow up").doc).toBe("  v sent\n# follow up");
+    expect(paste("  # ", 4, "v sent\n# follow up").doc).toBe("  v sent\n  # follow up");
   });
   it("does nothing for typed input", () => {
     const state = EditorState.create({ doc: "# ", selection: { anchor: 2 }, extensions: [pasteOverEmptyMarker] });

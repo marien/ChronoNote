@@ -12,11 +12,52 @@ import {
 } from "@codemirror/view";
 import {
   isSetextUnderline,
-  isTopicLikeLine,
-  numberedContinuationIndent,
-  topicContinuationIndent,
+  parseNumberedItem,
 } from "../tokens";
 import { tokenizeLine } from "../grammar/tokenize";
+
+/** Character offset in `lineText` right after any leading ChronoNote marker (`- `, `# `, `# ! - `, `o 1. `, `=> # `, etc.), or `null` when the line starts with plain/indented text. */
+export function leadingMarkerCharEnd(lineText: string): number | null {
+  const [first, second, third] = tokenizeLine(lineText);
+  if (first?.kind === "arrow" && lineText.slice(0, first.from).trim() === "") {
+    if (second && (second.kind === "consequence" || second.kind === "consequenceTopic") && second.from === first.to) {
+      return second.to;
+    }
+    return first.to;
+  }
+  if (first && (first.kind === "action" || first.kind === "topic")) {
+    if (second?.kind === "bullet" && second.from === first.to) {
+      return second.to;
+    }
+    if (second?.kind === "emphasis" && second.from === first.to) {
+      if (third?.kind === "bullet" && third.from === second.from + 2) {
+        return third.to;
+      }
+      return second.from + 2;
+    }
+    const sub = parseNumberedItem(lineText.slice(first.to));
+    if (sub && sub.indent === "") {
+      return first.to + sub.markerEnd + 1;
+    }
+    return first.to;
+  }
+  if (first?.kind === "bullet") {
+    return first.to;
+  }
+  if (first?.kind === "emphasis") {
+    const emEnd = first.from + 2;
+    return second?.kind === "bullet" && second.from === emEnd ? second.to : emEnd;
+  }
+  const numbered = parseNumberedItem(lineText);
+  return numbered ? numbered.markerEnd + 1 : null;
+}
+
+/** Display column (with tabs expanded to 2 spaces) where text starts after any leading marker, or `null` when the line has no leading marker. */
+export function leadingMarkerTextColumn(lineText: string): number | null {
+  const charEnd = leadingMarkerCharEnd(lineText);
+  if (charEnd === null) return null;
+  return lineText.slice(0, charEnd).replace(/\t/g, "  ").length;
+}
 
 /**
  * Calculates the continuation indentation in characters (columns) for a line of text.
@@ -27,51 +68,13 @@ import { tokenizeLine } from "../grammar/tokenize";
 export function getLineWrapIndent(lineText: string): number {
   if (lineText.trim() === "") return 0;
 
-  // 1. Follow-up / Consequence line: e.g. "=> text" or "=> # text" or indented
-  const [first, second] = tokenizeLine(lineText);
-  if (first?.kind === "arrow" && lineText.slice(0, first.from).trim() === "") {
-    const expanded = lineText.slice(0, first.from).replace(/\t/g, "  ");
-    return expanded.length + 3 + (second?.kind === "consequence" || second?.kind === "consequenceTopic" ? 2 : 0);
-  }
+  const markerCol = leadingMarkerTextColumn(lineText);
+  if (markerCol !== null) return markerCol;
 
-  // 2. Action line: e.g. "# text", "  v text", "> deferred", "x cancelled"
-  if (first?.kind === "action") {
-    const expanded = lineText.slice(0, first.from).replace(/\t/g, "  ");
-    return expanded.length + 2 + (second?.kind === "bullet" ? 2 : 0);
-  }
-
-  // 3. Agenda topic line: e.g. "o text", "o - text", "o 1. text"
-  if (isTopicLikeLine(lineText)) {
-    if (second?.kind === "bullet") {
-      const expanded = lineText.slice(0, first.from).replace(/\t/g, "  ");
-      return expanded.length + 4;
-    }
-    const pad = topicContinuationIndent(lineText);
-    if (pad !== null) {
-      return pad.replace(/\t/g, "  ").length;
-    }
-  }
-
-  // 4. Numbered list item: e.g. "1. text", "  2) text", "10. text"
-  const numberedPad = numberedContinuationIndent(lineText);
-  if (numberedPad !== null) {
-    return numberedPad.replace(/\t/g, "  ").length;
-  }
-
-  // 5. Bullet or emphasis list item: e.g. "- text", "* text", "! important", "! - important item" (#208)
-  const emphasisBullet = lineText.match(/^(\s*)!\s[-*]\s/);
-  if (emphasisBullet) return emphasisBullet[1].replace(/\t/g, "  ").length + 4;
-  const bullet = lineText.match(/^(\s*)([-*!])\s/);
-  if (bullet) {
-    const expanded = bullet[1].replace(/\t/g, "  ");
-    return expanded.length + 2;
-  }
-
-  // 6. Plain indented text: e.g. "  text", "    text"
+  // Plain indented text: e.g. "  text", "    text"
   const leading = lineText.match(/^(\s+)\S/);
   if (leading) {
-    const expanded = leading[1].replace(/\t/g, "  ");
-    return expanded.length;
+    return leading[1].replace(/\t/g, "  ").length;
   }
 
   return 0;

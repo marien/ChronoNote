@@ -149,13 +149,13 @@ export function actionLineEnter(
   nextLine?: string,
 ): { removeSymbol: true } | { plain: true } | { insert: string } | null {
   if (col !== undefined && isCaretInLeadingSymbol(lineText, col)) return { plain: true };
+  if (nextLine !== undefined && isTitleUnderline(nextLine)) return { plain: true };
   const actionNumbered = lineText.match(/^(\s*)([#vx>])\s+((?:[1-9]\d{0,8})(?:\.[1-9]\d{0,8})*)([.)])(\s|$)(.*)$/);
   if (actionNumbered) {
     const [, indent, sym, numStr, delim, , text] = actionNumbered;
     if (text.trim() === "") return { removeSymbol: true };
     const markerEnd = indent.length + sym.length + 1 + numStr.length + delim.length;
     if (col !== undefined && col <= markerEnd) return { plain: true };
-    if (nextLine !== undefined && isSetextUnderline(nextLine)) return { plain: true };
     const numbers = numStr.split(".").map(Number);
     numbers[numbers.length - 1] += 1;
     const nextMarker = numbers.join(".") + delim;
@@ -198,6 +198,7 @@ export function topicLineEnter(
   nextLine?: string,
 ): { removeSymbol: true } | { plain: true } | { insert: string } | null {
   if (col !== undefined && isCaretInLeadingSymbol(lineText, col)) return { plain: true };
+  if (nextLine !== undefined && isTitleUnderline(nextLine)) return { plain: true };
   // Topic with numbered list: e.g. "o 1. Title" or ". 1. Title"
   const topicNumbered = lineText.match(/^(\s*)([o.,])\s+((?:[1-9]\d{0,8})(?:\.[1-9]\d{0,8})*)([.)])(\s|$)(.*)$/);
   if (topicNumbered) {
@@ -205,15 +206,14 @@ export function topicLineEnter(
     if (text.trim() === "") return { removeSymbol: true };
     const markerEnd = indent.length + 2 + numStr.length + delim.length;
     if (col !== undefined && col <= markerEnd) return { plain: true };
-    if (nextLine !== undefined && isSetextUnderline(nextLine)) return { plain: true };
     const numbers = numStr.split(".").map(Number);
     numbers[numbers.length - 1] += 1;
     const nextMarker = numbers.join(".") + delim;
     return { insert: `\n${indent}o ${nextMarker} ` };
   }
 
-  // Topic with bullet: e.g. "o - Title" or "o * Title"
-  const topicBullet = lineText.match(/^(\s*)([o.,])\s+([-*])(\s|$)(.*)$/);
+  // Topic with bullet (and optional emphasis `#208` / `o ! -`): e.g. "o - Title" or "o ! - Title"
+  const topicBullet = lineText.match(/^(\s*)([o.,])\s+((?:!\s)?[-*])(\s|$)(.*)$/);
   if (topicBullet) {
     const [, indent, , marker, , text] = topicBullet;
     if (text.trim() === "") return { removeSymbol: true };
@@ -238,9 +238,13 @@ export function topicContinuationIndent(lineText: string): string | null {
     const [, indent, , numStr, delim] = topicNumbered;
     return indent + "  " + " ".repeat(numStr.length + delim.length + 1);
   }
-  const topicBullet = lineText.match(/^(\s*)([o.,])\s+([-*])(\s|$)/);
-  if (topicBullet) {
-    return topicBullet[1] + "    ";
+  const topicEmphasisBullet = lineText.match(/^(\s*)([o.,])\s+!\s[-*](\s|$)/);
+  if (topicEmphasisBullet) {
+    return topicEmphasisBullet[1] + "      ";
+  }
+  const topicBulletOrEmphasis = lineText.match(/^(\s*)([o.,])\s+(?:[-*]|!)(\s|$)/);
+  if (topicBulletOrEmphasis) {
+    return topicBulletOrEmphasis[1] + "    ";
   }
   const topicPlain = lineText.match(/^(\s*)([o.,])\s/);
   if (topicPlain) {
@@ -423,7 +427,7 @@ export function numberedListEnter(
   if (!item) return null;
   if (item.text === "") return { exit: true };
   if (col <= item.markerEnd) return { plain: true };
-  if (nextLine !== undefined && isSetextUnderline(nextLine)) return { plain: true };
+  if (nextLine !== undefined && isTitleUnderline(nextLine)) return { plain: true };
   return { insert: `\n${item.indent}${nextNumberedMarker(item)} ` };
 }
 
@@ -781,6 +785,11 @@ export function countWords(text: string): number {
 
 export function isSetextUnderline(line: string): boolean {
   return /^={3,}$/.test(line.trim());
+}
+
+/** True for section (`===`) or subsection (`---`) underlines. */
+export function isTitleUnderline(line: string): boolean {
+  return isSetextUnderline(line) || /^-{3,}$/.test(line.trim());
 }
 
 export function getSectionHeaderForLine(lines: string[], lineIdx: number): string {

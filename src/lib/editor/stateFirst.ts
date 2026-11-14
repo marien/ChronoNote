@@ -12,6 +12,10 @@ export const stateFirstFilter = EditorState.transactionFilter.of((tr) => {
   if (!(tr.isUserEvent("input") || tr.isUserEvent("select") || tr.isUserEvent("delete") || tr.isUserEvent("move"))) {
     return tr;
   }
+  // Moving a line up/down carries the caret along with it; neither the moved line nor the swapped neighbor was left after editing.
+  if (tr.isUserEvent("move.line")) {
+    return tr;
+  }
   if (tr.startState.selection.ranges.length > 1 || tr.newSelection.ranges.length > 1) {
     return tr;
   }
@@ -20,8 +24,8 @@ export const stateFirstFilter = EditorState.transactionFilter.of((tr) => {
   const newHead = tr.newSelection.main.head;
   const newLine = tr.newDoc.lineAt(newHead);
 
-  // Map the start line's position through transaction changes
-  const mappedPos = tr.changes.mapPos(startLine.from);
+  // Map with assoc = 1 so text inserted right at startLine.from still identifies the shifted line rather than the line inserted above it.
+  const mappedPos = tr.changes.mapPos(startLine.from, 1);
   if (mappedPos < 0 || mappedPos > tr.newDoc.length) return tr;
   const prevLineInNew = tr.newDoc.lineAt(mappedPos);
 

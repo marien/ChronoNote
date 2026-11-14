@@ -1,8 +1,10 @@
-import { EditorSelection } from "@codemirror/state";
+import { EditorSelection, type ChangeSpec, type EditorState, type Line, type SelectionRange, type Text, type TransactionSpec } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
-import { isolateHistory } from "@codemirror/commands";
+import { cursorLineBoundaryBackward, isolateHistory, selectLineBoundaryBackward } from "@codemirror/commands";
 import { lineStateAnnouncement } from "./glyphs";
-import { exitNumberedList, moveEmptySubItemOut } from "./numberedListKeys";
+import { exitNumberedListSpec, moveEmptySubItemOutSpec, shiftTabCommand, tabCommand } from "./numberedListKeys";
+import { leadingMarkerCharEnd, leadingMarkerTextColumn } from "./wrapIndent";
+import { tokenizeLine } from "../grammar/tokenize";
 import { underlineFor } from "../sectionFormat";
 import type { EditorApi } from "../stores";
 import {
@@ -12,16 +14,16 @@ import {
   innermostTopicSymbol,
   isCaretInLeadingSymbol,
   isSetextUnderline,
+  isTitleUnderline,
   isTopicLikeLine,
   leadingMarkerIndent,
-  numberedContinuationIndent,
+  leadingTopicTag,
   numberedListEnter,
   parseNumberedItem,
   referenceColumn,
   renumberAfterInsert,
   setActionSymbolTo,
   setTopicSymbolTo,
-  topicContinuationIndent,
   topicLineEnter,
   withoutLineMarker,
 } from "../tokens";
@@ -92,54 +94,89 @@ export function applyToCurrentLine(v: EditorView, transform: (line: string, col:
  * caller has the document context (the *next* line) to tell. One
  * transaction for the whole span, so it undoes as a single step. A
  * no-op (returns `false`) when nothing in the span changed at all. */
+/** Lines covered by `[from, to]`. When a non-empty selection ends at column 0 of a line, that trailing line has no characters selected and is excluded. */
+function selectedLineRange(doc: Text, from: number, to: number): { firstLine: Line; lastLine: Line } {
+  const firstLine = doc.lineAt(from);
+  const rawLast = doc.lineAt(to);
+  const lastLine = from < to && to === rawLast.from ? doc.lineAt(to - 1) : rawLast;
+  return { firstLine, lastLine };
+}
+
+interface LineEdit {
+  line: Line;
+  orig: string;
+  updated: string;
+  change: { from: number; to: number; insert: string };
+}
+
+function minimalLineEdit(line: Line, updated: string): LineEdit {
+  const orig = line.text;
+  let p = 0;
+  while (p < orig.length && p < updated.length && orig[p] === updated[p]) p++;
+  let s = 0;
+  while (s < orig.length - p && s < updated.length - p && orig[orig.length - 1 - s] === updated[updated.length - 1 - s]) s++;
+  return {
+    line,
+    orig,
+    updated,
+    change: { from: line.from + p, to: line.to - s, insert: updated.slice(p, updated.length - s) },
+  };
+}
+
+function mapSelectionAcrossLineEdits(
+  state: EditorState,
+  sel: SelectionRange,
+  edits: LineEdit[],
+  moveToEditEnd = false,
+): SelectionRange {
+  const cs = state.changes(edits.map((e) => e.change));
+  const byLine = new Map(edits.map((e) => [e.line.number, e]));
+  const mapEndpoint = (pos: number): number => {
+    const lineNum = state.doc.lineAt(pos).number;
+    const edit = byLine.get(lineNum);
+    if (!edit) return cs.mapPos(pos, pos === sel.from ? -1 : 1);
+    if (moveToEditEnd) return cs.mapPos(edit.change.to, 1);
+    const offset = pos - edit.line.from;
+    const at = changedFrom(edit.orig, edit.updated);
+    const delta = edit.updated.length - edit.orig.length;
+    const keepStart = !sel.empty && pos === sel.from && offset === at && delta > 0;
+    const newOffset = keepStart ? offset : Math.max(0, Math.min(offset + (offset >= at ? delta : 0), edit.updated.length));
+    return cs.mapPos(edit.line.from, -1) + newOffset;
+  };
+  return EditorSelection.range(mapEndpoint(sel.anchor), mapEndpoint(sel.head));
+}
+
 export function applyActionStateToSelection(
   v: EditorView,
   transform: (line: string, col: number) => string | null,
   targetSymbol?: string,
 ): boolean {
   const sel = v.state.selection.main;
-  const { from, to } = sel;
-  const firstLine = v.state.doc.lineAt(from);
-  const lastLine = v.state.doc.lineAt(to);
-  let changed = false;
-  const lines: string[] = [];
+  const { firstLine, lastLine } = selectedLineRange(v.state.doc, sel.from, sel.to);
+  const edits: LineEdit[] = [];
+  let firstResult: string | null = null;
   for (let n = firstLine.number; n <= lastLine.number; n++) {
     const docLine = v.state.doc.line(n);
-    const text = docLine.text;
-    const updated = isHeaderLine(v, n) ? null : transform(text, referenceColumn(sel, docLine));
-    if (updated !== null) changed = true;
-    lines.push(updated ?? text);
+    const updated = isHeaderLine(v, n) ? null : transform(docLine.text, referenceColumn(sel, docLine));
+    if (updated !== null && firstResult === null) firstResult = updated;
+    if (updated !== null && updated !== docLine.text) {
+      edits.push(minimalLineEdit(docLine, updated));
+    }
   }
-  if (!changed) return false;
+  if (edits.length === 0) return firstResult !== null;
 
   const sym =
     targetSymbol ??
-    (lines.length > 0
-      ? innermostActionSymbol(lines[0]) ?? innermostTopicSymbol(lines[0])
+    (firstResult !== null
+      ? innermostActionSymbol(firstResult) ?? innermostTopicSymbol(firstResult)
       : null);
   const announceEffect = sym ? [EditorView.announce.of(lineStateAnnouncement(sym))] : [];
 
-  if (firstLine.number === lastLine.number) {
-    const origText = firstLine.text;
-    const updatedText = lines[0];
-    const delta = updatedText.length - origText.length;
-    const anchorOffset = sel.anchor - firstLine.from;
-    const headOffset = sel.head - firstLine.from;
-    const at = changedFrom(origText, updatedText);
-    const newAnchor = firstLine.from + Math.max(0, Math.min(anchorOffset + (anchorOffset >= at ? delta : 0), updatedText.length));
-    const newHead = firstLine.from + Math.max(0, Math.min(headOffset + (headOffset >= at ? delta : 0), updatedText.length));
-    v.dispatch({
-      changes: { from: firstLine.from, to: lastLine.to, insert: updatedText },
-      selection: EditorSelection.range(newAnchor, newHead),
-      scrollIntoView: true,
-      userEvent: "input",
-      effects: announceEffect,
-    });
-    return true;
-  }
-
   v.dispatch({
-    changes: { from: firstLine.from, to: lastLine.to, insert: lines.join("\n") },
+    changes: edits.map((e) => e.change),
+    selection: mapSelectionAcrossLineEdits(v.state, sel, edits),
+    scrollIntoView: true,
+    userEvent: "input",
     effects: announceEffect,
   });
   return true;
@@ -224,6 +261,30 @@ export function extendSelection(v: EditorView, target: number): boolean {
   return true;
 }
 
+/** Character offset in `lineText` where body text begins after leading markers, whitespace, and any leading `(topic)` tag. */
+export function lineTextStartOffset(lineText: string): number {
+  const tag = leadingTopicTag(lineText);
+  if (tag) return lineText[tag.to] === " " ? tag.to + 1 : tag.to;
+  const markerEnd = leadingMarkerCharEnd(lineText);
+  if (markerEnd !== null) return markerEnd;
+  return lineText.match(/^(\s*)/)![1].length;
+}
+
+/** Smart Home / Shift-Home (Decision D2): toggles between the line's text start (after markers/indent/topic tag) and column 0. On wrapped lines past the first visual row, acts on the visual line first. */
+export function smartHome(v: EditorView, extend: boolean): boolean {
+  const sel = v.state.selection.main;
+  const line = v.state.doc.lineAt(sel.head);
+  if (v.lineWrapping) {
+    const visualStart = v.moveToLineBoundary(EditorSelection.cursor(sel.head, sel.assoc), false, true);
+    if (visualStart.head > line.from) {
+      return (extend ? selectLineBoundaryBackward : cursorLineBoundaryBackward)(v);
+    }
+  }
+  const textStart = line.from + lineTextStartOffset(line.text);
+  const target = sel.head === textStart ? line.from : textStart;
+  return extend ? extendSelection(v, target) : moveCaret(v, target);
+}
+
 /** Ctrl/Cmd+Shift+S: turns the current line into a section header by
  * inserting a matching-length `=` underline right below it, then a fresh
  * line with the cursor on it so you can start typing the section body
@@ -233,6 +294,7 @@ export function extendSelection(v: EditorView, target: number): boolean {
 export function convertLineToSection(v: EditorView): boolean {
   const pos = v.state.selection.main.head;
   const line = v.state.doc.lineAt(pos);
+  if (isHeaderLine(v, line.number) || isSetextUnderline(line.text)) return false;
   const title = line.text.trim();
   if (!title) return false;
   const insertText = "\n" + underlineFor(title) + "\n";
@@ -256,155 +318,177 @@ export function convertLineToSection(v: EditorView): boolean {
  * continuation line at the same indentation, no new marker. Off all
  * these line kinds, Enter defers to CodeMirror's own default newline;
  * Shift+Enter isn't bound elsewhere, so it inserts a plain newline. */
+function computeBulletContinuationSpec(state: EditorState, pos: number, insertBullet: boolean): TransactionSpec | null {
+  const line = state.doc.lineAt(pos);
+  const col = pos - line.from;
+  const nextLine = line.number < state.doc.lines ? state.doc.line(line.number + 1).text : undefined;
+  const plainNewline = (extra = ""): TransactionSpec => {
+    const insert = "\n" + extra;
+    return {
+      changes: { from: pos, to: pos, insert },
+      selection: { anchor: pos + insert.length },
+      userEvent: "input",
+      scrollIntoView: true,
+    };
+  };
+
+  // Title lines above === or --- always split as a plain newline rather than continuing list markers into the header.
+  if (nextLine !== undefined && isTitleUnderline(nextLine)) return plainNewline();
+
+  // Caret before a leading marker (in the indent or at col 0), inside the leading symbol, or before a numbered marker end is always a plain newline for both Enter and Shift+Enter.
+  const leadIndent = leadingMarkerIndent(line.text);
+  if (leadIndent !== null && col <= leadIndent) return plainNewline();
+  if (isCaretInLeadingSymbol(line.text, col)) return plainNewline();
+  const numbered = parseNumberedItem(line.text);
+  if (numbered && col <= numbered.markerEnd) return plainNewline();
+
+  if (!insertBullet) {
+    const first = tokenizeLine(line.text)[0];
+    if (first && (first.kind === "action" || first.kind === "topic")) {
+      const sub = parseNumberedItem(line.text.slice(first.to));
+      if (sub && sub.indent === "" && col <= first.to + sub.markerEnd) {
+        return plainNewline();
+      }
+    }
+    const contCol = leadingMarkerTextColumn(line.text);
+    return plainNewline(contCol ? " ".repeat(contCol) : "");
+  }
+
+  // #208: `! - item` continues as `! - `.
+  const bulletMatch = line.text.match(/^(\s*)((?:! )?[-*])\s/);
+  if (bulletMatch) {
+    const [, indent, marker] = bulletMatch;
+    if (line.text.trim() === marker) {
+      return (
+        moveEmptySubItemOutSpec(state, line.from, line.number - 1, "input") ?? {
+          changes: { from: line.from, to: line.to, insert: "" },
+          selection: { anchor: line.from },
+          userEvent: "input",
+          scrollIntoView: true,
+        }
+      );
+    }
+    return plainNewline(`${indent}${marker} `);
+  }
+
+  if (isTopicLikeLine(line.text)) {
+    const step = topicLineEnter(line.text, col, nextLine);
+    if (step && "removeSymbol" in step) {
+      return {
+        changes: { from: line.from, to: line.to, insert: "" },
+        selection: { anchor: line.from },
+        userEvent: "input",
+        scrollIntoView: true,
+      };
+    }
+    if (step && "insert" in step) {
+      return {
+        changes: { from: pos, to: pos, insert: step.insert },
+        selection: { anchor: pos + step.insert.length },
+        userEvent: "input",
+        scrollIntoView: true,
+      };
+    }
+    return plainNewline();
+  }
+
+  if (numbered) {
+    const step = numberedListEnter(line.text, col, nextLine);
+    if (step && "exit" in step) {
+      return (
+        moveEmptySubItemOutSpec(state, line.from, line.number - 1, "input") ??
+        exitNumberedListSpec(state, line.from, line.number - 1)
+      );
+    }
+    if (step && "insert" in step) {
+      // #123: an item inserted in the middle of a list pushes the colliding numbers after it down by one.
+      const following: string[] = [];
+      for (let n = line.number + 1; n <= state.doc.lines; n++) {
+        const text = state.doc.line(n).text;
+        if (text.trim() === "") break;
+        following.push(text);
+      }
+      const renumber = renumberAfterInsert(following, numbered).map((r) => {
+        const l = state.doc.line(line.number + 1 + r.index);
+        return { from: l.from, to: l.to, insert: r.text };
+      });
+      return {
+        changes: [{ from: pos, to: pos, insert: step.insert }, ...renumber],
+        selection: { anchor: pos + step.insert.length },
+        userEvent: "input",
+        annotations: isolateHistory.of("full"),
+        scrollIntoView: true,
+      };
+    }
+    return plainNewline();
+  }
+
+  // §85 (#12): Enter on an action or consequence line continues it as `# ` / `=> # ` / `=> `.
+  const edit = actionLineEnter(line.text, col, nextLine);
+  if (edit === null) return null;
+  if ("removeSymbol" in edit) {
+    return {
+      changes: { from: line.from, to: line.to, insert: "" },
+      selection: { anchor: line.from },
+      userEvent: "input",
+      scrollIntoView: true,
+    };
+  }
+  if ("plain" in edit) return plainNewline();
+  return {
+    changes: { from: pos, to: pos, insert: edit.insert },
+    selection: { anchor: pos + edit.insert.length },
+    userEvent: "input",
+    scrollIntoView: true,
+  };
+}
+
 export function bulletContinuation(insertBullet: boolean) {
   return (v: EditorView): boolean => {
-    const pos = v.state.selection.main.head;
-    const line = v.state.doc.lineAt(pos);
-    const col = pos - line.from;
-    const plainNewline = (): true => {
-      v.dispatch({
-        changes: { from: pos, to: pos, insert: "\n" },
-        selection: { anchor: pos + 1 },
-        scrollIntoView: true,
-      });
-      return true;
-    };
-    // #34: Enter with the caret *before* a leading bullet / action / `=> `
-    // token (in the indent, or column 0), or right after its symbol before
-    // its trailing space (§463), is a plain newline — not a continuation or exit.
-    if (insertBullet) {
-      const leadIndent = leadingMarkerIndent(line.text);
-      if (leadIndent !== null && col <= leadIndent) return plainNewline();
-      if (isCaretInLeadingSymbol(line.text, col)) return plainNewline();
-    }
-    function handleEmptySubItem(lineObj: { from: number; number: number }): boolean {
-      return moveEmptySubItemOut(v, lineObj.from, lineObj.number - 1, "input");
-    }
-
-    // #208: `! - item` continues as `! - `.
-    const match = line.text.match(/^(\s*)((?:! )?[-*])\s/);
-    if (!match) {
-      if (isTopicLikeLine(line.text)) {
-        if (!insertBullet) {
-          const pad = topicContinuationIndent(line.text) ?? "  ";
-          v.dispatch({
-            changes: { from: pos, to: pos, insert: "\n" + pad },
-            selection: { anchor: pos + 1 + pad.length },
-            scrollIntoView: true,
-          });
-          return true;
-        }
-        const nextLine = line.number < v.state.doc.lines ? v.state.doc.line(line.number + 1).text : undefined;
-        const step = topicLineEnter(line.text, pos - line.from, nextLine);
-        if (step && "removeSymbol" in step) {
-          v.dispatch({ changes: { from: line.from, to: line.to, insert: "" }, selection: { anchor: line.from } });
-        } else if (step && "plain" in step) {
-          v.dispatch({ changes: { from: pos, to: pos, insert: "\n" }, selection: { anchor: pos + 1 }, scrollIntoView: true });
-        } else if (step && "insert" in step) {
-          v.dispatch({
-            changes: { from: pos, to: pos, insert: step.insert },
-            selection: { anchor: pos + step.insert.length },
-            scrollIntoView: true,
-          });
-        } else {
-          v.dispatch({ changes: { from: pos, to: pos, insert: "\n" }, selection: { anchor: pos + 1 }, scrollIntoView: true });
-        }
-        return true;
-      }
-      // Numbered items (`1.`, `2)`, `1.1.`): Enter continues with the next number, an empty item exits, Shift+Enter
-      // aligns under the item's text. The marker is the first non-blank character, so this never overlaps a bullet.
-      const numbered = parseNumberedItem(line.text);
-      if (numbered) {
-        if (!insertBullet) {
-          const pad = numberedContinuationIndent(line.text)!;
-          v.dispatch({
-            changes: { from: pos, to: pos, insert: "\n" + pad },
-            selection: { anchor: pos + 1 + pad.length },
-            scrollIntoView: true,
-          });
-          return true;
-        }
-        if (col <= numbered.markerEnd) return plainNewline();
-        const nextLine = line.number < v.state.doc.lines ? v.state.doc.line(line.number + 1).text : undefined;
-        const step = numberedListEnter(line.text, col, nextLine);
-        if (step && "exit" in step) {
-          if (handleEmptySubItem(line)) return true;
-          exitNumberedList(v, line.from, line.number - 1);
-        } else if (step && "insert" in step) {
-          // #123: an item inserted in the middle of a list pushes the colliding numbers after it down by one.
-          const following: string[] = [];
-          for (let n = line.number + 1; n <= v.state.doc.lines; n++) {
-            const text = v.state.doc.line(n).text;
-            if (text.trim() === "") break;
-            following.push(text);
-          }
-          const renumber = renumberAfterInsert(following, numbered).map((r) => {
-            const l = v.state.doc.line(line.number + 1 + r.index);
-            return { from: l.from, to: l.to, insert: r.text };
-          });
-          v.dispatch({
-            changes: [{ from: pos, to: pos, insert: step.insert }, ...renumber],
-            selection: { anchor: pos + step.insert.length },
-            userEvent: "input",
-            annotations: isolateHistory.of("full"),
-            scrollIntoView: true,
-          });
-        } else {
-          v.dispatch({ changes: { from: pos, to: pos, insert: "\n" }, selection: { anchor: pos + 1 }, scrollIntoView: true });
-        }
-        return true;
-      }
-      if (!insertBullet) {
-        v.dispatch({ changes: { from: pos, to: pos, insert: "\n" }, selection: { anchor: pos + 1 }, scrollIntoView: true });
-        return true;
-      }
-      // §85 (#12): Enter on an action line continues it as a new open action.
-      const nextLine = line.number < v.state.doc.lines ? v.state.doc.line(line.number + 1).text : undefined;
-      const edit = actionLineEnter(line.text, pos - line.from, nextLine);
-      if (edit === null) return false;
-      if ("removeSymbol" in edit) {
-        v.dispatch({ changes: { from: line.from, to: line.to, insert: "" }, selection: { anchor: line.from } });
-      } else if ("plain" in edit) {
-        v.dispatch({ changes: { from: pos, to: pos, insert: "\n" }, selection: { anchor: pos + 1 }, scrollIntoView: true });
-      } else {
-        v.dispatch({
-          changes: { from: pos, to: pos, insert: edit.insert },
-          selection: { anchor: pos + edit.insert.length },
-          scrollIntoView: true,
-          userEvent: "input",
-        });
-      }
+    const sel = v.state.selection.main;
+    if (sel.empty) {
+      const spec = computeBulletContinuationSpec(v.state, sel.head, insertBullet);
+      if (!spec) return false;
+      v.dispatch(spec);
       return true;
     }
-    const [, indent, marker] = match;
-    if (insertBullet && line.text.trim() === marker) {
-      if (handleEmptySubItem(line)) return true;
-      v.dispatch({ changes: { from: line.from, to: line.to, insert: "" }, selection: { anchor: line.from } });
-      return true;
-    }
-    // Shift+Enter aligns under the bullet's *text* (past the marker),
-    // not just at the bullet's own indentation — two spaces further in.
-    const insertText = insertBullet ? `\n${indent}${marker} ` : `\n${indent}${" ".repeat(marker.length + 1)}`;
-    v.dispatch({
-      changes: { from: pos, to: pos, insert: insertText },
-      selection: { anchor: pos + insertText.length },
-      scrollIntoView: true,
+    // Non-empty selection: compose deleting the selection and the continuation step into a single undoable transaction.
+    const delTr = v.state.update({
+      changes: { from: sel.from, to: sel.to, insert: "" },
+      selection: { anchor: sel.from },
+    });
+    const postLine = delTr.state.doc.lineAt(sel.from);
+    const plainIndent = postLine.text.slice(0, sel.from - postLine.from).match(/^\s*/)![0];
+    const spec = computeBulletContinuationSpec(delTr.state, sel.from, insertBullet) ?? {
+      changes: { from: sel.from, to: sel.from, insert: "\n" + plainIndent },
+      selection: { anchor: sel.from + 1 + plainIndent.length },
       userEvent: "input",
+      scrollIntoView: true,
+    };
+    const stepTr = delTr.state.update(spec);
+    v.dispatch({
+      changes: delTr.changes.compose(stepTr.changes),
+      selection: stepTr.selection,
+      userEvent: "input",
+      annotations: spec.annotations,
+      scrollIntoView: true,
     });
     return true;
   };
 }
 
-/** Indent or dedent all lines touched by the selection by two spaces. */
-export function indentLines(view: EditorView, dedent = false): void {
-  const { from, to } = view.state.selection.main;
-  const firstLine = view.state.doc.lineAt(from);
-  const lastLine = view.state.doc.lineAt(to);
-  const changes = [];
+/** Indent or dedent all lines touched by the selection (delegating numbered/continuation lines first, otherwise 2 spaces or leading tab/spaces). */
+export function indentLines(view: EditorView, dedent = false): boolean {
+  if ((dedent ? shiftTabCommand : tabCommand)(view)) return true;
+  const sel = view.state.selection.main;
+  const { firstLine, lastLine } = selectedLineRange(view.state.doc, sel.from, sel.to);
+  const changes: ChangeSpec[] = [];
   for (let l = firstLine.number; l <= lastLine.number; l++) {
     const line = view.state.doc.line(l);
     if (dedent) {
-      if (line.text.startsWith("  ")) {
+      if (line.text.startsWith("\t")) {
+        changes.push({ from: line.from, to: line.from + 1, insert: "" });
+      } else if (line.text.startsWith("  ")) {
         changes.push({ from: line.from, to: line.from + 2, insert: "" });
       } else if (line.text.startsWith(" ")) {
         changes.push({ from: line.from, to: line.from + 1, insert: "" });
@@ -413,78 +497,82 @@ export function indentLines(view: EditorView, dedent = false): void {
       changes.push({ from: line.from, to: line.from, insert: "  " });
     }
   }
-  if (changes.length) view.dispatch({ changes, scrollIntoView: true });
+  if (changes.length === 0) return false;
+  const cs = view.state.changes(changes);
+  view.dispatch({
+    changes: cs,
+    selection: EditorSelection.range(cs.mapPos(sel.anchor, dedent ? -1 : 1), cs.mapPos(sel.head, dedent ? -1 : 1)),
+    userEvent: "input.indent",
+    scrollIntoView: true,
+  });
+  return true;
+}
+
+function toggleBulletOrEmphasis(lineText: string, token: "-" | "!"): string {
+  const [first, second, third] = tokenizeLine(lineText);
+  if (first && (first.kind === "action" || first.kind === "topic")) {
+    const head = lineText.slice(0, first.to);
+    if (token === "-") {
+      if (second?.kind === "bullet" && second.from === first.to) {
+        return head + lineText.slice(second.to);
+      }
+      if (second?.kind === "emphasis" && second.from === first.to) {
+        if (third?.kind === "bullet" && third.from === second.from + 2) {
+          return lineText.slice(0, third.from) + lineText.slice(third.to);
+        }
+        return lineText.slice(0, second.from + 2) + "- " + lineText.slice(second.from + 2);
+      }
+      return head + "- " + lineText.slice(first.to);
+    }
+    if (second?.kind === "emphasis" && second.from === first.to) {
+      return head + lineText.slice(second.from + 2);
+    }
+    return head + "! " + lineText.slice(first.to);
+  }
+  if (first?.kind === "bullet") {
+    if (token === "-") return lineText.slice(0, first.from) + lineText.slice(first.to);
+    return lineText.slice(0, first.from) + "! " + lineText.slice(first.from);
+  }
+  if (first?.kind === "emphasis") {
+    const emEnd = first.from + 2;
+    if (token === "-") {
+      if (second?.kind === "bullet" && second.from === emEnd) {
+        return lineText.slice(0, second.from) + lineText.slice(second.to);
+      }
+      return lineText.slice(0, emEnd) + "- " + lineText.slice(emEnd);
+    }
+    return lineText.slice(0, first.from) + lineText.slice(emEnd);
+  }
+  const indent = lineText.match(/^(\s*)/)?.[1] ?? "";
+  return `${indent}${token} ${withoutLineMarker(lineText)}`;
 }
 
 /** Phone-toolbar token toggle/setter across all lines touched by the selection. */
 export function applyLineToken(view: EditorView, token: LineToken): void {
   const sel = view.state.selection.main;
-  const { from, to } = sel;
-  const firstLine = view.state.doc.lineAt(from);
-  const lastLine = view.state.doc.lineAt(to);
-  const changes: { from: number; to: number; insert: string }[] = [];
+  const { firstLine, lastLine } = selectedLineRange(view.state.doc, sel.from, sel.to);
+  const edits: LineEdit[] = [];
   for (let l = firstLine.number; l <= lastLine.number; l++) {
     const line = view.state.doc.line(l);
     let updated: string | null = null;
     if (token === "#" || token === "v" || token === ">" || token === "x") {
       updated = setActionSymbolTo(line.text, token, referenceColumn(sel, line));
-    } else if (token === "-") {
-      if (/^\s*[-*]\s/.test(line.text)) {
-        updated = line.text.replace(/^(\s*)[-*]\s/, "$1");
-      } else {
-        const indent = line.text.match(/^(\s*)/)?.[1] ?? "";
-        const stripped = withoutLineMarker(line.text);
-        updated = `${indent}- ${stripped}`;
-      }
-    } else if (token === "!") {
-      if (/^\s*!\s/.test(line.text)) {
-        updated = line.text.replace(/^(\s*)!\s/, "$1");
-      } else {
-        const indent = line.text.match(/^(\s*)/)?.[1] ?? "";
-        const stripped = withoutLineMarker(line.text);
-        updated = `${indent}! ${stripped}`;
-      }
+    } else if (token === "-" || token === "!") {
+      updated = toggleBulletOrEmphasis(line.text, token);
     } else if (token === "=>") {
-      if (line.text.includes("=> ")) {
-        updated = line.text.replace(/=>\s/, "");
-      } else {
-        updated = `${line.text} => `;
-      }
+      updated = line.text.includes("=> ") ? line.text.replace(/=>\s/, "") : `${line.text} => `;
     } else if (token === "o" || token === "." || token === ",") {
       updated = setTopicSymbolTo(line.text, token, referenceColumn(sel, line));
     }
     if (updated !== null && updated !== line.text) {
-      changes.push({ from: line.from, to: line.to, insert: updated });
+      edits.push(minimalLineEdit(line, updated));
     }
   }
-  if (changes.length) {
-    // Replacing a whole line with no explicit selection makes
-    // CodeMirror collapse the caret to the line's start, so typing
-    // right after tapping e.g. the ☐ button put the text *before*
-    // the inserted token (`x#` instead of `# x`). Carry the caret
-    // across each edit: prefix edits shift it by the length delta
-    // (never before the line start); the `=>` append moves it to
-    // the end of the line.
-    const mapPos = (pos: number): number => {
-      let shift = 0;
-      for (const c of changes) {
-        const delta = c.insert.length - (c.to - c.from);
-        if (pos > c.to) {
-          shift += delta;
-        } else if (pos >= c.from) {
-          const base = c.from + shift;
-          if (token === "=>") return base + c.insert.length;
-          return base + Math.min(c.insert.length, Math.max(0, pos - c.from + delta));
-        } else {
-          break;
-        }
-      }
-      return pos + shift;
-    };
-    const sel = view.state.selection.main;
+  if (edits.length > 0) {
     view.dispatch({
-      changes,
-      selection: { anchor: mapPos(sel.anchor), head: mapPos(sel.head) },
+      changes: edits.map((e) => e.change),
+      selection: mapSelectionAcrossLineEdits(view.state, sel, edits, token === "=>"),
+      userEvent: "input",
       scrollIntoView: true,
     });
   }

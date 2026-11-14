@@ -14,10 +14,12 @@ import {
   bulletContinuation,
   convertLineToSection,
   extendSelection,
+  indentLines,
   jumpToAdjacentOpenAction,
   lineStartTarget,
   moveCaret,
   nextLineStartTarget,
+  smartHome,
 } from "./commands";
 
 export interface EditingKeymapDeps {
@@ -83,6 +85,8 @@ export function editingKeymap(deps: EditingKeymapDeps = {}): Extension {
       run: (v) => moveCaret(v, nextLineStartTarget(v)),
       shift: (v) => extendSelection(v, nextLineStartTarget(v)),
     },
+    { key: "Home", run: (v) => smartHome(v, false), shift: (v) => smartHome(v, true) },
+    { key: "Tab", run: (v) => indentLines(v, false), shift: (v) => indentLines(v, true) },
     { key: "Enter", run: bulletContinuation(true) },
     { key: "Shift-Enter", run: bulletContinuation(false) },
     // §86 (#9): `historyKeymap` only binds Ctrl+Shift+Z to redo on

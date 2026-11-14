@@ -1,4 +1,4 @@
-import type { Extension } from "@codemirror/state";
+import { EditorState, type Extension } from "@codemirror/state";
 import { keymap } from "@codemirror/view";
 import { defaultKeymap, history, historyKeymap, indentWithTab } from "@codemirror/commands";
 import { indentUnit } from "@codemirror/language";
@@ -35,6 +35,7 @@ export function editingExtensions(
   ui: EditingExtensionSlots = {},
 ): Extension[] {
   return [
+    EditorState.allowMultipleSelections.of(false),
     history(),
     ...(ui.afterHistory ?? []),
     indentUnit.of("  "),
