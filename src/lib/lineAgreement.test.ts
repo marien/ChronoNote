@@ -24,8 +24,42 @@ interface CaseSpec {
 
 function generateLines(): CaseSpec[] {
   const indents = ["", "  ", "\t"];
-  const leads = ["", "# ", "v ", "> ", "x ", "o ", ". ", ", ", "- ", "! ", "# - ", "# ! ", "# ! - ", "! - ", "o ! ", "o - "];
-  const bodies = ["task", "item @alice", "work by:tomorrow", "sync (topic)"];
+  const leads = [
+    "",
+    "# ",
+    "v ",
+    "> ",
+    "x ",
+    "o ",
+    ". ",
+    ", ",
+    "- ",
+    "* ",
+    "! ",
+    "1. ",
+    "2) ",
+    "1.1. ",
+    "=> ",
+    "=> # ",
+    "=> v ",
+    "# - ",
+    "# * ",
+    "# ! ",
+    "# ! - ",
+    "# 1. ",
+    "! - ",
+    "o ! ",
+    "o - ",
+    "o 1. ",
+  ];
+  const bodies = [
+    "task",
+    "item @alice",
+    "work by:tomorrow",
+    "sync (topic)",
+    "ship \uD83D\uDE00",
+    "cafe\u0301  ",
+  ];
   const tails = ["", " => @bob", " => # next", " => v done", " => > later", " => x drop", " => o agenda", " => . ok"];
   const nextLines: (string | undefined)[] = [undefined, "===", "---", ""];
 
@@ -64,6 +98,18 @@ function generateLines(): CaseSpec[] {
     { line: "\\=> not a follow-up", nextLine: undefined },
     { line: "a \\=> b", nextLine: undefined },
     { line: "a \\=> # literal", nextLine: undefined },
+    // Numbered lists, decimals, leading arrows, star bullets, and Unicode edge cases
+    { line: "1. numbered step", nextLine: undefined },
+    { line: "  2) paren step", nextLine: undefined },
+    { line: "  1.1. dotted sub-item", nextLine: undefined },
+    { line: "3.5 hours", nextLine: undefined },
+    { line: "# 1. action with numbered text", nextLine: undefined },
+    { line: "o 1. topic with numbered text", nextLine: undefined },
+    { line: "* star bullet", nextLine: undefined },
+    { line: "=> follow-up", nextLine: undefined },
+    { line: "=> @bob delegate", nextLine: undefined },
+    { line: "# ship \uD83D\uDE00  ", nextLine: undefined },
+    { line: "1. cafe\u0301 \uD83D\uDE00\t", nextLine: undefined },
   ];
 
   let idx = 0;
