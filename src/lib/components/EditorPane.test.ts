@@ -63,4 +63,40 @@ describe("Rule 1: Ctrl+Z never undoes an outside change", () => {
     state = runCommand(state, undo);
     expect(state.doc.toString()).toBe("# task\n");
   });
+
+  it("outside emoji change never splits surrogate pairs or introduces U+FFFD", () => {
+    let state = EditorState.create({
+      doc: "\uD83D\uDCC5 meeting",
+      selection: { anchor: "\uD83D\uDCC5 ".length },
+      extensions: [history()],
+    });
+    state = applySetContent(state, "\uD83D\uDCC6 meeting", { outside: true });
+    expect(state.doc.toString()).toBe("\uD83D\uDCC6 meeting");
+    expect(state.doc.toString().includes("\uFFFD")).toBe(false);
+
+    state = applySetContent(state, "\uD83D\uDCC6! meeting", { outside: true });
+    expect(state.doc.toString()).toBe("\uD83D\uDCC6! meeting");
+    expect(state.doc.toString().includes("\uFFFD")).toBe(false);
+  });
+
+  it("5,000-line outside change far from caret keeps caret on the same text without scrollIntoView", () => {
+    const lines = Array.from({ length: 5000 }, (_, i) => `line ${i + 1}`);
+    const doc = lines.join("\n");
+    const target = "line 4900";
+    const caret = doc.indexOf(target) + 2;
+    const state = EditorState.create({ doc, selection: { anchor: caret }, extensions: [history()] });
+
+    const updated = [...lines];
+    updated[5] = "line 6 changed externally";
+    const next = updated.join("\n");
+    const tr = state.update({
+      changes: editorChanges(state.doc.toString(), next),
+      annotations: Transaction.addToHistory.of(false),
+    });
+
+    expect(tr.scrollIntoView).toBe(false);
+    expect(tr.state.doc.toString()).toBe(next);
+    const pos = tr.state.selection.main.head;
+    expect(tr.state.doc.sliceString(pos - 2, pos - 2 + target.length)).toBe(target);
+  });
 });

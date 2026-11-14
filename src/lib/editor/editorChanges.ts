@@ -14,13 +14,39 @@ export interface TextChange {
 /** Above this many table cells (changed old lines x changed new lines) one change covers the changed middle. */
 const MAX_CELLS = 4_000_000;
 
+function isHighSurrogate(code: number): boolean {
+  return code >= 0xd800 && code <= 0xdbff;
+}
+
+function isLowSurrogate(code: number): boolean {
+  return code >= 0xdc00 && code <= 0xdfff;
+}
+
 /** One change for `oldText.slice(from, to)` -> `insert`, minus what both share at the start and end. */
-function trimmed(oldText: string, from: number, to: number, insert: string): TextChange | null {
+export function trimmed(oldText: string, from: number, to: number, insert: string): TextChange | null {
   let s = 0;
   const max = Math.min(to - from, insert.length);
   while (s < max && oldText.charCodeAt(from + s) === insert.charCodeAt(s)) s++;
+  // Never split a UTF-16 surrogate pair at the end of the shared prefix.
+  if (
+    s > 0 &&
+    isHighSurrogate(insert.charCodeAt(s - 1)) &&
+    ((from + s < to && isLowSurrogate(oldText.charCodeAt(from + s))) ||
+      (s < insert.length && isLowSurrogate(insert.charCodeAt(s))))
+  ) {
+    s--;
+  }
   let e = 0;
   while (e < max - s && oldText.charCodeAt(to - 1 - e) === insert.charCodeAt(insert.length - 1 - e)) e++;
+  // Never split a UTF-16 surrogate pair at the start of the shared suffix.
+  if (
+    e > 0 &&
+    isLowSurrogate(insert.charCodeAt(insert.length - e)) &&
+    ((to - e - 1 >= from + s && isHighSurrogate(oldText.charCodeAt(to - e - 1))) ||
+      (insert.length - e - 1 >= s && isHighSurrogate(insert.charCodeAt(insert.length - e - 1))))
+  ) {
+    e--;
+  }
   if (from + s === to - e && s === insert.length - e) return null;
   return { from: from + s, to: to - e, insert: insert.slice(s, insert.length - e) };
 }
