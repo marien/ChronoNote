@@ -400,10 +400,28 @@ export function shiftTabCommand(view: EditorView): boolean {
       const myIndent = indentLen(num.indent);
       if (myIndent === 0) return false;
       const block = getBlockForLine(lines, first);
-      const group = block ? getGroupsInBlock(lines, block).find((g) => g.first === first && g.parent === null) : undefined;
-      if (!block || !group) return false;
-      const working = shiftGroupWithSubtrees(lines, block, group, -Math.min(2, myIndent));
-      return applyListEdit(view, withRenumbering(lines, working, [first]), "input.indent", undefined, offset, lines);
+      if (!block) return false;
+      const group = getGroupsInBlock(lines, block).find((g) => g.first === first && g.parent === null);
+      if (group) {
+        const working = shiftGroupWithSubtrees(lines, block, group, -Math.min(2, myIndent));
+        return applyListEdit(view, withRenumbering(lines, working, [first]), "input.indent", undefined, offset, lines);
+      }
+      // Non-first item of a parentless indented group: outdent this line by 2 spaces and renumber
+      // both any newly formed group starting here and any child items under it.
+      const working = [...lines];
+      working[first] = shiftLineIndent(lines[first], -Math.min(2, myIndent));
+      const extra = new Map<number, number>();
+      for (const g of listGroups(working, [first])) {
+        if (g.parent === first || g.first === first) extra.set(g.first, 1);
+      }
+      return applyListEdit(
+        view,
+        withRenumbering(lines, working, [first], extra, new Set([first])),
+        "input.indent",
+        undefined,
+        offset,
+        lines,
+      );
     }
 
     const working = [...lines];

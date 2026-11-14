@@ -431,6 +431,35 @@ describe("Numbered list properties (docs/spec.md §2.4)", () => {
     );
   });
 
+  it("regression: Shift-Tab on a non-first item of a parentless indented group outdents and renumbers the following outer list", () => {
+    // Counterexample shrunk from property test:
+    // After Tab on lines 0..1 of "1. [T0]\n2. [T1]\n3. [T2]", doc is:
+    //   1. [T0] alpha
+    //   2. [T1] alpha
+    // 1. [T2] alpha
+    // Pressing Shift-Tab on line 1 ("  2. [T1] alpha") outdents it to indent 0 and must
+    // renumber it and line 2 consecutively instead of leaving "2. [T1] alpha\n1. [T2] alpha".
+    const doc = "1. [T0] alpha\n2. [T1] alpha\n3. [T2] alpha";
+    const lines = doc.split("\n");
+    const ed = createTestEditor({
+      doc,
+      anchor: "1. ".length,
+      head: lines[0].length + 1 + lines[1].length,
+    });
+    try {
+      ed.press("Tab");
+      expect(ed.text()).toBe("  1. [T0] alpha\n  2. [T1] alpha\n1. [T2] alpha");
+
+      const midLines = ed.text().split("\n");
+      ed.select(midLines[0].length + 1 + midLines[1].length);
+      ed.press("Shift-Tab");
+      expect(ed.text()).toBe("  1. [T0] alpha\n1. [T1] alpha\n2. [T2] alpha");
+      assertSpecInvariants(ed.text());
+    } finally {
+      ed.destroy();
+    }
+  });
+
   it("handles two-step operation sequences (including selection Tab/Shift-Tab and same-indent bullets)", () => {
     fc.assert(
       fc.property(
