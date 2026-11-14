@@ -3,7 +3,7 @@
  * questions are answered from `tokenizeLine` (grammar/), so there is one definition
  * of each token. */
 import { ACTION_CLASS, BULLET_CLASS, NAME_CHAR } from "./grammar/symbols";
-import { getLineActionParts, tokenizeLine } from "./grammar/tokenize";
+import { getLineActionParts, tokenizeLine, type Token } from "./grammar/tokenize";
 import { addDaysISO, parseDueWord } from "./date";
 // Matches trailing forward links at the end of a line (same as TRAILING_LINKS in paste.ts)
 const TRAILING_LINKS = /(?:\s*\([<>]\d{4}-\d{2}-\d{2}(?:#[^)]*)?\))+$/;
@@ -95,6 +95,33 @@ export function adjacentOpenActionLine(text: string, fromLineIdx: number, dir: 1
   return before.length > 0 ? before[before.length - 1] : idxs[idxs.length - 1];
 }
 
+/** True when `col` is past the indent inside a leading token's symbol (before its trailing space). */
+export function isCaretInLeadingSymbol(lineText: string, col: number): boolean {
+  const tokens = tokenizeLine(lineText);
+  const first = tokens[0];
+  if (!first) return false;
+  if (first.kind === "arrow" && lineText.slice(0, first.from).trim() !== "") return false;
+  let expectedFrom = first.from;
+  for (const tok of tokens) {
+    if (tok.from !== expectedFrom) break;
+    if (
+      tok.kind !== "action" &&
+      tok.kind !== "topic" &&
+      tok.kind !== "bullet" &&
+      tok.kind !== "emphasis" &&
+      tok.kind !== "arrow" &&
+      tok.kind !== "consequence" &&
+      tok.kind !== "consequenceTopic"
+    ) {
+      break;
+    }
+    const symbolEnd = tok.kind === "arrow" ? tok.to - 1 : tok.from + (tok.symbol?.length ?? 0);
+    if (col > tok.from && col <= symbolEnd) return true;
+    expectedFrom = tok.kind === "emphasis" ? tok.from + 2 : tok.to;
+  }
+  return false;
+}
+
 /** §85 (#12): what pressing `Enter` on an action line should do, given
  * the current line's full text. A leading (optionally indented, §50)
  * `# `/`v `/`> `/`x ` line continues the way a bullet does — except the
@@ -121,6 +148,7 @@ export function actionLineEnter(
   col?: number,
   nextLine?: string,
 ): { removeSymbol: true } | { plain: true } | { insert: string } | null {
+  if (col !== undefined && isCaretInLeadingSymbol(lineText, col)) return { plain: true };
   const actionNumbered = lineText.match(/^(\s*)([#vx>])\s+((?:[1-9]\d{0,8})(?:\.[1-9]\d{0,8})*)([.)])(\s|$)(.*)$/);
   if (actionNumbered) {
     const [, indent, sym, numStr, delim, , text] = actionNumbered;
@@ -169,6 +197,7 @@ export function topicLineEnter(
   col?: number,
   nextLine?: string,
 ): { removeSymbol: true } | { plain: true } | { insert: string } | null {
+  if (col !== undefined && isCaretInLeadingSymbol(lineText, col)) return { plain: true };
   // Topic with numbered list: e.g. "o 1. Title" or ". 1. Title"
   const topicNumbered = lineText.match(/^(\s*)([o.,])\s+((?:[1-9]\d{0,8})(?:\.[1-9]\d{0,8})*)([.)])(\s|$)(.*)$/);
   if (topicNumbered) {

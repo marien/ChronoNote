@@ -175,7 +175,7 @@ ${item.dropped}`;
       tabs.set([...list]);
       markTabClean(openTab.id, await sha256Hex(newContent));
       if (openTab.id === get(activeTabId) && editorApi) {
-        editorApi.setContent(newContent);
+        editorApi.setContent(newContent, { outside: true });
       }
     }
     invalidateDiskNotesCache();

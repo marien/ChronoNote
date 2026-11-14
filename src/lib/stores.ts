@@ -550,7 +550,7 @@ export function setStatusSelection(sel: { lines: number } | null) {
 
 export interface EditorApi {
   getContent: () => string;
-  setContent: (text: string) => void;
+  setContent: (text: string, options?: { outside?: boolean }) => void;
   insertAtCursor: (text: string) => void;
   jumpToLine: (lineIdx: number) => void;
   getCursorLineIdx: () => number;

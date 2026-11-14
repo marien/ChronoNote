@@ -30,11 +30,12 @@ import {
   flushSave,
   flushScratchpadDrafts,
   noteClosingWithContent,
+  persistClosingTab,
   updateNoteOnDisk,
   writeNoteAndInvalidateCache,
 } from "./persistence";
 import { notifyTabClosed } from "./paste";
-import { sha256Hex } from "./drift";
+import { saveConflictCopy, sha256Hex } from "./drift";
 import { sortedTabsForDisplay } from "./tabSort";
 import { countActions } from "./tokens";
 import { todayISO } from "./date";
@@ -201,6 +202,11 @@ export function closeTab(tabId: string) {
     // don't know what is on disk, so the file is left alone.
     const baseline = getTabCleanHash(tabId);
     if (baseline) void deleteNoteAndInvalidateCache(closingTab!.filename, baseline);
+  } else if (closingTab && !closingTab.isScratchpad) {
+    // Capture baseline and content before the tab and its clean hash are cleared below;
+    // otherwise a guarded write finds no tab and overwrites without an expected hash.
+    cancelScheduledSave(tabId);
+    persistClosingTab(closingTab.filename, closingTab.content, getTabCleanHash(tabId), saveConflictCopy);
   } else {
     flushSave(tabId);
   }

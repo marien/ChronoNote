@@ -460,7 +460,7 @@ class SpellCheckPluginValue {
       }
     }
 
-    if (this.isDestroyed) return;
+    if (this.isDestroyed || this.view.state.doc !== doc) return;
 
     const selection = this.view.state.selection.main;
     const caretPos = selection.empty ? selection.head : null;

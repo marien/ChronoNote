@@ -1,5 +1,22 @@
-import { describe, expect, it } from "vitest";
-import { computeEffectiveSpellLanguages, filterMisspelledRanges, orderSpellLanguages, SpellCache } from "./spellcheck";
+import { describe, expect, it, vi } from "vitest";
+import { EditorState } from "@codemirror/state";
+import { EditorView } from "@codemirror/view";
+
+const tauriApiMock = vi.hoisted(() => ({
+  spellLanguages: vi.fn(async () => ["en-US"]),
+  spellCheckLines: vi.fn(async (_lines: string[]): Promise<[number, number][][]> => []),
+}));
+vi.mock("../tauriApi", () => tauriApiMock);
+
+import {
+  computeEffectiveSpellLanguages,
+  filterMisspelledRanges,
+  orderSpellLanguages,
+  spellcheckExtension,
+  spellField,
+  spellViewPlugin,
+  SpellCache,
+} from "./spellcheck";
 
 describe("filterMisspelledRanges", () => {
   it("filters out all ranges on setext underline lines", () => {
@@ -184,5 +201,80 @@ describe("orderSpellLanguages", () => {
       { tag: "nl-NL", name: expect.any(String), checked: true },
       { tag: "en-US", name: expect.any(String), checked: false },
     ]);
+  });
+});
+
+describe("Rule 5: Spell check never applies results for text that has changed", () => {
+  it("drops stale decorations when the document changes while spellCheckLines is awaiting", async () => {
+    let resolveCheck!: (res: [number, number][][]) => void;
+    tauriApiMock.spellCheckLines.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          resolveCheck = resolve;
+        }),
+    );
+
+    const parent = document.createElement("div");
+    const view = new EditorView({
+      state: EditorState.create({ doc: "helo world", extensions: [spellcheckExtension()] }),
+      parent,
+    });
+    Object.defineProperty(view.contentDOM, "offsetHeight", { value: 200, configurable: true });
+
+    const plugin = view.plugin(spellViewPlugin)!;
+    const checkPromise = plugin.runCheck();
+
+    await vi.waitFor(() => expect(resolveCheck).toBeTypeOf("function"));
+
+    // Replace the whole document with shorter text while spellCheckLines is in flight.
+    view.dispatch({ changes: { from: 0, to: view.state.doc.length, insert: "ok" } });
+
+    // Resolving with the old document's offsets [0, 4] and [5, 10] must neither throw RangeError nor draw marks.
+    resolveCheck([[[0, 4], [5, 10]]]);
+    await checkPromise;
+
+    expect(view.state.field(spellField).size).toBe(0);
+
+    // Subsequent check for "helo world" uses the cache populated from the earlier result.
+    tauriApiMock.spellCheckLines.mockClear();
+    view.dispatch({ changes: { from: 0, to: view.state.doc.length, insert: "helo world" } });
+    view.dispatch({ selection: { anchor: 0 } });
+    await plugin.runCheck();
+    expect(tauriApiMock.spellCheckLines).not.toHaveBeenCalled();
+    expect(view.state.field(spellField).size).toBe(2);
+
+    view.destroy();
+  });
+
+  it("never underlines a correctly spelled word when text is inserted in front during an in-flight check", async () => {
+    let resolveCheck!: (res: [number, number][][]) => void;
+    tauriApiMock.spellCheckLines.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          resolveCheck = resolve;
+        }),
+    );
+
+    const parent = document.createElement("div");
+    const view = new EditorView({
+      state: EditorState.create({ doc: "helo", extensions: [spellcheckExtension()] }),
+      parent,
+    });
+    Object.defineProperty(view.contentDOM, "offsetHeight", { value: 200, configurable: true });
+
+    const plugin = view.plugin(spellViewPlugin)!;
+    const checkPromise = plugin.runCheck();
+    await vi.waitFor(() => expect(resolveCheck).toBeTypeOf("function"));
+
+    // User inserts "hello " at the start while the check is waiting.
+    view.dispatch({ changes: { from: 0, to: 0, insert: "hello " } });
+
+    resolveCheck([[[0, 4]]]);
+    await checkPromise;
+
+    // Stale [0, 4] must not be applied onto "hello " in "hello helo".
+    expect(view.state.field(spellField).size).toBe(0);
+
+    view.destroy();
   });
 });

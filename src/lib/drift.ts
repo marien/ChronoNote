@@ -45,7 +45,7 @@ function applyContent(tabId: string, content: string, hash: string | null) {
   next[idx] = { ...next[idx], content };
   tabs.set(next);
   if (hash) markTabClean(tabId, hash);
-  if (tabId === get(activeTabId) && editorApi) editorApi.setContent(content);
+  if (tabId === get(activeTabId) && editorApi) editorApi.setContent(content, { outside: true });
 }
 
 let checkInFlight = false;
@@ -185,6 +185,17 @@ function conflictCopyName(filename: string): string {
   return `${stem}-${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}.txt`;
 }
 
+/** Saves `content` as a conflict copy for `filename` and shows a toast. */
+export async function saveConflictCopy(filename: string, content: string): Promise<void> {
+  const name = conflictCopyName(filename);
+  try {
+    await api.writeConflictCopy(name, content);
+    showToast(get(t)("toast.drift.savedAs", { name }));
+  } catch {
+    showToast(get(t)("toast.drift.couldntSaveCopy", undefined));
+  }
+}
+
 /** A guarded write of an open tab was refused because the file changed on disk. */
 export async function handleWriteConflict(filename: string): Promise<void> {
   const tab = get(tabs).find((t) => !t.isScratchpad && t.filename === filename);
@@ -196,13 +207,7 @@ export async function handleWriteConflict(filename: string): Promise<void> {
   }
   // Not on screen: keep the user's text as a conflict copy so nothing is lost. The drift check
   // sorts out the tab itself when it is next activated.
-  const name = conflictCopyName(filename);
-  try {
-    await api.writeConflictCopy(name, tab.content);
-    showToast(get(t)("toast.drift.savedAs", { name }));
-  } catch {
-    showToast(get(t)("toast.drift.couldntSaveCopy", undefined));
-  }
+  await saveConflictCopy(filename, tab.content);
 }
 
 export async function resolveConflictSaveCopy(): Promise<void> {

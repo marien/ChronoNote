@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onDestroy, onMount } from "svelte";
   import { get } from "svelte/store";
-  import { Compartment, EditorSelection, EditorState, RangeSetBuilder, StateEffect, StateField } from "@codemirror/state";
+  import { Compartment, EditorSelection, EditorState, RangeSetBuilder, StateEffect, StateField, Transaction } from "@codemirror/state";
   import { Decoration, type DecorationSet, drawSelection, EditorView, keymap, ViewPlugin } from "@codemirror/view";
   import { defaultKeymap, history, historyField, historyKeymap, indentWithTab, isolateHistory, redo, undo } from "@codemirror/commands";
   import { indentUnit } from "@codemirror/language";
@@ -32,6 +32,7 @@
     closeOpenAction,
     innermostActionSymbol,
     innermostTopicSymbol,
+    isCaretInLeadingSymbol,
     isSetextUnderline,
     isTopicLikeLine,
     leadingMarkerIndent,
@@ -485,20 +486,22 @@
     return (v: EditorView): boolean => {
       const pos = v.state.selection.main.head;
       const line = v.state.doc.lineAt(pos);
+      const col = pos - line.from;
+      const plainNewline = (): true => {
+        v.dispatch({
+          changes: { from: pos, to: pos, insert: "\n" },
+          selection: { anchor: pos + 1 },
+          scrollIntoView: true,
+        });
+        return true;
+      };
       // #34: Enter with the caret *before* a leading bullet / action / `=> `
-      // token (in the indent, or column 0) is a plain newline — not a list
-      // continuation. Otherwise the token got duplicated onto the pushed-
-      // down line ("# a" → blank line + "# # a").
+      // token (in the indent, or column 0), or right after its symbol before
+      // its trailing space (§463), is a plain newline — not a continuation or exit.
       if (insertBullet) {
         const leadIndent = leadingMarkerIndent(line.text);
-        if (leadIndent !== null && pos - line.from <= leadIndent) {
-          v.dispatch({
-            changes: { from: pos, to: pos, insert: "\n" },
-            selection: { anchor: pos + 1 },
-            scrollIntoView: true,
-          });
-          return true;
-        }
+        if (leadIndent !== null && col <= leadIndent) return plainNewline();
+        if (isCaretInLeadingSymbol(line.text, col)) return plainNewline();
       }
       function handleEmptySubItem(lineObj: { from: number; number: number }): boolean {
         return moveEmptySubItemOut(v, lineObj.from, lineObj.number - 1, "input");
@@ -547,8 +550,9 @@
             });
             return true;
           }
+          if (col <= numbered.markerEnd) return plainNewline();
           const nextLine = line.number < v.state.doc.lines ? v.state.doc.line(line.number + 1).text : undefined;
-          const step = numberedListEnter(line.text, pos - line.from, nextLine);
+          const step = numberedListEnter(line.text, col, nextLine);
           if (step && "exit" in step) {
             if (handleEmptySubItem(line)) return true;
             exitNumberedList(v, line.from, line.number - 1);
@@ -1030,10 +1034,15 @@
 
     controller.registerEditorApi({
       getContent: () => view!.state.doc.toString(),
-      setContent: (text: string) => {
+      setContent: (text: string, options?: { outside?: boolean }) => {
         if (!view) return;
         const changes = editorChanges(view.state.doc.toString(), text);
-        if (changes.length) view.dispatch({ changes });
+        if (changes.length) {
+          view.dispatch({
+            changes,
+            ...(options?.outside ? { annotations: Transaction.addToHistory.of(false) } : {}),
+          });
+        }
       },
       insertAtCursor: (text: string) => {
         if (!view) return;

@@ -12041,3 +12041,47 @@ commands through a real EditorView), additions to `numberedLists.test.ts`, `numb
 `richClipboard.test.ts`, `pasteOverEmptyMarker.test.ts` and the "review fixes (§464)" describe in
 `tests/e2e/numbered-lists.spec.ts`. Reviewed here; one change of mine: the renumber filter's min/max of the touched
 lines without `Math.min(...list)`, which overflows on a select-all delete of a very long note.
+
+## 465. Editing review, batch 1: no lost text
+
+**Status: on main, not released yet.**
+
+Marien (2026-11-14) asked for a full review of the editor, the tokenizer and their surroundings, design and tests
+included, because the numbered-list bugs (§464) and §463 shook his confidence in editing. Four Gemini 4 Hydrogen
+reviewers each took one area (tokens and glyphs, editing keys, text in and out, the test suite); all 42 bugs they
+reported were reproduced here or confirmed in the code. The report, with the bugs in four fix batches, twelve design
+decisions (all approved by Marien the same day) and a test plan, is `docs/design/editor-review.html`. This first batch
+fixes the five that could lose text or break the editor:
+
+1. **Ctrl+Z never undoes an outside change** (decision D1). A disk reload (also a OneDrive sync), the phone companion
+   and resolving an import conflict replaced the open note as an ordinary undo step: Ctrl+Z took the other version
+   back and autosave made that permanent. `EditorApi.setContent(text, { outside: true })` now adds
+   `Transaction.addToHistory.of(false)`; CodeMirror maps the earlier undo steps through it, so undoing one's own typing
+   keeps the outside change. The app's own commands (`writeTabContent`, version restore, promote) stay undoable.
+2. **Enter right after a leading symbol is a plain line break.** With the caret between a symbol and its space (the
+   §463 case, `x|  `), Enter removed the "empty" symbol and the spaces with it; on `#| hello` it continued with `# `.
+   `isCaretInLeadingSymbol` (tokens.ts, from the tokenizer) guards `actionLineEnter`, `topicLineEnter` and
+   `bulletContinuation`.
+3. **Closing a tab never overwrites a newer file.** `closeTab` started the save without waiting and cleared the tab's
+   baseline hash first, so the save ran without its on-disk check. The close-time save is now `persistClosingTab`
+   with a `closing` write guard that carries the baseline; a save of the same file still running at close counts as
+   the tab's own (the chain of writes to one file remembers the hash of its last successful write), so it is not
+   mistaken for someone else's change. A `tabBaseline` write whose tab closed while it waited in the chain falls back
+   to that hash or the baseline it saw when queued, instead of writing without a check; a closed tab's save does not
+   re-baseline a tab reopened on the file meanwhile; a pending autosave of a closed tab leaves the save to the close. A refused
+   save keeps the text as a conflict copy, as for a background tab. Registered as in flight at once, so quitting right
+   after a close waits for it.
+4. **A failed phone-companion write keeps what was typed meanwhile.** `writeTabContentAndWait` reset the tab to the
+   text before the phone's change; now only the phone's change is inverted and mapped through the typing
+   (`ChangeSet.invert` / `map`).
+5. **Spell check never draws results for text that changed** while the check ran (wrong underlines, or a RangeError
+   that stopped the editor redrawing).
+
+Built by Gemini 4 Hydrogen from a behaviour file (`agent-tools/briefs/b1-behaviour.md`, outside the repo), independent
+browser tests written from the same file by a second Hydrogen run (`tests/e2e/editor-batch1.independent.spec.ts`, 55
+tests; one `fixme`: the test backend cannot hold a save and then fail it, covered by the unit test). Reviewed here.
+Changes of mine: rule 3 as described (the first version fixed the expected hash at close, so a running autosave made
+the close-time save fail and the last typing went to a conflict copy; a Hydrogen review of my version found four
+more orderings of overlapping saves that went wrong, now each a unit test in `tabs.test.ts` that fails without the fix), and seven of the independent
+tests that read the behaviour file too literally (the toast says "Saved your version as", the app's own last write
+vs. the file, undo grouping of typing at one spot, the spell-check mark held back for the word being typed).

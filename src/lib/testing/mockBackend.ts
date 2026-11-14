@@ -401,7 +401,7 @@ export class MockBackend {
     activeTab: () => unknown;
     modal: () => string;
     statusCounts: () => { open: number; closed: number; forwarded: number };
-    setEditorContent: (text: string) => void;
+    setEditorContent: (text: string, options?: { outside?: boolean }) => void;
     getEditorContent: () => string;
     checkDrift: () => Promise<void>;
     setMobile: (val: boolean) => void;

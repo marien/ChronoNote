@@ -2,8 +2,10 @@
  * read-cache honest. Split out of `controller.ts` in the v0.5.0 refactor;
  * `controller.ts` re-exports it. Depends only on `./stores`, `./tauriApi`
  * and types — no cycle back to `controller.ts`. */
+import { ChangeSet, Text } from "@codemirror/state";
 import { get } from "svelte/store";
 import * as api from "./tauriApi";
+import { editorChanges } from "./editor/editorChanges";
 import {
   allNotesCache,
   backendKind,
@@ -27,10 +29,16 @@ import { t } from "./i18n";
 export type WriteGuard =
   | { kind: "tabBaseline" } // the open tab's clean hash, read right before the write
   | { kind: "hash"; hash: string } // a hash the caller read itself
+  // A tab being closed: its clean hash is gone by the time the write runs, so the baseline travels with the write.
+  // A save of the same file still running at close lands after that baseline was taken; its hash wins.
+  | { kind: "closing"; baseline: string | undefined }
   | { kind: "none" };
 
 /** Writes to one filename run in order, so each reads its expected hash after the previous one landed. */
 const writeChains = new Map<string, Promise<unknown>>();
+/** The hash of the last write that succeeded in a filename's current chain. A write whose tab was closed while it
+ * waited has no clean hash to read; this is what the file holds by then (unless someone else changed it). */
+const chainHashes = new Map<string, string>();
 
 /** Set from boot.ts (persistence can't import drift.ts: drift imports persistence). */
 let onWriteConflict: ((filename: string) => Promise<void>) | null = null;
@@ -149,7 +157,8 @@ function persistTab(tabId: string): Promise<void> {
     // write moves the filename into `inFlightFilenames` synchronously, so
     // there's no "saved" flicker in between.
     pendingSaveTabIds.delete(tabId);
-    if (unchanged) {
+    // Closed meanwhile: the close saved it (`persistClosingTab`), with the right guard.
+    if (unchanged || !get(tabs).some((x) => x.id === tabId)) {
       recomputeSaveState();
       return;
     }
@@ -423,14 +432,18 @@ function writeNoteRaw(
   options?: { keepVersion?: boolean },
 ): Promise<void> {
   const previous = writeChains.get(filename) ?? Promise.resolve();
+  const tabNow = guard.kind === "tabBaseline" ? get(tabs).find((t) => !t.isScratchpad && t.filename === filename) : undefined;
+  const baselineNow = tabNow ? getTabCleanHash(tabNow.id) : undefined;
   const p = previous
     .catch(() => {})
     .then(() => {
       let expected: string | undefined;
       if (guard.kind === "hash") expected = guard.hash;
+      else if (guard.kind === "closing") expected = chainHashes.get(filename) ?? guard.baseline;
       else if (guard.kind === "tabBaseline") {
         const tab = get(tabs).find((t) => !t.isScratchpad && t.filename === filename);
-        expected = tab ? getTabCleanHash(tab.id) : undefined;
+        // Closed while this write waited: never unguarded, use what the chain or the tab last knew.
+        expected = tab ? getTabCleanHash(tab.id) : (chainHashes.get(filename) ?? baselineNow);
       }
       return options ? api.writeNote(filename, content, expected, options) : api.writeNote(filename, content, expected);
     });
@@ -443,9 +456,11 @@ function writeNoteRaw(
       inFlightWrites.delete(p);
       inFlightFilenames.delete(filename);
       recomputeSaveState();
-      // §94: the disk now matches this content; re-baseline the tab.
+      if (meta?.contentHash) chainHashes.set(filename, meta.contentHash);
+      // §94: the disk now matches this content; re-baseline the tab. Not for a closed tab's save: a tab open on the
+      // same file now was read before it landed, and its text is not this content.
       const tab = get(tabs).find((t) => !t.isScratchpad && t.filename === filename);
-      if (tab) markTabClean(tab.id, meta?.contentHash);
+      if (tab && guard.kind !== "closing") markTabClean(tab.id, meta?.contentHash);
       scheduleCloudPush();
     },
     async (err) => {
@@ -467,9 +482,33 @@ function writeNoteRaw(
   void done
     .catch(() => {})
     .finally(() => {
-      if (writeChains.get(filename) === done) writeChains.delete(filename);
+      if (writeChains.get(filename) === done) {
+        writeChains.delete(filename);
+        chainHashes.delete(filename);
+      }
     });
   return done;
+}
+
+/** Saves a tab that is being closed (its store entry is gone by the time the write runs). Registered as in flight at
+ * once, like `persistTab`, so quitting right after a close still waits for it. A refused write hands the text to
+ * `onConflict`, which keeps it as a conflict copy. */
+export function persistClosingTab(
+  filename: string,
+  content: string,
+  baseline: string | undefined,
+  onConflict: (filename: string, content: string) => Promise<void>,
+): void {
+  const p: Promise<void> = (async () => {
+    if (baseline && !writeChains.has(filename) && (await sha256Hex(content)) === baseline) return;
+    await writeNoteAndInvalidateCache(filename, content, { kind: "closing", baseline });
+  })()
+    .catch(async (e) => {
+      if (isWriteConflictError(e)) await onConflict(filename, content);
+      else showToast(get(t)("toast.persistence.failedToSaveNote", undefined));
+    })
+    .finally(() => inFlightWrites.delete(p));
+  inFlightWrites.add(p);
 }
 
 // --- Editing ---
@@ -512,13 +551,13 @@ export function writeTabContent(
 
 function setTabText(tabId: string, content: string): void {
   tabs.set(get(tabs).map((x) => (x.id === tabId ? { ...x, content } : x)));
-  if (tabId === get(activeTabId) && editorApi) editorApi.setContent(content);
+  if (tabId === get(activeTabId) && editorApi) editorApi.setContent(content, { outside: true });
 }
 
 /** `writeTabContent` for a caller that must know the text reached the disk (the phone companion reports changes as
- * applied). Awaits the write; when it fails, the tab and editor go back to `restoreTo` and the error is thrown. A
- * write refused because the file changed on disk is not an error here: the tab keeps the change and the usual
- * conflict dialog decides between the versions. */
+ * applied). Awaits the write; when it fails, the phone's change is removed while keeping any user edits made
+ * meanwhile, and the error is thrown. A write refused because the file changed on disk is not an error here:
+ * the tab keeps the change and the usual conflict dialog decides between the versions. */
 export async function writeTabContentAndWait(
   tabId: string,
   newContent: string,
@@ -533,7 +572,18 @@ export async function writeTabContentAndWait(
     await writeNoteAndInvalidateCache(tab.filename, newContent, { kind: "tabBaseline" }, options);
   } catch (e) {
     if (isWriteConflictError(e)) return;
-    setTabText(tabId, restoreTo);
+    const current = get(tabs).find((x) => x.id === tabId)?.content;
+    if (current !== undefined) {
+      let restored = restoreTo;
+      if (current !== newContent) {
+        // Invert only the phone's diff and map it through whatever the user typed meanwhile.
+        const phone = ChangeSet.of(editorChanges(restoreTo, newContent), restoreTo.length);
+        const user = ChangeSet.of(editorChanges(newContent, current), newContent.length);
+        const undo = phone.invert(Text.of(restoreTo.split("\n")));
+        restored = undo.map(user).apply(Text.of(current.split("\n"))).toString();
+      }
+      setTabText(tabId, restored);
+    }
     throw e;
   }
 }
