@@ -16,9 +16,11 @@ describe("mergePasteOverEmptyMarker", () => {
   it("keeps the line's indentation and drops the pasted indentation", () => {
     expect(mergePasteOverEmptyMarker("  # ", "", "    v done")).toEqual({ deleteBefore: 2, insert: "v done" });
   });
-  it("works for topics and bullets", () => {
+  it("works for topics, bullets, and numbered items (rule 12)", () => {
     expect(mergePasteOverEmptyMarker("o ", "", ", postponed")).not.toBeNull();
     expect(mergePasteOverEmptyMarker("- ", "", "* item")).not.toBeNull();
+    expect(mergePasteOverEmptyMarker("2. ", "", "1. x\n2. y")).toEqual({ deleteBefore: 3, insert: "1. x\n2. y" });
+    expect(mergePasteOverEmptyMarker("  1.2) ", "", "    1) x")).toEqual({ deleteBefore: 5, insert: "1) x" });
   });
   it("leaves a paste alone when the line has text, text follows the caret, or the paste has no symbol", () => {
     expect(mergePasteOverEmptyMarker("# call ", "", "# Dana")).toBeNull();

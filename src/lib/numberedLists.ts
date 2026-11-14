@@ -1,12 +1,10 @@
-import { parseNumberedItem, nextNumberedMarker, type NumberedItem } from "./tokens";
+import { indentLen, nextNumberedMarker, parseNumberedItem, shiftLineIndent, type NumberedItem } from "./tokens";
+
+export { indentLen };
 
 export interface LineEdit {
   line: number;
   text: string;
-}
-
-export function indentLen(str: string): number {
-  return str.replace(/\t/g, "  ").length;
 }
 
 export interface ParsedBullet {
@@ -16,7 +14,23 @@ export interface ParsedBullet {
   text: string;
 }
 
+function leadingWidth(line: string): number {
+  let w = 0;
+  for (let i = 0; i < line.length; i++) {
+    const c = line.charCodeAt(i);
+    if (c === 32) w += 1;
+    else if (c === 9) w += 2;
+    else if (c > 126 && /\s/.test(line[i])) w += 1;
+    else break;
+  }
+  return w;
+}
+
 export function parseBulletItem(line: string): ParsedBullet | null {
+  let k = 0;
+  while (k < line.length && (line[k] === " " || line[k] === "\t")) k++;
+  const c = line.charCodeAt(k);
+  if (Number.isNaN(c) || (c >= 33 && c <= 126 && c !== 45 && c !== 42 && c !== 33)) return null;
   const m = line.match(/^(\s*)((?:! )?[-*])(?:\s+(.*)|\s*$)/);
   if (!m) return null;
   return {
@@ -41,21 +55,31 @@ export interface ListBlock {
   minIndent: number;
 }
 
-function findBlocksInRange(lines: string[], start: number, end: number): ListBlock[] {
+function findBlocksInRange(
+  lines: string[],
+  start: number,
+  end: number,
+  parsedOffset?: number,
+  parsedCache?: (ParsedItem | null)[],
+): ListBlock[] {
   if (start > end) return [];
-  const listIndices: number[] = [];
+  let firstList = -1;
+  let minIndent = Infinity;
+  const off = parsedOffset ?? start;
+  const parsed = parsedCache ?? new Array<ParsedItem | null>(end - start + 1);
   for (let i = start; i <= end; i++) {
-    if (parseListItem(lines[i]) !== null) {
-      listIndices.push(i);
+    const item = parsedCache ? parsed[i - off] : (parsed[i - off] = parseListItem(lines[i]));
+    if (item !== null) {
+      if (firstList === -1) firstList = i;
+      const ind = indentLen(item.indent);
+      if (ind < minIndent) minIndent = ind;
     }
   }
-  if (listIndices.length === 0) return [];
-
-  const minIndent = Math.min(...listIndices.map((i) => indentLen(lines[i].match(/^\s*/)?.[0] ?? "")));
+  if (firstList === -1) return [];
 
   const splitters: number[] = [];
   for (let i = start; i <= end; i++) {
-    if (parseListItem(lines[i]) === null) {
+    if (parsed[i - off] === null) {
       const ind = indentLen(lines[i].match(/^\s*/)?.[0] ?? "");
       if (ind <= minIndent) {
         splitters.push(i);
@@ -64,7 +88,6 @@ function findBlocksInRange(lines: string[], start: number, end: number): ListBlo
   }
 
   if (splitters.length === 0) {
-    const firstList = listIndices[0];
     return [{ start: firstList, end, minIndent }];
   }
 
@@ -72,12 +95,12 @@ function findBlocksInRange(lines: string[], start: number, end: number): ListBlo
   let curStart = start;
   for (const s of splitters) {
     if (s - 1 >= curStart) {
-      blocks.push(...findBlocksInRange(lines, curStart, s - 1));
+      blocks.push(...findBlocksInRange(lines, curStart, s - 1, off, parsed));
     }
     curStart = s + 1;
   }
   if (curStart <= end) {
-    blocks.push(...findBlocksInRange(lines, curStart, end));
+    blocks.push(...findBlocksInRange(lines, curStart, end, off, parsed));
   }
   return blocks;
 }
@@ -147,7 +170,11 @@ export function tabIndentTarget(lines: string[], idx: number): string | null {
   let P: ParsedItem | null = null;
   for (let i = idx - 1; i >= block.start; i--) {
     const prev = parseListItem(lines[i]);
-    if (prev && indentLen(prev.indent) === myIndent) {
+    if (!prev) continue;
+    const prevIndent = indentLen(prev.indent);
+    // Stop at the parent: only look at preceding items within the same parent (rule 2).
+    if (prevIndent < myIndent) break;
+    if (prevIndent === myIndent) {
       P = prev;
       break;
     }
@@ -188,46 +215,128 @@ export interface NumberedGroup {
   items: { line: number; item: NumberedItem }[];
 }
 
-export function getGroupsInBlock(lines: string[], block: ListBlock): NumberedGroup[] {
+export function getGroupsInBlock(
+  lines: string[],
+  block: ListBlock,
+  parsedOffset?: number,
+  parsedCache?: (ParsedItem | null)[],
+): NumberedGroup[] {
   const groups: NumberedGroup[] = [];
   const groupMap = new Map<string, NumberedGroup>();
+  const parentStack: { index: number; indent: number }[] = [];
 
   for (let i = block.start; i <= block.end; i++) {
-    const num = parseNumberedItem(lines[i]);
-    if (!num) continue;
+    const item = parsedCache && parsedOffset !== undefined ? parsedCache[i - parsedOffset] : parseListItem(lines[i]);
+    if (!item) continue;
 
-    const parent = findParentInBlock(lines, block, i);
-    const parentIdx = parent ? parent.index : null;
-    const ind = indentLen(num.indent);
-    const key = `${parentIdx}:${ind}:${num.delimiter}`;
+    const ind = indentLen(item.indent);
+    while (parentStack.length > 0 && parentStack[parentStack.length - 1].indent >= ind) {
+      parentStack.pop();
+    }
+    const parentIdx = parentStack.length > 0 ? parentStack[parentStack.length - 1].index : null;
+    parentStack.push({ index: i, indent: ind });
 
+    if (item.kind !== "numbered") continue;
+
+    const key = `${parentIdx}:${ind}:${item.delimiter}`;
     let g = groupMap.get(key);
     if (!g) {
       g = {
         first: i,
         indent: ind,
-        delimiter: num.delimiter,
+        delimiter: item.delimiter,
         parent: parentIdx,
-        start: num.numbers[num.numbers.length - 1],
+        start: item.numbers[item.numbers.length - 1],
         items: [],
       };
       groupMap.set(key, g);
       groups.push(g);
     }
-    g.items.push({ line: i, item: num });
+    g.items.push({ line: i, item });
   }
 
   return groups;
 }
 
-function getTouchedBlocks(lines: string[], touched: number[]): ListBlock[] {
-  const result: ListBlock[] = [];
+export interface TouchedRun {
+  block: ListBlock;
+  runStart: number;
+  runEnd: number;
+  parsed: (ParsedItem | null)[];
+}
+
+export function getTouchedRuns(lines: string[], touched: number[]): TouchedRun[] {
+  const result: TouchedRun[] = [];
+  const seenBlocks = new Set<number>();
+  const runCache: { start: number; end: number; blocks: ListBlock[]; parsed: (ParsedItem | null)[] }[] = [];
   for (const t of new Set(touched)) {
-    for (const b of blocksAround(lines, t)) {
-      if (t >= b.start && t <= b.end && !result.some((r) => r.start === b.start)) result.push(b);
+    if (t < 0 || t >= lines.length || lines[t].trim() === "") continue;
+    let cached = runCache.find((r) => t >= r.start && t <= r.end);
+    if (!cached) {
+      let start = t;
+      let end = t;
+      while (start > 0 && lines[start - 1].trim() !== "") start--;
+      while (end < lines.length - 1 && lines[end + 1].trim() !== "") end++;
+      const parsed = new Array<ParsedItem | null>(end - start + 1);
+      for (let i = start; i <= end; i++) parsed[i - start] = parseListItem(lines[i]);
+      cached = { start, end, blocks: findBlocksInRange(lines, start, end, start, parsed), parsed };
+      runCache.push(cached);
+    }
+    for (const b of cached.blocks) {
+      if (t >= b.start && t <= b.end && !seenBlocks.has(b.start)) {
+        seenBlocks.add(b.start);
+        result.push({ block: b, runStart: cached.start, runEnd: cached.end, parsed: cached.parsed });
+      }
     }
   }
-  return result.sort((a, b) => a.start - b.start);
+  return result.sort((a, b) => a.block.start - b.block.start);
+}
+
+/** Recompute blocks inside an already-parsed run after `changedIdx` changed (rule 15). */
+export function refreshRunsForLine(
+  lines: string[],
+  run: TouchedRun,
+  changedIdx: number,
+  idx: number,
+): { run: TouchedRun; groups: NumberedGroup[] } | null {
+  const parsed = [...run.parsed];
+  parsed[changedIdx - run.runStart] = parseListItem(lines[changedIdx]);
+  const blocks = findBlocksInRange(lines, run.runStart, run.runEnd, run.runStart, parsed);
+  const block = blocks.find((b) => idx >= b.start && idx <= b.end);
+  if (!block) return null;
+  const updated: TouchedRun = { block, runStart: run.runStart, runEnd: run.runEnd, parsed };
+  return { run: updated, groups: getGroupsInBlock(lines, block, run.runStart, parsed) };
+}
+
+/** Fast single-run indent target lookup using pre-parsed items (rule 2, rule 15). */
+export function tabIndentTargetInRun(run: TouchedRun, idx: number): string | null {
+  const item = run.parsed[idx - run.runStart];
+  if (!item) return null;
+  const myIndent = indentLen(item.indent);
+  let P: ParsedItem | null = null;
+  for (let i = idx - 1; i >= run.block.start; i--) {
+    const prev = run.parsed[i - run.runStart];
+    if (!prev) continue;
+    const prevIndent = indentLen(prev.indent);
+    if (prevIndent < myIndent) break;
+    if (prevIndent === myIndent) {
+      P = prev;
+      break;
+    }
+  }
+  if (P && P.kind === "numbered") {
+    return " ".repeat(indentLen(P.indent) + P.marker.length + 1);
+  }
+  return null;
+}
+
+export function findParentInRun(run: TouchedRun, idx: number): { index: number; item: ParsedItem } | null {
+  const myIndent = indentLen((run.parsed[idx - run.runStart]?.indent) ?? "");
+  for (let i = idx - 1; i >= run.block.start; i--) {
+    const item = run.parsed[i - run.runStart];
+    if (item && indentLen(item.indent) < myIndent) return { index: i, item };
+  }
+  return null;
 }
 
 /** Each group in the blocks containing `touched`: its first item's line, indent length, delimiter, parent line
@@ -236,11 +345,9 @@ export function listGroups(
   lines: string[],
   touched: number[],
 ): { first: number; indent: number; delimiter: "." | ")"; parent: number | null; start: number }[] {
-  const touchedBlocks = getTouchedBlocks(lines, touched);
   const out: { first: number; indent: number; delimiter: "." | ")"; parent: number | null; start: number }[] = [];
-  for (const b of touchedBlocks) {
-    const groups = getGroupsInBlock(lines, b);
-    for (const g of groups) {
+  for (const { block, runStart, parsed } of getTouchedRuns(lines, touched)) {
+    for (const g of getGroupsInBlock(lines, block, runStart, parsed)) {
       out.push({
         first: g.first,
         indent: g.indent,
@@ -254,13 +361,15 @@ export function listGroups(
 }
 
 /** Pairs each new group with the old group of the same indent and delimiter whose mapped first line is closest
- *  at or before it, and returns the starts map for `renumberLists`. */
+ *  at or before it, and returns the starts map for `renumberLists`. When one old group splits into several new ones,
+ *  only the first keeps the old start and every split-off part starts again at 1 (rule 4). */
 export function matchGroupStarts(
   oldGroups: { first: number; indent: number; delimiter: "." | ")"; parent: number | null; start: number }[],
   newGroups: { first: number; indent: number; delimiter: "." | ")"; parent: number | null; start: number }[],
   mappedFirstLine: (oldFirst: number) => number,
 ): Map<number, number> {
   const starts = new Map<number, number>();
+  const claimed = new Set<(typeof oldGroups)[0]>();
   for (const ng of newGroups) {
     let bestOld: (typeof oldGroups)[0] | null = null;
     let bestDist = Infinity;
@@ -277,22 +386,29 @@ export function matchGroupStarts(
       }
     }
     if (bestOld) {
-      starts.set(ng.first, bestOld.start);
+      if (claimed.has(bestOld)) {
+        starts.set(ng.first, 1);
+      } else {
+        claimed.add(bestOld);
+        starts.set(ng.first, bestOld.start);
+      }
     }
   }
   return starts;
 }
 
-/** Rule 5 on plain lines: renumber the groups of the list blocks containing the `touched` line indices. `starts`
- *  maps a group's first-item line index (in `lines`) to the start it must have; a group not in it starts at its
- *  first item's current number. */
-export function renumberLists(lines: string[], touched: number[], starts?: Map<number, number>): LineEdit[] {
-  const touchedBlocks = getTouchedBlocks(lines, touched);
+function renumberRuns(
+  lines: string[],
+  runs: { block: ListBlock; groups: NumberedGroup[] }[],
+  starts?: Map<number, number>,
+): LineEdit[] {
   const edits: LineEdit[] = [];
   const newNumbers = new Map<number, number[]>();
 
-  for (const b of touchedBlocks) {
-    const groups = getGroupsInBlock(lines, b);
+  for (const { block: b, groups } of runs) {
+    const rewritten = new Map<number, string>();
+    const markerDeltaByLine = new Map<number, number>();
+
     for (const g of groups) {
       const start = starts?.get(g.first) ?? g.start;
       const isDotted = g.items[0].item.numbers.length > 1;
@@ -307,20 +423,112 @@ export function renumberLists(lines: string[], touched: number[], starts?: Map<n
       for (let j = 0; j < g.items.length; j++) {
         const lineIdx = g.items[j].line;
         const seq = start + j;
-        const itemNumbers = isDotted && prefix.length > 0 ? [...prefix, seq] : [seq];
+        const hasPrefix = isDotted && prefix.length > 0;
+        const itemNumbers = hasPrefix ? [...prefix, seq] : [seq];
         newNumbers.set(lineIdx, itemNumbers);
 
-        const newMarker = itemNumbers.join(".") + g.delimiter;
+        const newMarker = hasPrefix ? itemNumbers.join(".") + g.delimiter : `${seq}${g.delimiter}`;
         const oldItem = g.items[j].item;
         const newLine = oldItem.indent + newMarker + lines[lineIdx].slice(oldItem.markerEnd);
         if (newLine !== lines[lineIdx]) {
-          edits.push({ line: lineIdx, text: newLine });
+          rewritten.set(lineIdx, newLine);
+        }
+        const delta = newMarker.length - oldItem.marker.length;
+        if (delta !== 0) {
+          markerDeltaByLine.set(lineIdx, delta);
         }
       }
+    }
+
+    // Rule 10: if any marker changed width (`9.` <-> `10.`, `9.9.` <-> `9.10.`), shift its subtree by the same columns.
+    if (markerDeltaByLine.size > 0) {
+      const stack: { origIndent: number; newIndent: number; shift: number }[] = [];
+      for (let i = b.start; i <= b.end; i++) {
+        const baseLine = rewritten.get(i) ?? lines[i];
+        const origIndent = leadingWidth(baseLine);
+        while (stack.length > 0 && stack[stack.length - 1].origIndent >= origIndent) stack.pop();
+        const parent = stack[stack.length - 1];
+        const parentShift = parent ? parent.shift : 0;
+        let finalLine = baseLine;
+        let newIndent = origIndent;
+        if (parentShift !== 0) {
+          const minInd = parent ? parent.newIndent + 1 : 0;
+          finalLine = shiftLineIndent(baseLine, parentShift, minInd);
+          newIndent = Math.max(minInd, origIndent + parentShift);
+        }
+        if (finalLine !== lines[i]) {
+          rewritten.set(i, finalLine);
+        } else {
+          rewritten.delete(i);
+        }
+        const markerDelta = markerDeltaByLine.get(i) ?? 0;
+        if (parentShift !== 0 || markerDelta !== 0) {
+          stack.push({ origIndent, newIndent, shift: parentShift + markerDelta });
+        }
+      }
+    }
+
+    for (const [lineIdx, text] of rewritten) {
+      edits.push({ line: lineIdx, text });
     }
   }
 
   return edits.sort((a, b) => a.line - b.line);
+}
+
+/** Rule 5 on plain lines: renumber the groups of the list blocks containing the `touched` line indices. `starts`
+ *  maps a group's first-item line index (in `lines`) to the start it must have; a group not in it starts at its
+ *  first item's current number. */
+export function renumberLists(lines: string[], touched: number[], starts?: Map<number, number>): LineEdit[] {
+  const runs = getTouchedRuns(lines, touched).map(({ block, runStart, parsed }) => ({
+    block,
+    groups: getGroupsInBlock(lines, block, runStart, parsed),
+  }));
+  return renumberRuns(lines, runs, starts);
+}
+
+/** Renumber `working` carrying group starts from `before` in one pass per side (rule 15). */
+export function renumberEdited(
+  before: string[],
+  working: string[],
+  touched: number[],
+  extraStarts?: Map<number, number>,
+): LineEdit[] {
+  const oldGroups: NumberedGroup[] = [];
+  for (const { block, runStart, parsed } of getTouchedRuns(before, touched)) {
+    oldGroups.push(...getGroupsInBlock(before, block, runStart, parsed));
+  }
+  const newRuns = getTouchedRuns(working, touched).map(({ block, runStart, parsed }) => ({
+    block,
+    groups: getGroupsInBlock(working, block, runStart, parsed),
+  }));
+  return renumberFromGroups(working, oldGroups, newRuns, extraStarts);
+}
+
+/** Renumber pre-analyzed `working` runs carrying group starts from `before` without re-parsing (rule 15). */
+export function renumberPrepared(
+  before: string[],
+  beforeRun: TouchedRun,
+  working: string[],
+  workingRun: TouchedRun,
+  workingGroups: NumberedGroup[],
+  extraStarts?: Map<number, number>,
+): LineEdit[] {
+  const oldGroups = getGroupsInBlock(before, beforeRun.block, beforeRun.runStart, beforeRun.parsed);
+  return renumberFromGroups(working, oldGroups, [{ block: workingRun.block, groups: workingGroups }], extraStarts);
+}
+
+function renumberFromGroups(
+  working: string[],
+  oldGroups: NumberedGroup[],
+  newRuns: { block: ListBlock; groups: NumberedGroup[] }[],
+  extraStarts?: Map<number, number>,
+): LineEdit[] {
+  const newGroups: NumberedGroup[] = [];
+  for (const r of newRuns) newGroups.push(...r.groups);
+  const starts = matchGroupStarts(oldGroups, newGroups, (first) => first);
+  for (const [k, v] of extraStarts ?? []) starts.set(k, v);
+  return renumberRuns(working, newRuns, starts);
 }
 
 /** Tab stops for a line that is not a list item but sits under one (a continuation, a line whose number was removed,
@@ -373,8 +581,8 @@ export function backspaceMarker(lines: string[], idx: number, col: number): stri
 
   let targetIndent: string;
   if (P) {
-    const textCol = indentLen(P.indent) + P.marker.length + 1;
-    targetIndent = " ".repeat(textCol);
+    // Keep P's own indent verbatim (so a leading tab stays a tab, rule 11), plus spaces past its marker.
+    targetIndent = P.indent + " ".repeat(P.marker.length + 1);
   } else {
     targetIndent = num.indent;
   }
@@ -395,20 +603,23 @@ export function backspaceContinuation(lines: string[], idx: number, col: number)
   const block = getBlockForLine(lines, idx);
   if (!block) return null;
 
+  const leadingWidth = indentLen(leading);
+  let minIndent = leadingWidth;
   let P: NumberedItem | null = null;
   for (let i = idx - 1; i >= block.start; i--) {
     const item = parseListItem(lines[i]);
-    if (item) {
-      if (item.kind === "numbered") {
+    if (!item) continue;
+    const ind = indentLen(item.indent);
+    // Skip deeper sub-items or bullets between the continuation line and the item it continues (rule 6).
+    if (ind < minIndent) {
+      if (item.kind === "numbered" && ind + item.marker.length + 1 === leadingWidth) {
         P = item;
+        break;
       }
-      break;
+      minIndent = ind;
     }
   }
   if (!P) return null;
-
-  const textCol = indentLen(P.indent) + P.marker.length + 1;
-  if (indentLen(leading) !== textCol) return null;
 
   // Back to the indent of the item it continued, so an indented list keeps its place.
   return P.indent + line.slice(leadingSpaces);

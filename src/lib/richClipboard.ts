@@ -1,7 +1,5 @@
 import { BULLET_CLASS } from "./grammar/symbols";
-import { parseNumberedItem } from "./tokens";
-
-const BULLET_LINE_RE = new RegExp(String.raw`^([ ]*)(${BULLET_CLASS})(?:\s+(.*)|\s*$)`);
+import { indentLen, parseNumberedItem } from "./tokens";
 
 function escapeHtml(str: string): string {
   return str
@@ -20,13 +18,13 @@ interface ListLineInfo {
 
 function parseListLine(line: string): ListLineInfo | null {
   // Only match bullet when followed by whitespace or end of line (requiring a space or space-only)
-  const isBulletDashOrStar = new RegExp(String.raw`^([ ]*)(${BULLET_CLASS})(?:\s+(.*)|\s+$)`).exec(line);
+  const isBulletDashOrStar = new RegExp(String.raw`^([ \t]*)(${BULLET_CLASS})(?:\s+(.*)|\s+$)`).exec(line);
   if (isBulletDashOrStar) {
     const indent = isBulletDashOrStar[1];
     const itemText = isBulletDashOrStar[3] !== undefined ? isBulletDashOrStar[3].trim() : "";
     return {
       type: "ul",
-      indent: indent.length,
+      indent: indentLen(indent),
       text: itemText,
       startNum: 1,
     };
@@ -37,7 +35,7 @@ function parseListLine(line: string): ListLineInfo | null {
     const startNum = numItem.numbers[numItem.numbers.length - 1];
     return {
       type: "ol",
-      indent: numItem.indent.length,
+      indent: indentLen(numItem.indent),
       text: numItem.text,
       startNum,
     };
@@ -82,14 +80,23 @@ export function noteTextToHtml(text: string): string | null {
   for (const line of rawLines) {
     const item = parseListLine(line);
     if (!item) {
-      // Non-list line
-      closeAll();
-      if (line === "") {
+      if (line.trim() === "") {
+        closeAll();
         output += "<div><br></div>";
+        continue;
+      }
+      const lineIndent = indentLen(line.match(/^[ \t]*/)![0]);
+      if (stack.length > 0 && lineIndent > stack[0].indent) {
+        // Continuation line inside the current item (or an ancestor item if inner lists were deeper, rule 13).
+        while (stack.length > 0 && stack[stack.length - 1].indent >= lineIndent) {
+          const top = stack.pop()!;
+          output += `</li></${top.type}>`;
+        }
+        output += `<br>${escapeHtml(line.trim())}`;
       } else {
-        const leadingSpaces = line.match(/^[ ]*/)?.[0].length || 0;
-        const rest = line.slice(leadingSpaces);
-        const leadingNbsp = "&nbsp;".repeat(leadingSpaces);
+        closeAll();
+        const rest = line.replace(/^[ \t]*/, "");
+        const leadingNbsp = "&nbsp;".repeat(lineIndent);
         output += `<div>${leadingNbsp}${escapeHtml(rest)}</div>`;
       }
     } else {

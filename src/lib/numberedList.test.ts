@@ -256,4 +256,20 @@ describe("renumberAfterInsert: a new item in the middle of a list (#123)", () =>
   it("keeps the text after the marker exactly as it was", () => {
     expect(apply("1. a", ["2.   spaced   text  "])).toEqual(["3.   spaced   text  "]);
   });
+
+  it("rule 3: dotted sub-items under the edited item follow the new item, and deeper lines never stop sibling renumbering", () => {
+    expect(apply("1. a", ["   1.1. sub", "2. b", "3. c"])).toEqual(["   2.1. sub", "3. b", "4. c"]);
+    expect(apply("1. a", ["   1. sub", "2. b", "3. c"])).toEqual(["   1. sub", "3. b", "4. c"]);
+    expect(apply("1. a", ["   - bullet", "   cont", "2. b"])).toEqual(["   - bullet", "   cont", "3. b"]);
+  });
+
+  it("rule 10: a bumped sibling whose marker widens shifts its sub-items and continuation lines along", () => {
+    expect(apply("8. z", ["9. a", "   sub text", "   1. sub"])).toEqual(["10. a", "    sub text", "    1. sub"]);
+    expect(apply("9.8. z", ["9.9. a", "      sub text"])).toEqual(["9.10. a", "       sub text"]);
+  });
+
+  it("rule 11: tabs in the indent are compared by width (tab = 2 columns)", () => {
+    expect(apply("1. a", ["\t1.1. sub", "2. b"])).toEqual(["\t2.1. sub", "3. b"]);
+    expect(apply("  1. a", ["\t\t1.1. sub", "  2. b"])).toEqual(["\t\t2.1. sub", "  3. b"]);
+  });
 });

@@ -7,10 +7,15 @@ import { currentDateISO } from "../stores";
 import { locale, t } from "../i18n";
 import { dueWordExtra } from "../date";
 
-/** A line that so far holds only a symbol (`# `, `o `, `- `), with nothing typed after it. */
-const EMPTY_MARKER = new RegExp(String.raw`^(\s*)(?:${ACTION_CLASS}|${TOPIC_CLASS}|${BULLET_CLASS})\s+$`);
-/** Pasted text whose first line starts with a symbol of its own. */
-const PASTED_MARKER = new RegExp(String.raw`^\s*(?:${ACTION_CLASS}|${TOPIC_CLASS}|${BULLET_CLASS})\s`);
+const NUMBERED_MARKER = String.raw`[1-9]\d{0,8}(?:\.[1-9]\d{0,8})*[.)]`;
+/** A line that so far holds only a symbol (`# `, `o `, `- `, `1. `), with nothing typed after it. */
+const EMPTY_MARKER = new RegExp(
+  String.raw`^(\s*)(?:${ACTION_CLASS}|${TOPIC_CLASS}|${BULLET_CLASS}|${NUMBERED_MARKER})\s+$`,
+);
+/** Pasted text whose first line starts with a symbol or numbered marker of its own. */
+const PASTED_MARKER = new RegExp(
+  String.raw`^\s*(?:${ACTION_CLASS}|${TOPIC_CLASS}|${BULLET_CLASS}|${NUMBERED_MARKER})\s`,
+);
 
 /** `fromSuffixes`: one `(<…)` link per pasted line (the paste forwards actions, §371); an open line gets its own,
  * replacing any links it carried. */
