@@ -10,6 +10,7 @@
   import { spellSuggest, spellAdd, spellIgnore } from "../tauriApi";
   import { recheckAll } from "../editor/spellcheck";
   import { tokenizeLine, getLineActionParts } from "../grammar/tokenize";
+  import { buildPasteDataTransfer } from "../editor/clipboardPaste";
 
   let menuEl = $state<HTMLDivElement>();
 
@@ -146,15 +147,13 @@
   async function handlePaste() {
     close();
     try {
-      const text = await navigator.clipboard.readText();
+      const dt = await buildPasteDataTransfer();
       editorApi?.focus();
-      const dt = new DataTransfer();
-      dt.setData("text/plain", text);
       document.querySelector(".cm-content")?.dispatchEvent(
         new ClipboardEvent("paste", { clipboardData: dt, bubbles: true, cancelable: true })
       );
     } catch {
-      // If readText rejects, show nothing and just close.
+      // If clipboard reading rejects, show nothing and just close.
     }
   }
 </script>

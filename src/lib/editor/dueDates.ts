@@ -60,9 +60,13 @@ function build(view: EditorView): { decorations: DecorationSet; atomic: Decorati
               attributes: { title: dueTooltip(tok.date, status, today), "data-due-date": tok.date },
             }),
           );
-          b.add(from, from + 3, FLAG);
-          // `by:` acts as one glyph: the caret never stops inside it, and Backspace after it removes all three.
-          atomic.add(from, from + 3, FLAG);
+          // Held caret (§463): while typing right inside `by:` (e.g. `by` completed before `:2026-10-30`), keep it plain and non-atomic so Backspace deletes one character.
+          const held = view.state.selection.ranges.some((r) => r.empty && r.head > from && r.head < from + 3);
+          if (!held) {
+            b.add(from, from + 3, FLAG);
+            // `by:` acts as one glyph: the caret never stops inside it, and Backspace after it removes all three.
+            atomic.add(from, from + 3, FLAG);
+          }
         } else if (tok.kind === "dueWord" && tok.word !== undefined && !isTouched) {
           if (parseDueWord(tok.word, today, loc, extra) === null) {
             b.add(

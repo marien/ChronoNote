@@ -2,20 +2,17 @@ import { EditorState } from "@codemirror/state";
 import { get } from "svelte/store";
 import { ACTION_CLASS, BULLET_CLASS, TOPIC_CLASS } from "../grammar/symbols";
 import { rewriteDueWords, stateFirst } from "../tokens";
-import { OPEN_ACTION_LINE, takePendingPasteFrom, withFromLink } from "../paste";
+import { OPEN_ACTION_LINE, takePendingPasteFrom, updatePasteDeferPastedBlock, withFromLink } from "../paste";
 import { currentDateISO } from "../stores";
 import { locale, t } from "../i18n";
 import { dueWordExtra } from "../date";
 
 const NUMBERED_MARKER = String.raw`[1-9]\d{0,8}(?:\.[1-9]\d{0,8})*[.)]`;
-/** A line that so far holds only a symbol (`# `, `o `, `- `, `1. `), with nothing typed after it. */
-const EMPTY_MARKER = new RegExp(
-  String.raw`^(\s*)(?:${ACTION_CLASS}|${TOPIC_CLASS}|${BULLET_CLASS}|${NUMBERED_MARKER})\s+$`,
-);
-/** Pasted text whose first line starts with a symbol or numbered marker of its own. */
-const PASTED_MARKER = new RegExp(
-  String.raw`^\s*(?:${ACTION_CLASS}|${TOPIC_CLASS}|${BULLET_CLASS}|${NUMBERED_MARKER})\s`,
-);
+const MARKER_HEAD = String.raw`(?:=>\s+(?:${ACTION_CLASS}|${TOPIC_CLASS})|=>|(?:${ACTION_CLASS}|${TOPIC_CLASS})\s+(?:!\s+${BULLET_CLASS}|!|${BULLET_CLASS}|${NUMBERED_MARKER})|!\s+${BULLET_CLASS}|${ACTION_CLASS}|${TOPIC_CLASS}|${BULLET_CLASS}|!|${NUMBERED_MARKER})`;
+/** A line that so far holds only a leading marker (`# `, `=> `, `# - `, `1. `, etc.), with nothing typed after it. */
+const EMPTY_MARKER = new RegExp(String.raw`^(\s*)${MARKER_HEAD}\s+$`);
+/** Pasted text whose first line starts with a leading marker of its own. */
+const PASTED_MARKER = new RegExp(String.raw`^\s*${MARKER_HEAD}\s`);
 
 /** `fromSuffixes`: one `(<…)` link per pasted line (the paste forwards actions, §371); an open line gets its own,
  * replacing any links it carried. */
@@ -54,7 +51,16 @@ export function mergePasteOverEmptyMarker(
   const m = EMPTY_MARKER.exec(lineBefore);
   const rewritten = rewritePasted(pasted, fromSuffixes);
   if (!m || !PASTED_MARKER.test(rewritten)) return null;
-  return { deleteBefore: lineBefore.length - m[1].length, insert: rewritten.replace(/^[ \t]+/, "") };
+  const targetIndent = m[1];
+  const lines = rewritten.split("\n");
+  const baseIndent = lines[0].match(/^[ \t]*/)![0];
+  const adjusted = lines.map((line, i) => {
+    if (i === 0) return line.slice(baseIndent.length);
+    if (line === "") return "";
+    const stripped = line.startsWith(baseIndent) ? line.slice(baseIndent.length) : line.replace(/^[ \t]+/, "");
+    return targetIndent + stripped;
+  });
+  return { deleteBefore: lineBefore.length - targetIndent.length, insert: adjusted.join("\n") };
 }
 
 export const pasteOverEmptyMarker = EditorState.transactionFilter.of((tr) => {
@@ -84,5 +90,6 @@ export const pasteOverEmptyMarker = EditorState.transactionFilter.of((tr) => {
   const spec = specs.length === 1 ? specs[0] : null;
   if (!spec) return tr;
   const { from, to, insert } = spec;
+  if (fromSuffixes) updatePasteDeferPastedBlock(insert);
   return { changes: { from, to, insert }, selection: { anchor: from + insert.length }, userEvent: "input.paste", scrollIntoView: true };
 });

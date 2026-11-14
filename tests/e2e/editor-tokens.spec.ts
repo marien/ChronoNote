@@ -292,12 +292,12 @@ test.describe("editor — token glyphs", () => {
     expect((await statusCounts(page)).closed).toBe(1);
   });
 
-  test("action continuation (#12): Shift+Enter stays a plain newline", async ({ page }) => {
+  test("action continuation (#12): Shift+Enter continues at the action's text column without adding a marker", async ({ page }) => {
     await typeInEditor(page, "# a task");
     await page.keyboard.press("Shift+Enter");
     await page.keyboard.type("continued prose");
 
-    expect(await activeTabContent(page)).toBe("# a task\ncontinued prose");
+    expect(await activeTabContent(page)).toBe("# a task\n  continued prose");
   });
 
   test("#34: Enter with the caret before the glyph is a plain newline, no duplicated symbol", async ({ page }) => {

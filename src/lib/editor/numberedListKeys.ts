@@ -1,5 +1,5 @@
 import { isolateHistory } from "@codemirror/commands";
-import { Annotation, EditorState, Prec, Transaction, type ChangeSpec, type Text } from "@codemirror/state";
+import { Annotation, EditorState, Prec, Transaction, type ChangeSpec, type Text, type TransactionSpec } from "@codemirror/state";
 import { EditorView, keymap } from "@codemirror/view";
 import {
   backspaceContinuation,
@@ -26,6 +26,7 @@ import {
   type ListBlock,
   type NumberedGroup,
 } from "../numberedLists";
+import { tokenizeLine } from "../grammar/tokenize";
 import { parseNumberedItem, shiftLineIndent } from "../tokens";
 
 /** Marks a transaction whose numbering is already done, so the renumber filter leaves it alone. */
@@ -80,6 +81,26 @@ function readRunSlice(doc: Text, minIdx: number, maxIdx: number): { offset: numb
   return { offset: start, lines: head.length > 0 ? [...head, ...mid] : mid };
 }
 
+/** Build a list-edit TransactionSpec for `state` without dispatching it, so callers with a non-empty selection can compose both changes into one undo step. */
+function listEditSpec(
+  state: EditorState,
+  after: string[],
+  userEvent: string,
+  anchor?: number,
+  offset = 0,
+  before?: string[],
+): TransactionSpec {
+  const prev = before ?? Array.from({ length: after.length }, (_, i) => state.doc.line(offset + i + 1).text);
+  const cs = state.changes(lineChanges(state.doc, offset, prev, after));
+  return {
+    changes: cs,
+    selection: anchor !== undefined ? { anchor } : state.selection.map(cs),
+    userEvent,
+    annotations: [renumbered.of(true), isolateHistory.of("full")],
+    scrollIntoView: true,
+  };
+}
+
 /** Dispatch a list edit given as the slice's lines after it (same line count), in one undo step. The selection
  * is mapped through the change unless `anchor` (a position in the new document) is given. */
 export function applyListEdit(
@@ -90,16 +111,7 @@ export function applyListEdit(
   offset = 0,
   before?: string[],
 ): boolean {
-  const state = view.state;
-  const prev = before ?? Array.from({ length: after.length }, (_, i) => state.doc.line(offset + i + 1).text);
-  const cs = state.changes(lineChanges(state.doc, offset, prev, after));
-  view.dispatch({
-    changes: cs,
-    selection: anchor !== undefined ? { anchor } : state.selection.map(cs),
-    userEvent,
-    annotations: [renumbered.of(true), isolateHistory.of("full")],
-    scrollIntoView: true,
-  });
+  view.dispatch(listEditSpec(view.state, after, userEvent, anchor, offset, before));
   return true;
 }
 
@@ -258,7 +270,7 @@ function continuationIndent(view: EditorView, forward: boolean): boolean {
 
 /** Rules 1, 2, 14: Tab moves a list line under the text of the numbered item before it at the same indent, or moves
  * the whole group +2 (or under a bullet right above) when it is the first item of its group. */
-function tabCommand(view: EditorView): boolean {
+export function tabCommand(view: EditorView): boolean {
   if (continuationIndent(view, true)) return true;
   const s = selectedLines(view.state);
   if (!s) return false;
@@ -374,7 +386,7 @@ function tabCommand(view: EditorView): boolean {
 
 /** Rules 1, 3, 9: Shift+Tab moves a list line out to its parent's indent (or back by 2 for an indented top-level
  * group); the outer list continues and sub-items left behind start at 1. */
-function shiftTabCommand(view: EditorView): boolean {
+export function shiftTabCommand(view: EditorView): boolean {
   if (continuationIndent(view, false)) return true;
   const s = selectedLines(view.state);
   if (!s) return false;
@@ -430,19 +442,24 @@ function shiftTabCommand(view: EditorView): boolean {
   );
 }
 
-/** Shared helper for moving an empty sub-item out as the parent list's next item (rules 7 and 8). */
-export function moveEmptySubItemOut(view: EditorView, lineFrom: number, lineIdx: number, userEvent: string): boolean {
-  const { offset, lines } = readRunSlice(view.state.doc, lineIdx, lineIdx);
+/** Pure spec builder for moving an empty sub-item out as the parent list's next item (rules 7 and 8). */
+export function moveEmptySubItemOutSpec(
+  state: EditorState,
+  lineFrom: number,
+  lineIdx: number,
+  userEvent: string,
+): TransactionSpec | null {
+  const { offset, lines } = readRunSlice(state.doc, lineIdx, lineIdx);
   const localIdx = lineIdx - offset;
   const subReplacement = emptySubItemEnter(lines, localIdx);
-  if (subReplacement === null) return false;
+  if (subReplacement === null) return null;
 
   const working = [...lines];
   working[localIdx] = subReplacement;
   const extra = new Map<number, number>();
   for (const g of listGroups(working, [localIdx])) if (g.parent === localIdx) extra.set(g.first, 1);
-  return applyListEdit(
-    view,
+  return listEditSpec(
+    state,
     withRenumbering(lines, working, [localIdx], extra),
     userEvent,
     lineFrom + subReplacement.length,
@@ -451,16 +468,30 @@ export function moveEmptySubItemOut(view: EditorView, lineFrom: number, lineIdx:
   );
 }
 
-/** Exit a numbered list on an empty item in the middle (or end) of a list, renumbering any split-off tail (rule 4). */
-export function exitNumberedList(view: EditorView, lineFrom: number, lineIdx: number): boolean {
+/** Shared helper for moving an empty sub-item out as the parent list's next item (rules 7 and 8). */
+export function moveEmptySubItemOut(view: EditorView, lineFrom: number, lineIdx: number, userEvent: string): boolean {
+  const spec = moveEmptySubItemOutSpec(view.state, lineFrom, lineIdx, userEvent);
+  if (!spec) return false;
+  view.dispatch(spec);
+  return true;
+}
+
+/** Pure spec builder for exiting a numbered list on an empty item (rule 4). */
+export function exitNumberedListSpec(state: EditorState, lineFrom: number, lineIdx: number): TransactionSpec {
   const minIdx = Math.max(0, lineIdx - 1);
-  const maxIdx = Math.min(view.state.doc.lines - 1, lineIdx + 1);
-  const { offset, lines } = readRunSlice(view.state.doc, minIdx, maxIdx);
+  const maxIdx = Math.min(state.doc.lines - 1, lineIdx + 1);
+  const { offset, lines } = readRunSlice(state.doc, minIdx, maxIdx);
   const localIdx = lineIdx - offset;
   const working = [...lines];
   working[localIdx] = "";
   const touched = [localIdx - 1, localIdx, localIdx + 1].filter((i) => i >= 0 && i < lines.length);
-  return applyListEdit(view, withRenumbering(lines, working, touched), "input", lineFrom, offset, lines);
+  return listEditSpec(state, withRenumbering(lines, working, touched), "input", lineFrom, offset, lines);
+}
+
+/** Exit a numbered list on an empty item in the middle (or end) of a list, renumbering any split-off tail (rule 4). */
+export function exitNumberedList(view: EditorView, lineFrom: number, lineIdx: number): boolean {
+  view.dispatch(exitNumberedListSpec(view.state, lineFrom, lineIdx));
+  return true;
 }
 
 /** Rules 6 and 7, and §457: Backspace on an empty sub-item with a numbered parent moves it out; Backspace at a
@@ -516,9 +547,15 @@ export const numberedListKeymap = Prec.high(
   ]),
 );
 
+function hasLeadingStatePrefix(line: string): boolean {
+  const [first] = tokenizeLine(line);
+  return first?.kind === "action" || first?.kind === "topic";
+}
+
 /** Rule 4, 5, 12, 15: deleting, cutting, moving or pasting lines in a list renumbers it, and so does typing or
- * deleting that turns a line from blank into text or back (joining or splitting lists). Typing a number or deleting a
- * digit (including on a blank line between lists) never renumbers anything. */
+ * deleting that turns a line from blank into text or back (joining or splitting lists), or adding/removing a state
+ * symbol on a numbered item. Typing a number or deleting a digit (including on a blank line between lists) never
+ * renumbers anything. */
 export const numberedListRenumberFilter = EditorState.transactionFilter.of((tr) => {
   if (!tr.docChanged || tr.annotation(renumbered)) return tr;
   const ev = tr.annotation(Transaction.userEvent);
@@ -532,6 +569,7 @@ export const numberedListRenumberFilter = EditorState.transactionFilter.of((tr) 
   const newDoc = tr.newDoc;
   let lineBreaks = false;
   let blankChanged = false;
+  let stateChanged = false;
   let digitEdit = false;
   let listPaste = false;
   const oldTouched: number[] = [];
@@ -543,11 +581,22 @@ export const numberedListRenumberFilter = EditorState.transactionFilter.of((tr) 
     const b1 = newDoc.lineAt(toB).number - 1;
     if (inserted.lines > 1 || a1 !== a0) {
       lineBreaks = true;
-      if (typing && b0 === b1 && /^\s*\d/.test(newDoc.line(b0 + 1).text)) digitEdit = true;
+      if (typing && a0 === a1 && fromA === toA) {
+        const lineObj = oldDoc.line(a0 + 1);
+        const oldItem = parseNumberedItem(lineObj.text);
+        const col = fromA - lineObj.from;
+        if (oldItem && col > oldItem.indent.length && col < oldItem.markerEnd) digitEdit = true;
+      }
     } else {
       const oldLine = oldDoc.line(a0 + 1).text;
       const newLine = newDoc.line(b0 + 1).text;
       if ((oldLine.trim() === "") !== (newLine.trim() === "")) blankChanged = true;
+      if (
+        (parseNumberedItem(oldLine) !== null) !== (parseNumberedItem(newLine) !== null) &&
+        hasLeadingStatePrefix(oldLine) !== hasLeadingStatePrefix(newLine)
+      ) {
+        stateChanged = true;
+      }
       if (typing && /^\s*\d/.test(newLine)) digitEdit = true;
       if (isDelete && /^\s*\d/.test(oldLine) && parseNumberedItem(oldLine) === null) digitEdit = true;
       if (isPasteOrDrop && (parseNumberedItem(oldLine) !== null || parseNumberedItem(newLine) !== null)) listPaste = true;
@@ -556,7 +605,9 @@ export const numberedListRenumberFilter = EditorState.transactionFilter.of((tr) 
     for (let i = b0; i <= b1; i++) newTouched.push(i);
   });
   if (digitEdit) return tr;
-  if (typing ? !(lineBreaks || blankChanged) : !(lineBreaks || blankChanged || listPaste)) return tr;
+  if (typing ? !(lineBreaks || blankChanged || stateChanged) : !(lineBreaks || blankChanged || listPaste || stateChanged)) {
+    return tr;
+  }
 
   // Include neighbors around every changed line so a pasted blank line or moved non-list line splits both sides.
   const around = (list: number[], max: number) =>

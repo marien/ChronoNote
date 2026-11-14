@@ -29,6 +29,8 @@ test.describe("copy/paste deferral", () => {
     await editor(page).click();
     await page.keyboard.press("ControlOrMeta+Home");
     for (let i = 0; i < 2; i++) await page.keyboard.press("ArrowDown");
+    await page.keyboard.press("End");
+    await page.keyboard.press("Home");
     await page.keyboard.press("Home");
     await page.keyboard.press("Shift+End");
     await page.keyboard.press("ControlOrMeta+C");
@@ -56,6 +58,8 @@ test.describe("copy/paste deferral", () => {
     await editor(page).click();
     await page.keyboard.press("ControlOrMeta+Home");
     for (let i = 0; i < 2; i++) await page.keyboard.press("ArrowDown");
+    await page.keyboard.press("End");
+    await page.keyboard.press("Home");
     await page.keyboard.press("Home");
     await page.keyboard.press("Shift+End");
     await page.keyboard.press("ControlOrMeta+C");
@@ -94,6 +98,8 @@ test.describe("copy/paste deferral", () => {
     await editor(page).click();
     await page.keyboard.press("ControlOrMeta+Home");
     for (let i = 0; i < 2; i++) await page.keyboard.press("ArrowDown");
+    await page.keyboard.press("End");
+    await page.keyboard.press("Home");
     await page.keyboard.press("Home");
     for (let i = 0; i < 2; i++) await page.keyboard.press("Shift+ArrowDown");
     await page.keyboard.press("Shift+End");

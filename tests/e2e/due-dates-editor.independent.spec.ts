@@ -260,6 +260,8 @@ test.describe("due dates editor — independent tests (slice 2)", () => {
       await page.keyboard.press("ControlOrMeta+Home");
       await page.keyboard.press("ArrowDown");
       await page.keyboard.press("ArrowDown");
+      await page.keyboard.press("End");
+      await page.keyboard.press("Home");
       await page.keyboard.press("Home");
       await page.keyboard.press("Shift+End");
       await page.keyboard.press("ControlOrMeta+c");

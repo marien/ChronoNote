@@ -12100,3 +12100,44 @@ for caret and selection, `press`, `type`, `paste`, `undo`, `redo`), the base for
 state-first tests that could never fail (their selection change lacked the `select` user event) now can. Vitest runs
 plain tests in Node and only the 26 files that need a DOM in jsdom: `npm test` went from 40 s to 22 s. No behaviour
 change: the full browser suite passes unchanged. Built by Gemini 4 Hydrogen, reviewed here.
+
+## 467. Editing review, batch 2: keys and commands
+
+**Status: on main, not released yet.**
+
+Batch 2 of the editor review (`docs/design/editor-review.html`, approved 2026-11-14), with step 2 of its test plan: a
+table of 882 cases (`src/lib/editor/editing.*.table.test.ts`, every editing command on every kind of line, caret
+position and selection, each checking text, caret, one undo and redo) written by a separate Gemini 4 Hydrogen run from
+the spec and the decisions, not from the code. 213 rows failed; they were the work list. Fixed:
+
+1. **Enter and Shift+Enter with a selection** delete it first and then act at its start (they kept the selected text,
+   and a two-line selection gave a bullet per fragment). One undo step.
+2. **A plain line break where no continuation belongs:** Shift+Enter at column 0 or in the indent (it indented the
+   pushed-down marker line), Enter at the end of a title line above `===` or `---` (it added `# ` above the underline).
+3. **Decision D3:** Shift+Enter aligns under the text on every line kind (actions, `# - `, `# ! `, `# 1. `, `=> `
+   went to column 0), with the column word wrap already used. Shift+Enter also rewrites due words like Enter.
+4. **Decision D2, smart Home:** Home goes to the text start (past indent, markers and a leading `(topic)` tag), again
+   to column 0; Shift+Home the same; wrapped lines keep the visual-row Home.
+5. **Selections ending at column 0** no longer include that line (Ctrl+1..7, Ctrl+Shift+O, Tab, the phone toolbar).
+6. **Ctrl+Shift+S** on a title or its underline does nothing (it added a second underline).
+7. **Numbered lists:** Ctrl+1..4 on `1. task` renumbers the rest (the prefixed item leaves the list); typing over a
+   multi-line selection inside a list renumbers; Shift+Tab removes a leading tab; Enter on `o ! - item` keeps `! - `.
+8. **Alt+Up/Down** no longer rewrites the line that was not edited (the state-first rule mapped the caret line through
+   the swap onto the other line).
+9. **`by` typed before an existing `:date`:** `by:` is plain text while the caret is inside it (the §463 hold), so one
+   Backspace deletes one letter, not both.
+10. **Paste onto an empty marker** also merges for `=> `, `=> # `, `# - `, `# ! `, `! `, keeps an indented marker's
+    indent on every pasted line, and works when the renumber rule split the transaction (it now runs first).
+11. **Phone toolbar:** Indent runs the numbered-list Tab/Shift+Tab logic; Bullet and emphasis combine with an action or
+    topic (`# task` gives `# - task`, not `- task`).
+12. **Paste-forward undo** stores the text actually inserted (after due-word rewriting and marker merging), so undo of
+    the paste turns the source line back to `# `.
+13. **Right-click Paste** reads `text/html` too, so a Word or web list pastes as a list, as with Ctrl+V.
+14. **Decision D8:** multiple cursors are switched off (`allowMultipleSelections`).
+
+Test harness: CodeMirror chooses `win:` bindings from `navigator.platform`, which jsdom leaves empty; a Vitest setup
+file sets `Win32`, so Ctrl+Space rows test what Windows users get. Five kinds of table rows were wrong, not the app
+(Backspace on spaces deletes a whole indent unit, `! ` is not a glyph, redo's caret is CodeMirror's own, the underline
+length, typing plus Backspace at one spot is one undo step) and were corrected. Eleven browser specs that pressed Home
+for column 0 or Shift+Enter for a plain break now use the new keys. Built by Gemini 4 Hydrogen, reviewed here; Vitest
+3,386 and Playwright 1,534 passed on the branch.

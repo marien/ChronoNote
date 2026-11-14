@@ -130,8 +130,9 @@ test.describe("command palette (Ctrl/Cmd+K, §107)", () => {
     });
     await editor(page).click();
     await page.keyboard.press("ControlOrMeta+Home");
-    // Select first two lines using Shift+Down
+    // Select first two lines using Shift+Down + Shift+End (a bare Shift+ArrowDown ends at col 0 of line 2 and excludes it)
     await page.keyboard.press("Shift+ArrowDown");
+    await page.keyboard.press("Shift+End");
 
     // Open palette and run Won't-Do
     await page.keyboard.press("ControlOrMeta+k");

@@ -22,5 +22,6 @@ export default defineConfig(async () => ({
   test: {
     environment: "node",
     include: ["src/**/*.test.ts"],
+    setupFiles: ["./src/lib/testing/vitestSetup.ts"],
   },
 }));

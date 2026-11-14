@@ -10,6 +10,8 @@ async function caretAtEndOfLine(page: Page, line: number) {
 async function caretAtStartOfLine(page: Page, line: number) {
   await page.keyboard.press("ControlOrMeta+Home");
   for (let i = 0; i < line; i++) await page.keyboard.press("ArrowDown");
+  await page.keyboard.press("End");
+  await page.keyboard.press("Home");
   await page.keyboard.press("Home");
 }
 

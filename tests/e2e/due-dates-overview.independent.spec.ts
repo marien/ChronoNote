@@ -229,6 +229,8 @@ test.describe("due dates slice 3 independent: overdue count and due view", () =>
     await editor(page).click();
     await page.keyboard.press("ControlOrMeta+Home");
     for (let i = 0; i < 2; i++) await page.keyboard.press("ArrowDown");
+    await page.keyboard.press("End");
+    await page.keyboard.press("Home");
     await page.keyboard.press("Home");
     await page.keyboard.press("Shift+End");
     await page.keyboard.press("ControlOrMeta+C");

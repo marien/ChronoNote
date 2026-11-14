@@ -79,6 +79,8 @@ test.describe("per-tab undo history (§86 / #9)", () => {
     await editor(page).click();
     await page.keyboard.press("ControlOrMeta+Home");
     for (let i = 0; i < 2; i++) await page.keyboard.press("ArrowDown");
+    await page.keyboard.press("End");
+    await page.keyboard.press("Home");
     await page.keyboard.press("Home");
     await page.keyboard.press("Shift+End");
     await page.keyboard.press("ControlOrMeta+C");
@@ -116,6 +118,8 @@ test.describe("undo a paste-forward un-defers the source (§86 / #9)", () => {
     await editor(page).click();
     await page.keyboard.press("ControlOrMeta+Home");
     for (let i = 0; i < 2; i++) await page.keyboard.press("ArrowDown");
+    await page.keyboard.press("End");
+    await page.keyboard.press("Home");
     await page.keyboard.press("Home");
     await page.keyboard.press("Shift+End");
     await page.keyboard.press("ControlOrMeta+C");
