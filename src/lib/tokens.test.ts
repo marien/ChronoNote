@@ -40,6 +40,8 @@ import {
   dueStatus,
   rewriteDueWords,
   withDueDate,
+  withoutLineMarker,
+  lineMenuStateAt,
 } from "./tokens";
 
 describe("countActions", () => {
@@ -1410,5 +1412,54 @@ describe("Rule 2: Enter right after a leading symbol is a plain line break", () 
     expect(isCaretInLeadingSymbol("- item", 2)).toBe(false);
     expect(isCaretInLeadingSymbol("! hello", 5)).toBe(false);
     expect(isCaretInLeadingSymbol("Talked to Sam => # follow up", 15)).toBe(false);
+  });
+});
+
+describe("Rules 5 & 6: lineMenuStateAt and withoutLineMarker use the tokenizer", () => {
+  it("withoutLineMarker strips the leading marker and its indentation", () => {
+    expect(withoutLineMarker("# task")).toBe("task");
+    expect(withoutLineMarker("  # task")).toBe("task");
+    expect(withoutLineMarker("  o agenda")).toBe("agenda");
+    expect(withoutLineMarker("! urgent")).toBe("urgent");
+    expect(withoutLineMarker("  - bullet")).toBe("bullet");
+    expect(withoutLineMarker("  plain text")).toBe("  plain text");
+  });
+
+  it("lineMenuStateAt picks consequence vs leading symbol by column", () => {
+    const noteConseq = "Notes => # call Sam";
+    expect(lineMenuStateAt(noteConseq, 12)).toEqual({
+      kind: "action",
+      symbol: "#",
+      hasActionPart: true,
+    });
+    expect(lineMenuStateAt(noteConseq, 2)).toEqual({
+      kind: "action",
+      symbol: "#",
+      hasActionPart: true,
+    });
+
+    const chained = "v done => # next";
+    expect(lineMenuStateAt(chained, 2)).toEqual({
+      kind: "action",
+      symbol: "v",
+      hasActionPart: true,
+    });
+    expect(lineMenuStateAt(chained, 14)).toEqual({
+      kind: "action",
+      symbol: "#",
+      hasActionPart: true,
+    });
+
+    expect(lineMenuStateAt("o agenda => # task", 1)).toEqual({
+      kind: "topic",
+      symbol: "o",
+      hasActionPart: true,
+    });
+
+    expect(lineMenuStateAt("# Heading", 2, { title: true })).toEqual({
+      kind: "plain",
+      symbol: null,
+      hasActionPart: false,
+    });
   });
 });

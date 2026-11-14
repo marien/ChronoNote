@@ -582,8 +582,8 @@ export interface EditorApi {
   closeCurrentOpenAction?: () => boolean;
   reopenCurrentDoneAction?: () => boolean;
   convertCurrentLineToSection?: () => boolean;
-  setActionStateOnSelection?: (symbol: "#" | "v" | ">" | "x") => boolean;
-  setTopicStateOnSelection?: (symbol: "o" | "." | ",") => boolean;
+  setActionStateOnSelection?: (symbol: "#" | "v" | ">" | "x", col?: number) => boolean;
+  setTopicStateOnSelection?: (symbol: "o" | "." | ",", col?: number) => boolean;
   jumpAdjacentOpenAction?: (direction: 1 | -1) => boolean;
   pulseLine?: (lineIdx: number) => void;
   /** Programmatically replace lines fromLineIdx to toLineIdx (0-based inclusive) with text in one transaction. */
@@ -688,6 +688,8 @@ export interface EditorContextMenuState {
   y: number;
   line: string;
   role: LineSectionRole;
+  col?: number;
+  inSection?: boolean;
   misspelled?: { word: string; from: number; to: number } | null;
 }
 

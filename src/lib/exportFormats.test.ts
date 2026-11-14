@@ -46,11 +46,20 @@ describe("exportFormats", () => {
       expect(noteToMarkdown(". ! Discussed urgent")).toBe("- **Discussed urgent** *(discussed)*");
     });
 
-    it("converts arrows (=> -> →), consequenceTopic, and preserves @name", () => {
+    it("converts arrows (=> -> →), consequence symbols, and preserves @name", () => {
       const input = "Talk to @alex => # new task => @bob";
-      expect(noteToMarkdown(input)).toBe("Talk to @alex → # new task → @bob");
+      expect(noteToMarkdown(input)).toBe("Talk to @alex → ☐ new task → @bob");
       const topicConsequence = "Talk to @alex => o team sync => . done";
-      expect(noteToMarkdown(topicConsequence)).toBe("Talk to @alex → o team sync → . done");
+      expect(noteToMarkdown(topicConsequence)).toBe("Talk to @alex → ○ team sync → ◉ done");
+      expect(noteToMarkdown("# first => v resolved")).toBe("- [ ] first → ☑ resolved");
+      expect(noteToMarkdown("# first => > later")).toBe("- [ ] first → ☐ later *(deferred)*");
+    });
+
+    it("strips redundant bullet and handles emphasis combinations cleanly", () => {
+      expect(noteToMarkdown("# - bulleted")).toBe("- [ ] bulleted");
+      expect(noteToMarkdown("! - urgent")).toBe("- **urgent**");
+      expect(noteToMarkdown("# ! - urgent")).toBe("- [ ] **urgent**");
+      expect(noteToMarkdown("o ! - discuss")).toBe("- **discuss**");
     });
 
     it("keeps bullets and numbered lists", () => {
@@ -197,11 +206,42 @@ describe("exportFormats", () => {
       expect(html).toContain("◌ skipped topic");
       expect(html).toContain("• bullet item");
       expect(html).toContain("➔ @assignee");
-      expect(html).toContain("Task ➔ o next topic");
+      expect(html).toContain("Task ➔ ○ next topic");
       expect(html).toContain("<strong>announcement</strong>");
       expect(html).toContain("  <strong>indented announcement</strong>");
       expect(html).toContain("☐ <strong>urgent action</strong>");
       expect(html).toContain("○ <strong>must discuss</strong>");
+    });
+
+    it("renders --- subsection titles, strips redundant bullets, renders consequences, and draws .glyph-progress SVG", () => {
+      const input = [
+        "# Subsection",
+        "---",
+        "# - bulleted",
+        "! - urgent",
+        "# ! - very urgent",
+        "v done => # next => > later",
+        "> deferred top",
+        "",
+        "---",
+      ].join("\n");
+
+      const md = noteToMarkdown(input);
+      expect(md).toContain("## # Subsection");
+      expect(md).toContain("- [ ] bulleted");
+      expect(md).toContain("- **urgent**");
+      expect(md).toContain("- [ ] **very urgent**");
+      expect(md).toContain("- [x] done → ☐ next → ☐ later *(deferred)*");
+      expect(md).toContain("\\---");
+
+      const html = noteToHtml(input);
+      expect(html).toContain("<h2># Subsection</h2>");
+      expect(html).toContain("☐ • bulleted");
+      expect(html).toContain("• <strong>urgent</strong>");
+      expect(html).toContain("☐ • <strong>very urgent</strong>");
+      expect(html).toContain("☑ done ➔ ☐ next ➔ <span class=\"glyph-progress\" role=\"img\" aria-label=\"deferred\">");
+      expect(html).toContain('<path d="M5.6 2.8l5.2 5.2-5.2 5.2"/>');
+      expect(html).toContain('<div class="note-line">---</div>');
     });
 
     it("includes inline style, fonts, and print media rules for page breaks", () => {

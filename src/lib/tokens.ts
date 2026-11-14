@@ -2,7 +2,7 @@
  * editor's glyph rendering, the action drawer, and section history. The per-line
  * questions are answered from `tokenizeLine` (grammar/), so there is one definition
  * of each token. */
-import { ACTION_CLASS, BULLET_CLASS, NAME_CHAR } from "./grammar/symbols";
+import { ACTION_CLASS, ACTION_SYMBOLS, NAME_CHAR, TOPIC_SYMBOLS } from "./grammar/symbols";
 import {
   columnOf,
   getLineActionParts,
@@ -13,6 +13,7 @@ import {
   tokenizeLine,
   tokenizeNoteLine,
   type Token,
+  type TokenizeOptions,
 } from "./grammar/tokenize";
 export { columnOf, hasOpenAction, isSetextUnderline, isTitleLine, isTitleUnderline, tokenizeNoteLine };
 import { addDaysISO, parseDueWord } from "./date";
@@ -22,7 +23,6 @@ const TRAILING_LINKS = /(?:\s*\([<>]\d{4}-\d{2}-\d{2}(?:#[^)]*)?\))+$/;
 // Kept as regexes: stripLeadingToken splices around the *last* arrow, which a token list would only make longer.
 const LEADING_ACTION = new RegExp(String.raw`^(\s*)${ACTION_CLASS}\s`);
 const CONSEQUENCE_ACTION = new RegExp(String.raw`^(.*)=>\s${ACTION_CLASS}\s(.*)$`);
-const LINE_MARKER = new RegExp(String.raw`^(\s*)(${ACTION_CLASS}|${BULLET_CLASS}|!)\s`);
 
 /** §40: `x` (won't-do) folds into Closed alongside `v` (done) — both mean
  * "no longer outstanding," just for different reasons. §41: a
@@ -512,10 +512,18 @@ export function leadingMarkerIndent(line: string): number | null {
   return null;
 }
 
-/** The line without its leading action symbol, bullet or `!` and the space after it (the indentation goes
- * with it); a line with none of them is returned as it is. For turning one kind of line marker into another. */
+/** The line without its leading action/topic symbol, bullet or `!` and the space after it (the indentation
+ * goes with it); a line with none of them is returned as it is. For turning one kind of line marker into another. */
 export function withoutLineMarker(line: string): string {
-  return line.replace(LINE_MARKER, "");
+  const first = tokenizeLine(line)[0];
+  if (!first) return line;
+  if (first.kind === "action" || first.kind === "topic" || first.kind === "bullet") {
+    return line.slice(first.to);
+  }
+  if (first.kind === "emphasis") {
+    return line.slice(first.from + 2);
+  }
+  return line;
 }
 
 export function toggleOpenClosed(line: string, col?: number): string | null {
@@ -656,6 +664,31 @@ export function findActionSymbols(line: string): ActionSymbolRef[] {
     }
   }
   return out;
+}
+
+/** Action/topic/plain state and picked symbol under column `col` for the right-click context menu. */
+export function lineMenuStateAt(
+  line: string,
+  col?: number,
+  options?: TokenizeOptions,
+): { kind: "action" | "topic" | "plain"; symbol: string | null; hasActionPart: boolean } {
+  const tokens = tokenizeLine(line, options);
+  const syms: ActionSymbolRef[] = [];
+  for (const t of tokens) {
+    if (t.kind === "action" || t.kind === "topic" || t.kind === "consequence" || t.kind === "consequenceTopic") {
+      syms.push({ index: t.from, sym: t.symbol! });
+    }
+  }
+  const hasActionPart = getLineActionParts(line, tokens).length > 0;
+  if (syms.length === 0) return { kind: "plain", symbol: null, hasActionPart };
+  const picked = col !== undefined ? pickActionSymbol(syms, col) : syms[syms.length - 1];
+  if (!picked) return { kind: "plain", symbol: null, hasActionPart };
+  const kind = ACTION_SYMBOLS.includes(picked.sym)
+    ? "action"
+    : TOPIC_SYMBOLS.includes(picked.sym)
+      ? "topic"
+      : "plain";
+  return { kind, symbol: picked.sym, hasActionPart };
 }
 
 /** Which symbol a caret at column `col` (between the characters `col - 1` and `col`) means: the nearest one to

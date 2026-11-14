@@ -14,6 +14,7 @@
   } from "../../controller";
   import { closeOnOutsideClick } from "../../actions/closeOnOutsideClick";
   import { parseGlyphLine } from "../../editor/glyphLine";
+  import { isTitleLine, isTitleUnderline } from "../../grammar/tokenize";
   import { treeConnectors, type TreeConnector } from "../../editor/actionTreeLines";
   import { actionTree } from "../../actionGroups";
   import { getLineWrapIndent } from "../../editor/wrapIndent";
@@ -821,7 +822,8 @@
                 {@const abs = selectedOcc.startLineIdx + i}
                 {@const inSel = !!lineSelection && abs >= lineSelection.from && abs <= lineSelection.to}
                 {@const inGroup = groupLineIndices.has(i)}
-                {@const wrapIndent = inGroup ? getLineWrapIndent(line) : 0}
+                {@const titleLine = isTitleLine(line, selectedOcc.lines[i + 1])}
+                {@const wrapIndent = inGroup && !titleLine && !isTitleUnderline(line) ? getLineWrapIndent(line) : 0}
                 {@const segments = lineSegments(i, connectors)}
                 <div
                   class="hp-line history-select-line {inSel ? 'history-line-selected' : ''} {wrapIndent > 0 ? 'has-wrap-indent' : ''}"
@@ -840,7 +842,7 @@
                     class="cm-action-tree-line is-{seg.kind} {seg.resolved ? 'is-resolved' : ''}"
                     style={seg.style}
                     aria-hidden="true"
-                  ></span>{/each}{#each parseGlyphLine(line, { today: $currentDateISO }) as part}{#if part.parts}<span class={part.cls ?? ""} title={part.title}>{#each part.parts as subPart}<span class={subPart.cls ?? ""} title={subPart.title}>{subPart.text}</span>{/each}</span>{:else}<span class={part.cls ?? ""} title={part.title}>{part.text}</span>{/if}{/each}</div>
+                  ></span>{/each}{#each parseGlyphLine(line, { today: $currentDateISO, title: titleLine }) as part}{#if part.parts}<span class={part.cls ?? ""} title={part.title}>{#each part.parts as subPart}<span class={subPart.cls ?? ""} title={subPart.title}>{subPart.text}</span>{/each}</span>{:else}<span class={part.cls ?? ""} title={part.title}>{part.text}</span>{/if}{/each}</div>
               {/each}
             {/if}
           </div>

@@ -20,6 +20,7 @@ export interface ParseGlyphLineOpts {
   today?: string;
   from?: number;
   to?: number;
+  title?: boolean;
 }
 
 /** Exported for `ActionDrawerModal` (§127, finding B) — its row icon used
@@ -50,22 +51,59 @@ export function parseGlyphLine(line: string, opts?: ParseGlyphLineOpts): GlyphPa
   if (rangeFrom >= rangeTo) return [{ text: "" }];
 
   const today = opts?.today ?? todayISO();
-  const tokens = tokenizeLine(line);
+  const tokens = tokenizeLine(line, { title: opts?.title });
   const actionParts = getLineActionParts(line, tokens);
 
   const parts: GlyphPart[] = [];
   let at = rangeFrom; // chars of `line` already emitted
+  let emphasisFrom: number | null = null;
+  let emphasisEnd = 0;
+
+  const pushPlain = (slice: string) => {
+    if (!slice) return;
+    if (at < emphasisEnd || emphasisFrom !== null) {
+      const last = parts[parts.length - 1];
+      if (last && last.cls === "glyph-emphasis-line" && !last.parts && !last.title) {
+        last.text += slice;
+        return;
+      }
+      parts.push({ text: slice, cls: "glyph-emphasis-line" });
+    } else {
+      parts.push({ text: slice });
+    }
+  };
 
   const gap = (toIdx: number) => {
     const start = Math.max(at, rangeFrom);
     const end = Math.min(toIdx, rangeTo);
-    if (end > start) parts.push({ text: line.slice(start, end) });
+    if (end > start) {
+      const slice = line.slice(start, end);
+      if (emphasisFrom !== null && start < emphasisEnd) {
+        pushPlain(slice);
+      } else {
+        parts.push({ text: slice });
+      }
+    }
   };
 
   for (let i = 0; i < tokens.length; i++) {
     const t = tokens[i];
     if (t.to <= rangeFrom) continue;
     if (t.from >= rangeTo) break;
+
+    if (t.kind === "emphasis") {
+      // Emit up to the `! ` prefix and keep walking subsequent tokens inside [t.from, t.to).
+      const prefixEnd = Math.min(t.from + 2, t.to, rangeTo);
+      if (t.from > at) gap(t.from);
+      emphasisFrom = t.from;
+      emphasisEnd = Math.min(t.to, rangeTo);
+      const start = Math.max(t.from, rangeFrom);
+      if (prefixEnd > start) {
+        parts.push({ text: line.slice(start, prefixEnd), cls: "glyph-emphasis-line" });
+      }
+      at = Math.max(at, prefixEnd);
+      continue;
+    }
 
     // Straddles rangeFrom
     if (t.from < rangeFrom) {
@@ -87,30 +125,20 @@ export function parseGlyphLine(line: string, opts?: ParseGlyphLineOpts): GlyphPa
 
     // Completely within [rangeFrom, rangeTo)
     switch (t.kind) {
-      case "emphasis": {
-        // #208: `! - item` draws the bullet inside the emphasised line.
-        const b = tokens[i + 1];
-        if (b?.kind === "bullet" && b.to <= rangeTo) {
-          parts.push(
-            { text: line.slice(t.from, b.from), cls: "glyph-emphasis-line" },
-            { text: GLYPHS.bullet.char, cls: `${GLYPHS.bullet.cls} glyph-bullet-emphasis` },
-            { text: " " },
-          );
-          if (rangeTo > b.to) parts.push({ text: line.slice(b.to, rangeTo), cls: "glyph-emphasis-line" });
-          return parts;
-        }
-        parts.push({ text: line.slice(t.from, rangeTo), cls: "glyph-emphasis-line" });
-        return parts;
-      }
       case "action":
       case "topic":
       case "consequence":
       case "consequenceTopic":
         parts.push(glyphForSymbol(t.symbol!), { text: " " });
         break;
-      case "bullet":
-        parts.push({ text: GLYPHS.bullet.char, cls: GLYPHS.bullet.cls }, { text: " " });
+      case "bullet": {
+        const emphasisBullet = emphasisFrom !== null && t.from === emphasisFrom + 2;
+        parts.push(
+          { text: GLYPHS.bullet.char, cls: emphasisBullet ? `${GLYPHS.bullet.cls} glyph-bullet-emphasis` : GLYPHS.bullet.cls },
+          { text: " " },
+        );
         break;
+      }
       case "arrow":
         parts.push({ text: ARROW_GLYPH.char, cls: ARROW_GLYPH.cls }, { text: " " });
         break;
@@ -169,13 +197,17 @@ export function parseGlyphLine(line: string, opts?: ParseGlyphLineOpts): GlyphPa
         });
         break;
       }
-      default: // "dueWord", "paren": ordinary text, but its own part
-        parts.push({ text: line.slice(t.from, t.to) });
+      default: // "dueWord", "paren": ordinary text, but bolded if inside `! `
+        if (emphasisFrom !== null && t.from < emphasisEnd) {
+          pushPlain(line.slice(t.from, t.to));
+        } else {
+          parts.push({ text: line.slice(t.from, t.to) });
+        }
     }
     at = t.to;
   }
 
-  if (at < rangeTo) parts.push({ text: line.slice(at, rangeTo) });
+  if (at < rangeTo) gap(rangeTo);
 
   return parts.length > 0 ? parts : [{ text: "" }];
 }

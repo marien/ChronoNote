@@ -26,6 +26,7 @@
   import { t } from "../i18n";
   import {
     closeOpenAction,
+    getSectionHeaderForLine,
     isSetextUnderline,
     reopenDoneAction,
     setActionSymbolTo,
@@ -400,9 +401,12 @@ import { currentLineKind, editorFocused } from "../stores";
           const pos = v.posAtCoords({ x: event.clientX, y: event.clientY });
           if (pos != null && v.state.selection.main.empty) v.dispatch({ selection: { anchor: pos } });
           const at = v.state.doc.lineAt(v.state.selection.main.head);
-          const role = lineSectionRole(v.state.doc.toString().split("\n"), at.number - 1);
+          const col = pos != null && pos >= at.from && pos <= at.to ? pos - at.from : v.state.selection.main.head - at.from;
+          const docLines = v.state.doc.toString().split("\n");
+          const role = lineSectionRole(docLines, at.number - 1);
+          const inSection = role === "title" ? getSectionHeaderForLine(docLines, at.number - 1) !== "" : role !== "outside";
           const misspelled = (get(controller.backendKind) !== "web" && pos != null) ? misspelledAt(v.state, pos) : null;
-          editorContextMenu.set({ x: event.clientX, y: event.clientY, line: at.text, role, misspelled });
+          editorContextMenu.set({ x: event.clientX, y: event.clientY, line: at.text, role, col, inSection, misspelled });
           return true;
         },
         // Deferred: the browser also fires `blur` while Svelte is tearing this
@@ -658,10 +662,10 @@ import { currentLineKind, editorFocused } from "../stores";
       closeCurrentOpenAction: () => (view ? applyToCurrentLine(view, closeOpenAction) : false),
       reopenCurrentDoneAction: () => (view ? applyToCurrentLine(view, reopenDoneAction) : false),
       convertCurrentLineToSection: () => (view ? convertLineToSection(view) : false),
-      setActionStateOnSelection: (symbol: "#" | "v" | ">" | "x") =>
-        view ? applyActionStateToSelection(view, (line, col) => setActionSymbolTo(line, symbol, col), symbol) : false,
-      setTopicStateOnSelection: (symbol: "o" | "." | ",") =>
-        view ? applyActionStateToSelection(view, (line, col) => setTopicSymbolTo(line, symbol, col), symbol) : false,
+      setActionStateOnSelection: (symbol: "#" | "v" | ">" | "x", col?: number) =>
+        view ? applyActionStateToSelection(view, (line, c) => setActionSymbolTo(line, symbol, c), symbol, col) : false,
+      setTopicStateOnSelection: (symbol: "o" | "." | ",", col?: number) =>
+        view ? applyActionStateToSelection(view, (line, c) => setTopicSymbolTo(line, symbol, c), symbol, col) : false,
       jumpAdjacentOpenAction: (direction: 1 | -1) =>
         view ? jumpToAdjacentOpenAction(view, direction, { showToast: (msg) => controller.showToast(msg) }) : false,
       pulseLine: (lineIdx: number) => {

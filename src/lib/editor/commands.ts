@@ -146,6 +146,7 @@ export function applyActionStateToSelection(
   v: EditorView,
   transform: (line: string, col: number) => string | null,
   targetSymbol?: string,
+  colOverride?: number,
 ): boolean {
   const sel = v.state.selection.main;
   const { firstLine, lastLine } = selectedLineRange(v.state.doc, sel.from, sel.to);
@@ -153,7 +154,7 @@ export function applyActionStateToSelection(
   let firstResult: string | null = null;
   for (let n = firstLine.number; n <= lastLine.number; n++) {
     const docLine = v.state.doc.line(n);
-    const updated = isHeaderLine(v, n) ? null : transform(docLine.text, referenceColumn(sel, docLine));
+    const updated = isHeaderLine(v, n) ? null : transform(docLine.text, colOverride ?? referenceColumn(sel, docLine));
     if (updated !== null && firstResult === null) firstResult = updated;
     if (updated !== null && updated !== docLine.text) {
       edits.push(minimalLineEdit(docLine, updated));
@@ -540,7 +541,9 @@ function toggleBulletOrEmphasis(lineText: string, token: "-" | "!"): string {
     return lineText.slice(0, first.from) + lineText.slice(emEnd);
   }
   const indent = lineText.match(/^(\s*)/)?.[1] ?? "";
-  return `${indent}${token} ${withoutLineMarker(lineText)}`;
+  const stripped = withoutLineMarker(lineText);
+  const rest = stripped === lineText ? lineText.slice(indent.length) : stripped;
+  return `${indent}${token} ${rest}`;
 }
 
 /** Phone-toolbar token toggle/setter across all lines touched by the selection. */
@@ -550,13 +553,15 @@ export function applyLineToken(view: EditorView, token: LineToken): void {
   const edits: LineEdit[] = [];
   for (let l = firstLine.number; l <= lastLine.number; l++) {
     const line = view.state.doc.line(l);
+    if (isHeaderLine(view, l) || isTitleUnderline(line.text)) continue;
     let updated: string | null = null;
     if (token === "#" || token === "v" || token === ">" || token === "x") {
       updated = setActionSymbolTo(line.text, token, referenceColumn(sel, line));
     } else if (token === "-" || token === "!") {
       updated = toggleBulletOrEmphasis(line.text, token);
     } else if (token === "=>") {
-      updated = line.text.includes("=> ") ? line.text.replace(/=>\s/, "") : `${line.text} => `;
+      const arrow = tokenizeLine(line.text).find((t) => t.kind === "arrow");
+      updated = arrow ? line.text.slice(0, arrow.from) + line.text.slice(arrow.to) : `${line.text} => `;
     } else if (token === "o" || token === "." || token === ",") {
       updated = setTopicSymbolTo(line.text, token, referenceColumn(sel, line));
     }

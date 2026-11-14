@@ -1,7 +1,10 @@
 /** Pure export format conversions (Markdown and HTML) from ChronoNote plain-text grammar.
- * Uses the existing tokenizer and setext detection rather than new regexes. */
-import { tokenizeLine } from "./grammar/tokenize";
-import { isSetextUnderline } from "./tokens";
+ * Uses the tokenizer, title-line detection, and glyph table rather than duplicate regexes. */
+import { ARROW_GLYPH, GLYPHS, glyphSpecForSymbol } from "./grammar/glyphs";
+import { isSetextUnderline, isTitleLine, isTitleUnderline, tokenizeLine, type Token } from "./grammar/tokenize";
+
+const DEFERRED_GLYPH_HTML =
+  '<span class="glyph-progress" role="img" aria-label="deferred"><svg class="glyph-progress-svg" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5.6 2.8l5.2 5.2-5.2 5.2"/></svg></span>';
 
 export function escapeHtml(str: string): string {
   return str
@@ -10,6 +13,104 @@ export function escapeHtml(str: string): string {
     .replaceAll(">", "&gt;")
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#39;");
+}
+
+function leadingParts(tokens: Token[]): {
+  indentFrom: number;
+  action?: Token;
+  topic?: Token;
+  emphasis?: Token;
+  bullet?: Token;
+  restFrom: number;
+} {
+  if (tokens.length === 0) return { indentFrom: 0, restFrom: 0 };
+  const action = tokens[0]?.kind === "action" ? tokens[0] : undefined;
+  const topic = tokens[0]?.kind === "topic" ? tokens[0] : undefined;
+  const emphasis = tokens.find((t) => t.kind === "emphasis");
+  const bullet = tokens.find((t) => t.kind === "bullet");
+  const lead = action ?? topic;
+  const restFrom = bullet ? bullet.to : emphasis ? emphasis.from + 2 : lead ? lead.to : 0;
+  const firstStructural = lead ?? emphasis ?? bullet;
+  return { indentFrom: firstStructural ? firstStructural.from : 0, action, topic, emphasis, bullet, restFrom };
+}
+
+function renderMarkdownInline(line: string, from: number, tokens: Token[]): string {
+  const parts: string[] = [];
+  let pos = from;
+  let pendingDeferred = false;
+
+  for (const t of tokens) {
+    if (t.from < from) continue;
+    if (t.kind !== "arrow" && t.kind !== "consequence" && t.kind !== "consequenceTopic") continue;
+
+    if (t.from > pos) {
+      parts.push(line.slice(pos, t.from));
+    }
+
+    if (t.kind === "arrow") {
+      if (pendingDeferred) {
+        const last = parts.pop() ?? "";
+        parts.push(last ? `${last.trimEnd()} *(deferred)* ` : "*(deferred)* ");
+        pendingDeferred = false;
+      }
+      parts.push("→ ");
+    } else {
+      parts.push(`${glyphSpecForSymbol(t.symbol!).char} `);
+      if (t.kind === "consequence" && t.symbol === ">") {
+        pendingDeferred = true;
+      }
+    }
+    pos = t.to;
+  }
+
+  const hasTail = pos < line.length;
+  if (hasTail) {
+    parts.push(line.slice(pos));
+  }
+  if (pendingDeferred) {
+    if (hasTail) {
+      const tail = parts.pop() ?? "";
+      parts.push(`${tail.trimEnd()} *(deferred)*`);
+    } else {
+      parts.push("*(deferred)*");
+    }
+  }
+  return parts.join("");
+}
+
+function formatMarkdownEmphasized(body: string): string {
+  if (body.endsWith(" *(deferred)*")) {
+    const core = body.slice(0, -" *(deferred)*".length);
+    return `**${core}** *(deferred)*`;
+  }
+  return `**${body}**`;
+}
+
+function renderHtmlInline(line: string, from: number, tokens: Token[]): string {
+  const parts: string[] = [];
+  let pos = from;
+
+  for (const t of tokens) {
+    if (t.from < from) continue;
+    if (t.kind !== "arrow" && t.kind !== "consequence" && t.kind !== "consequenceTopic") continue;
+
+    if (t.from > pos) {
+      parts.push(escapeHtml(line.slice(pos, t.from)));
+    }
+    if (t.kind === "arrow") {
+      parts.push(`${ARROW_GLYPH.char} `);
+    } else if (t.kind === "consequence" && t.symbol === ">") {
+      parts.push(`${DEFERRED_GLYPH_HTML} `);
+    } else {
+      parts.push(`${glyphSpecForSymbol(t.symbol!).char} `);
+    }
+    pos = t.to;
+  }
+
+  if (pos < line.length) {
+    parts.push(escapeHtml(line.slice(pos)));
+  }
+  return parts.join("");
 }
 
 /** Converts a single note's plain text into Markdown format.
@@ -21,16 +122,16 @@ export function noteToMarkdown(text: string, title?: string): string {
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
 
-    // Section title: non-empty line followed by setext underline
-    if (i + 1 < lines.length && isSetextUnderline(lines[i + 1]) && line.trim() !== "") {
+    // Section/subsection title: non-empty line directly above === or ---
+    if (isTitleLine(line, lines[i + 1])) {
       out.push(`## ${line.trim()}`);
       i++; // drop the underline line
       continue;
     }
 
-    if (isSetextUnderline(line)) {
+    if (isTitleUnderline(line)) {
       // Standalone underline without a title: escape it so it doesn't break Markdown
-      out.push(line.replace(/^(\s*)===/, "$1\\==="));
+      out.push(line.replace(/^(\s*)(===|---)/, "$1\\$2"));
       continue;
     }
 
@@ -40,22 +141,13 @@ export function noteToMarkdown(text: string, title?: string): string {
     }
 
     const tokens = tokenizeLine(line);
-    const first = tokens[0];
-    const second = tokens[1];
+    const { indentFrom, action, topic, emphasis, bullet, restFrom } = leadingParts(tokens);
+    const indent = line.slice(0, indentFrom);
+    const body = renderMarkdownInline(line, restFrom, tokens);
+    const rest = emphasis ? formatMarkdownEmphasized(body) : body;
 
-    if (first?.kind === "emphasis") {
-      const indent = line.slice(0, first.from);
-      const rest = line.slice(first.from + 2).replaceAll("=> ", "→ ");
-      out.push(`${indent}**${rest}**`);
-      continue;
-    }
-
-    if (first?.kind === "action") {
-      const indent = line.slice(0, first.from);
-      const isEmphasis = second?.kind === "emphasis";
-      const rawRest = line.slice(isEmphasis ? second.from + 2 : first.to).replaceAll("=> ", "→ ");
-      const rest = isEmphasis ? `**${rawRest}**` : rawRest;
-      switch (first.symbol) {
+    if (action) {
+      switch (action.symbol) {
         case "#":
           out.push(`${indent}- [ ] ${rest}`);
           break;
@@ -72,12 +164,8 @@ export function noteToMarkdown(text: string, title?: string): string {
       continue;
     }
 
-    if (first?.kind === "topic") {
-      const indent = line.slice(0, first.from);
-      const isEmphasis = second?.kind === "emphasis";
-      const rawRest = line.slice(isEmphasis ? second.from + 2 : first.to).replaceAll("=> ", "→ ");
-      const rest = isEmphasis ? `**${rawRest}**` : rawRest;
-      switch (first.symbol) {
+    if (topic) {
+      switch (topic.symbol) {
         case "o":
           out.push(`${indent}- ${rest}`);
           break;
@@ -91,17 +179,20 @@ export function noteToMarkdown(text: string, title?: string): string {
       continue;
     }
 
-    if (first?.kind === "bullet") {
-      const indent = line.slice(0, first.from);
-      const rest = line.slice(first.to).replaceAll("=> ", "→ ");
-      out.push(`${indent}${first.symbol} ${rest}`);
+    if (emphasis) {
+      const bulletPrefix = bullet ? `${bullet.symbol} ` : "";
+      out.push(`${indent}${bulletPrefix}${rest}`);
       continue;
     }
 
-    // Numbered lists and plain lines: keep indentation, convert arrow, and escape Markdown-special
-    // characters only where they would change meaning at the start of a plain line.
-    let lineStr = line.replaceAll("=> ", "→ ");
-    lineStr = lineStr.replace(/^(\s*)([#>]|\+\s|```|~~~|---|===)/, "$1\\$2");
+    if (bullet) {
+      out.push(`${indent}${bullet.symbol} ${rest}`);
+      continue;
+    }
+
+    // Numbered lists and plain lines: keep indentation, render consequences, and escape
+    // Markdown-special characters only where they would change meaning at the start of a plain line.
+    const lineStr = body.replace(/^(\s*)([#>]|\+\s|```|~~~|---|===)/, "$1\\$2");
     out.push(lineStr);
   }
 
@@ -138,7 +229,7 @@ function renderNoteContentHtml(text: string): string {
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
 
-    if (i + 1 < lines.length && isSetextUnderline(lines[i + 1]) && line.trim() !== "") {
+    if (isTitleLine(line, lines[i + 1])) {
       flushBody();
       parts.push(`<h2>${escapeHtml(line.trim())}</h2>`);
       i++; // skip underline
@@ -150,49 +241,28 @@ function renderNoteContentHtml(text: string): string {
     }
 
     const tokens = tokenizeLine(line);
-    const first = tokens[0];
-    const second = tokens[1];
+    const { indentFrom, action, topic, emphasis, bullet, restFrom } = leadingParts(tokens);
+    const indent = line.slice(0, indentFrom);
+    const bodyHtml = renderHtmlInline(line, restFrom, tokens);
+    const restHtml = emphasis ? `<strong>${bodyHtml}</strong>` : bodyHtml;
 
-    if (first?.kind === "emphasis") {
-      const indent = line.slice(0, first.from);
-      const rest = line.slice(first.from + 2).replaceAll("=> ", "➔ ");
-      bodyLines.push(`<div class="note-line">${escapeHtml(indent)}<strong>${escapeHtml(rest)}</strong></div>`);
+    const glyphs: string[] = [];
+    if (action) {
+      glyphs.push(action.symbol === ">" ? DEFERRED_GLYPH_HTML : glyphSpecForSymbol(action.symbol!).char);
+    } else if (topic) {
+      glyphs.push(glyphSpecForSymbol(topic.symbol!).char);
+    }
+    if (bullet) {
+      glyphs.push(GLYPHS.bullet.char);
+    }
+
+    if (glyphs.length > 0 || emphasis) {
+      const prefix = glyphs.length > 0 ? `${glyphs.join(" ")} ` : "";
+      bodyLines.push(`<div class="note-line">${escapeHtml(indent)}${prefix}${restHtml}</div>`);
       continue;
     }
 
-    if (first?.kind === "action") {
-      const indent = line.slice(0, first.from);
-      const isEmphasis = second?.kind === "emphasis";
-      const rawRest = line.slice(isEmphasis ? second.from + 2 : first.to).replaceAll("=> ", "➔ ");
-      const restHtml = isEmphasis ? `<strong>${escapeHtml(rawRest)}</strong>` : escapeHtml(rawRest);
-      let glyph = "☐";
-      if (first.symbol === "v") glyph = "☑";
-      else if (first.symbol === "x") glyph = "☒";
-      bodyLines.push(`<div class="note-line">${escapeHtml(indent)}${glyph} ${restHtml}</div>`);
-      continue;
-    }
-
-    if (first?.kind === "topic") {
-      const indent = line.slice(0, first.from);
-      const isEmphasis = second?.kind === "emphasis";
-      const rawRest = line.slice(isEmphasis ? second.from + 2 : first.to).replaceAll("=> ", "➔ ");
-      const restHtml = isEmphasis ? `<strong>${escapeHtml(rawRest)}</strong>` : escapeHtml(rawRest);
-      let glyph = "○";
-      if (first.symbol === ".") glyph = "◉";
-      else if (first.symbol === ",") glyph = "◌";
-      bodyLines.push(`<div class="note-line">${escapeHtml(indent)}${glyph} ${restHtml}</div>`);
-      continue;
-    }
-
-    if (first?.kind === "bullet") {
-      const indent = line.slice(0, first.from);
-      const rest = line.slice(first.to).replaceAll("=> ", "➔ ");
-      bodyLines.push(`<div class="note-line">${escapeHtml(indent)}• ${escapeHtml(rest)}</div>`);
-      continue;
-    }
-
-    const transformed = line.replaceAll("=> ", "➔ ");
-    const content = transformed === "" ? "&nbsp;" : escapeHtml(transformed);
+    const content = bodyHtml === "" ? "&nbsp;" : bodyHtml;
     bodyLines.push(`<div class="note-line">${content}</div>`);
   }
 
@@ -244,6 +314,22 @@ const HTML_STYLE = `
   }
   .note-line {
     min-height: 1.5em;
+  }
+  .glyph-progress {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 0.78em;
+    height: 0.78em;
+    box-sizing: border-box;
+    border: 1.4px solid currentColor;
+    border-radius: 1.5px;
+    vertical-align: -0.06em;
+  }
+  .glyph-progress-svg {
+    width: 100%;
+    height: 100%;
+    display: block;
   }
   @media print {
     body {
