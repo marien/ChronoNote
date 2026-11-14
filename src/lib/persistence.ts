@@ -2,8 +2,10 @@
  * read-cache honest. Split out of `controller.ts` in the v0.5.0 refactor;
  * `controller.ts` re-exports it. Depends only on `./stores`, `./tauriApi`
  * and types — no cycle back to `controller.ts`. */
+import { ChangeSet, Text } from "@codemirror/state";
 import { get } from "svelte/store";
 import * as api from "./tauriApi";
+import { editorChanges } from "./editor/editorChanges";
 import {
   allNotesCache,
   backendKind,
@@ -512,13 +514,13 @@ export function writeTabContent(
 
 function setTabText(tabId: string, content: string): void {
   tabs.set(get(tabs).map((x) => (x.id === tabId ? { ...x, content } : x)));
-  if (tabId === get(activeTabId) && editorApi) editorApi.setContent(content);
+  if (tabId === get(activeTabId) && editorApi) editorApi.setContent(content, { outside: true });
 }
 
 /** `writeTabContent` for a caller that must know the text reached the disk (the phone companion reports changes as
- * applied). Awaits the write; when it fails, the tab and editor go back to `restoreTo` and the error is thrown. A
- * write refused because the file changed on disk is not an error here: the tab keeps the change and the usual
- * conflict dialog decides between the versions. */
+ * applied). Awaits the write; when it fails, the phone's change is removed while keeping any user edits made
+ * meanwhile, and the error is thrown. A write refused because the file changed on disk is not an error here:
+ * the tab keeps the change and the usual conflict dialog decides between the versions. */
 export async function writeTabContentAndWait(
   tabId: string,
   newContent: string,
@@ -533,7 +535,18 @@ export async function writeTabContentAndWait(
     await writeNoteAndInvalidateCache(tab.filename, newContent, { kind: "tabBaseline" }, options);
   } catch (e) {
     if (isWriteConflictError(e)) return;
-    setTabText(tabId, restoreTo);
+    const current = get(tabs).find((x) => x.id === tabId)?.content;
+    if (current !== undefined) {
+      let restored = restoreTo;
+      if (current !== newContent) {
+        // Invert only the phone's diff and map it through whatever the user typed meanwhile.
+        const phone = ChangeSet.of(editorChanges(restoreTo, newContent), restoreTo.length);
+        const user = ChangeSet.of(editorChanges(newContent, current), newContent.length);
+        const undo = phone.invert(Text.of(restoreTo.split("\n")));
+        restored = undo.map(user).apply(Text.of(current.split("\n"))).toString();
+      }
+      setTabText(tabId, restored);
+    }
     throw e;
   }
 }

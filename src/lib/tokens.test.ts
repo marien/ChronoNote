@@ -23,6 +23,7 @@ import {
   openActionLineIndices,
   adjacentOpenActionLine,
   actionLineEnter,
+  isCaretInLeadingSymbol,
   topicLineEnter,
   topicContinuationIndent,
   leadingTopicTag,
@@ -1364,5 +1365,50 @@ describe("withDueDate", () => {
     expect(withDueDate("# task by:2026-10-15 (>2026-11-01)", 0, null)).toBe(
       "# task (>2026-11-01)",
     );
+  });
+});
+
+describe("Rule 2: Enter right after a leading symbol is a plain line break", () => {
+  it("actionLineEnter returns { plain: true } when col is right after the leading symbol", () => {
+    expect(actionLineEnter("# hello", 1)).toEqual({ plain: true });
+    expect(actionLineEnter("  # hello", 3)).toEqual({ plain: true });
+    expect(actionLineEnter("x  ", 1)).toEqual({ plain: true });
+    expect(actionLineEnter("v  ", 1)).toEqual({ plain: true });
+    expect(actionLineEnter(">  ", 1)).toEqual({ plain: true });
+    expect(actionLineEnter("#  ", 1)).toEqual({ plain: true });
+    expect(actionLineEnter("=> hello", 2)).toEqual({ plain: true });
+    expect(actionLineEnter("=>  ", 2)).toEqual({ plain: true });
+    expect(actionLineEnter("=> #  ", 4)).toEqual({ plain: true });
+  });
+
+  it("actionLineEnter keeps existing behaviour past the space and on bare markers", () => {
+    expect(actionLineEnter("# hello", 7)).toEqual({ insert: "\n# " });
+    expect(actionLineEnter("# ", 2)).toEqual({ removeSymbol: true });
+    expect(actionLineEnter("=> ", 3)).toEqual({ removeSymbol: true });
+    expect(actionLineEnter("=> #", 4)).toEqual({ removeSymbol: true });
+  });
+
+  it("topicLineEnter returns { plain: true } when col is right after the leading symbol", () => {
+    expect(topicLineEnter("o topic", 1)).toEqual({ plain: true });
+    expect(topicLineEnter("  . topic", 3)).toEqual({ plain: true });
+    expect(topicLineEnter("o  ", 1)).toEqual({ plain: true });
+    expect(topicLineEnter(".  ", 1)).toEqual({ plain: true });
+    expect(topicLineEnter(",  ", 1)).toEqual({ plain: true });
+    expect(topicLineEnter("o topic", 7)).toEqual({ insert: "\no " });
+    expect(topicLineEnter("o ", 2)).toEqual({ removeSymbol: true });
+  });
+
+  it("isCaretInLeadingSymbol detects bullets, emphasis, arrows and skips mid-line arrows", () => {
+    expect(isCaretInLeadingSymbol("- item", 1)).toBe(true);
+    expect(isCaretInLeadingSymbol("-  ", 1)).toBe(true);
+    expect(isCaretInLeadingSymbol("*  ", 1)).toBe(true);
+    expect(isCaretInLeadingSymbol("! hello", 1)).toBe(true);
+    expect(isCaretInLeadingSymbol("!  ", 1)).toBe(true);
+    expect(isCaretInLeadingSymbol("! - item", 1)).toBe(true);
+    expect(isCaretInLeadingSymbol("! - item", 3)).toBe(true);
+    expect(isCaretInLeadingSymbol("- item", 0)).toBe(false);
+    expect(isCaretInLeadingSymbol("- item", 2)).toBe(false);
+    expect(isCaretInLeadingSymbol("! hello", 5)).toBe(false);
+    expect(isCaretInLeadingSymbol("Talked to Sam => # follow up", 15)).toBe(false);
   });
 });

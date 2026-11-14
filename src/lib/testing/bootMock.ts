@@ -55,7 +55,7 @@ export function bootMockBackend(params: URLSearchParams): MockBackend {
     // Set the active editor's whole document in one shot — for test
     // "arrange" steps, where typing char-by-char would trip the editor's
     // own smart Enter / bullet-continuation handling.
-    setEditorContent: (text: string) => controller.editorApi?.setContent(text),
+    setEditorContent: (text: string, options?: { outside?: boolean }) => controller.editorApi?.setContent(text, options),
     getEditorContent: () => controller.editorApi?.getContent() ?? "",
     // §94: run the external-modification check for the active tab on
     // demand — the deterministic stand-in for a real tab-activate /

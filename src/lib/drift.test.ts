@@ -173,7 +173,7 @@ describe("conflict resolution and drift detection (§94, §291, §292, spec §6.
 
       const currentTab = get(tabs).find((t) => t.id === tabId);
       expect(currentTab?.content).toBe(disk);
-      expect(mockEditor.setContent).toHaveBeenCalledWith(disk);
+      expect(mockEditor.setContent).toHaveBeenCalledWith(disk, { outside: true });
     });
 
     it("updates tab clean baseline to disk hash so subsequent check sees no change", async () => {
@@ -418,7 +418,7 @@ describe("conflict resolution and drift detection (§94, §291, §292, spec §6.
 
       const currentTab = get(tabs).find((t) => t.id === tabId);
       expect(currentTab?.content).toBe(disk);
-      expect(mockEditor.setContent).toHaveBeenCalledWith(disk);
+      expect(mockEditor.setContent).toHaveBeenCalledWith(disk, { outside: true });
       expect(getTabCleanHash(tabId)).toBe(diskHash);
     });
 
@@ -740,7 +740,7 @@ describe("conflict resolution and drift detection (§94, §291, §292, spec §6.
       // Content and editor are updated with disk text
       const currentTab = get(tabs).find((t) => t.id === tabId);
       expect(currentTab?.content).toBe(externalV2);
-      expect(mockEditor.setContent).toHaveBeenCalledWith(externalV2);
+      expect(mockEditor.setContent).toHaveBeenCalledWith(externalV2, { outside: true });
 
       // Clean baseline is updated to external hash
       expect(getTabCleanHash(tabId)).toBe(externalHash);
