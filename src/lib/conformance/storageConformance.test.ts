@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { describe, it, expect } from "vitest";
 import cases from "./storage-cases.json";
 import { MockBackend } from "../testing/mockBackend";

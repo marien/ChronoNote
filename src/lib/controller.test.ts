@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { EMPTY_CONTENT_HASH, loadBaseline } from "./hash";
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { get } from "svelte/store";

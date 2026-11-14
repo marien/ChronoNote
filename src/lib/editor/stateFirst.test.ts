@@ -47,7 +47,7 @@ describe("stateFirstFilter", () => {
 
   it("does not touch the line while caret is still on it", () => {
     let state = makeState("- # task", 2);
-    state = state.update({ selection: { anchor: 8 } }).state;
+    state = state.update({ selection: { anchor: 8 }, userEvent: "select" }).state;
     expect(state.doc.line(1).text).toBe("- # task");
   });
 
@@ -57,14 +57,17 @@ describe("stateFirstFilter", () => {
       selection: EditorSelection.create([EditorSelection.cursor(0), EditorSelection.cursor(9)]),
       extensions: [stateFirstFilter],
     });
-    state = state.update({ selection: EditorSelection.create([EditorSelection.cursor(1), EditorSelection.cursor(10)]) }).state;
+    state = state.update({
+      selection: EditorSelection.create([EditorSelection.cursor(9), EditorSelection.cursor(10)]),
+      userEvent: "select",
+    }).state;
     expect(state.doc.line(1).text).toBe("- # task");
   });
 
   it("leaves unchanged lines alone when caret leaves", () => {
     for (const line of ["- item", "# - task", "text - # x", "- #hashtag", "====="]) {
       let state = makeState(`${line}\n`, line.length);
-      state = state.update({ selection: { anchor: line.length + 1 } }).state;
+      state = state.update({ selection: { anchor: line.length + 1 }, userEvent: "select" }).state;
       expect(state.doc.line(1).text).toBe(line);
     }
   });

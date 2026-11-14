@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 // Refactor R1 (docs/design/line-tokenizer-design.md, step 1): freezes what the
 // current token code does with a large corpus of note lines, so the later
 // tokenizer rewrite can be compared line by line. Test-only: if one of these
