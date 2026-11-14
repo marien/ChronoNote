@@ -1,3 +1,4 @@
+import { isolateHistory } from "@codemirror/commands";
 import { Annotation, EditorState, Prec, Transaction, type ChangeSpec, type Text } from "@codemirror/state";
 import { EditorView, keymap } from "@codemirror/view";
 import {
@@ -96,7 +97,7 @@ export function applyListEdit(
     changes: cs,
     selection: anchor !== undefined ? { anchor } : state.selection.map(cs),
     userEvent,
-    annotations: renumbered.of(true),
+    annotations: [renumbered.of(true), isolateHistory.of("full")],
     scrollIntoView: true,
   });
   return true;
@@ -104,9 +105,15 @@ export function applyListEdit(
 
 /** `working` with its touched lists renumbered (rule 5); group starts carried over from `before`, the lines having
  * the same indices on both sides. `extraStarts` overrides them. */
-function withRenumbering(before: string[], working: string[], touched: number[], extraStarts?: Map<number, number>): string[] {
+function withRenumbering(
+  before: string[],
+  working: string[],
+  touched: number[],
+  extraStarts?: Map<number, number>,
+  skipWidthShift?: Set<number>,
+): string[] {
   const out = [...working];
-  for (const e of renumberEdited(before, working, touched, extraStarts)) out[e.line] = e.text;
+  for (const e of renumberEdited(before, working, touched, extraStarts, skipWidthShift)) out[e.line] = e.text;
   return out;
 }
 
@@ -278,7 +285,14 @@ function tabCommand(view: EditorView): boolean {
       const working = [...lines];
       working[first] = shiftLineIndent(lines[first], delta);
       const extra = new Map<number, number>([[first, 1]]);
-      return applyListEdit(view, withRenumbering(lines, working, [first], extra), "input.indent", undefined, offset, lines);
+      return applyListEdit(
+        view,
+        withRenumbering(lines, working, [first], extra, new Set([first])),
+        "input.indent",
+        undefined,
+        offset,
+        lines,
+      );
     }
 
     const working = [...lines];
@@ -319,7 +333,7 @@ function tabCommand(view: EditorView): boolean {
         extra.set(first, 1);
       }
     }
-    const edits = renumberPrepared(lines, beforeRun, working, refreshed.run, refreshed.groups, extra);
+    const edits = renumberPrepared(lines, beforeRun, working, refreshed.run, refreshed.groups, extra, new Set([first]));
     const after = [...working];
     for (const e of edits) after[e.line] = e.text;
     return applyListEdit(view, after, "input.indent", undefined, offset, lines);
@@ -348,7 +362,14 @@ function tabCommand(view: EditorView): boolean {
       extra.set(g.first, 1);
     }
   }
-  return applyListEdit(view, withRenumbering(lines, working, touched, extra), "input.indent", undefined, offset, lines);
+  return applyListEdit(
+    view,
+    withRenumbering(lines, working, touched, extra, new Set(touched)),
+    "input.indent",
+    undefined,
+    offset,
+    lines,
+  );
 }
 
 /** Rules 1, 3, 9: Shift+Tab moves a list line out to its parent's indent (or back by 2 for an indented top-level
@@ -378,7 +399,14 @@ function shiftTabCommand(view: EditorView): boolean {
     // Rule 3: the items that followed it in its old group are now its children, numbered from 1.
     const extra = new Map<number, number>();
     for (const g of listGroups(working, [first])) if (g.parent === first) extra.set(g.first, 1);
-    return applyListEdit(view, withRenumbering(lines, working, [first], extra), "input.indent", undefined, offset, lines);
+    return applyListEdit(
+      view,
+      withRenumbering(lines, working, [first], extra, new Set([first])),
+      "input.indent",
+      undefined,
+      offset,
+      lines,
+    );
   }
 
   const curIndent = indentLen(lines[firstList].match(/^\s*/)![0]);
@@ -392,7 +420,14 @@ function shiftTabCommand(view: EditorView): boolean {
     // Rule 9: sub-items (or trailing siblings) left behind that now start a group start again at 1.
     if (g.first > last && !oldFirsts.has(g.first)) extra.set(g.first, 1);
   }
-  return applyListEdit(view, withRenumbering(lines, working, touched, extra), "input.indent", undefined, offset, lines);
+  return applyListEdit(
+    view,
+    withRenumbering(lines, working, touched, extra, new Set(touched)),
+    "input.indent",
+    undefined,
+    offset,
+    lines,
+  );
 }
 
 /** Shared helper for moving an empty sub-item out as the parent list's next item (rules 7 and 8). */
@@ -454,7 +489,7 @@ function backspaceCommand(view: EditorView): boolean {
   const maxIdx = Math.min(state.doc.lines - 1, idx + 1);
   const { offset, lines } = readRunSlice(state.doc, minIdx, maxIdx);
   const localIdx = idx - offset;
-  const touched = localIdx + 1 < lines.length ? [localIdx, localIdx + 1] : [localIdx];
+  const touched = [localIdx - 1, localIdx, localIdx + 1].filter((i) => i >= 0 && i < lines.length);
 
   const withoutMarker = backspaceMarker(lines, localIdx, col);
   if (withoutMarker !== null) {

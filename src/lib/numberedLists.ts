@@ -175,7 +175,9 @@ export function tabIndentTarget(lines: string[], idx: number): string | null {
     // Stop at the parent: only look at preceding items within the same parent (rule 2).
     if (prevIndent < myIndent) break;
     if (prevIndent === myIndent) {
-      P = prev;
+      if (item.kind === "bullet" || (prev.kind === "numbered" && prev.delimiter === item.delimiter)) {
+        P = prev;
+      }
       break;
     }
   }
@@ -320,7 +322,9 @@ export function tabIndentTargetInRun(run: TouchedRun, idx: number): string | nul
     const prevIndent = indentLen(prev.indent);
     if (prevIndent < myIndent) break;
     if (prevIndent === myIndent) {
-      P = prev;
+      if (item.kind === "bullet" || (prev.kind === "numbered" && prev.delimiter === item.delimiter)) {
+        P = prev;
+      }
       break;
     }
   }
@@ -401,6 +405,7 @@ function renumberRuns(
   lines: string[],
   runs: { block: ListBlock; groups: NumberedGroup[] }[],
   starts?: Map<number, number>,
+  skipWidthShift?: Set<number>,
 ): LineEdit[] {
   const edits: LineEdit[] = [];
   const newNumbers = new Map<number, number[]>();
@@ -433,9 +438,11 @@ function renumberRuns(
         if (newLine !== lines[lineIdx]) {
           rewritten.set(lineIdx, newLine);
         }
-        const delta = newMarker.length - oldItem.marker.length;
-        if (delta !== 0) {
-          markerDeltaByLine.set(lineIdx, delta);
+        if (!skipWidthShift?.has(lineIdx)) {
+          const delta = newMarker.length - oldItem.marker.length;
+          if (delta !== 0) {
+            markerDeltaByLine.set(lineIdx, delta);
+          }
         }
       }
     }
@@ -479,12 +486,17 @@ function renumberRuns(
 /** Rule 5 on plain lines: renumber the groups of the list blocks containing the `touched` line indices. `starts`
  *  maps a group's first-item line index (in `lines`) to the start it must have; a group not in it starts at its
  *  first item's current number. */
-export function renumberLists(lines: string[], touched: number[], starts?: Map<number, number>): LineEdit[] {
+export function renumberLists(
+  lines: string[],
+  touched: number[],
+  starts?: Map<number, number>,
+  skipWidthShift?: Set<number>,
+): LineEdit[] {
   const runs = getTouchedRuns(lines, touched).map(({ block, runStart, parsed }) => ({
     block,
     groups: getGroupsInBlock(lines, block, runStart, parsed),
   }));
-  return renumberRuns(lines, runs, starts);
+  return renumberRuns(lines, runs, starts, skipWidthShift);
 }
 
 /** Renumber `working` carrying group starts from `before` in one pass per side (rule 15). */
@@ -493,16 +505,18 @@ export function renumberEdited(
   working: string[],
   touched: number[],
   extraStarts?: Map<number, number>,
+  skipWidthShift?: Set<number>,
 ): LineEdit[] {
   const oldGroups: NumberedGroup[] = [];
   for (const { block, runStart, parsed } of getTouchedRuns(before, touched)) {
     oldGroups.push(...getGroupsInBlock(before, block, runStart, parsed));
   }
-  const newRuns = getTouchedRuns(working, touched).map(({ block, runStart, parsed }) => ({
+  const workingTouched = oldGroups.length > 0 ? [...touched, ...oldGroups.map((g) => g.first)] : touched;
+  const newRuns = getTouchedRuns(working, workingTouched).map(({ block, runStart, parsed }) => ({
     block,
     groups: getGroupsInBlock(working, block, runStart, parsed),
   }));
-  return renumberFromGroups(working, oldGroups, newRuns, extraStarts);
+  return renumberFromGroups(working, oldGroups, newRuns, extraStarts, skipWidthShift);
 }
 
 /** Renumber pre-analyzed `working` runs carrying group starts from `before` without re-parsing (rule 15). */
@@ -513,9 +527,10 @@ export function renumberPrepared(
   workingRun: TouchedRun,
   workingGroups: NumberedGroup[],
   extraStarts?: Map<number, number>,
+  skipWidthShift?: Set<number>,
 ): LineEdit[] {
   const oldGroups = getGroupsInBlock(before, beforeRun.block, beforeRun.runStart, beforeRun.parsed);
-  return renumberFromGroups(working, oldGroups, [{ block: workingRun.block, groups: workingGroups }], extraStarts);
+  return renumberFromGroups(working, oldGroups, [{ block: workingRun.block, groups: workingGroups }], extraStarts, skipWidthShift);
 }
 
 function renumberFromGroups(
@@ -523,12 +538,13 @@ function renumberFromGroups(
   oldGroups: NumberedGroup[],
   newRuns: { block: ListBlock; groups: NumberedGroup[] }[],
   extraStarts?: Map<number, number>,
+  skipWidthShift?: Set<number>,
 ): LineEdit[] {
   const newGroups: NumberedGroup[] = [];
   for (const r of newRuns) newGroups.push(...r.groups);
   const starts = matchGroupStarts(oldGroups, newGroups, (first) => first);
   for (const [k, v] of extraStarts ?? []) starts.set(k, v);
-  return renumberRuns(working, newRuns, starts);
+  return renumberRuns(working, newRuns, starts, skipWidthShift);
 }
 
 /** Tab stops for a line that is not a list item but sits under one (a continuation, a line whose number was removed,

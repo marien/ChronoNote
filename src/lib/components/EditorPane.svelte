@@ -3,7 +3,7 @@
   import { get } from "svelte/store";
   import { Compartment, EditorSelection, EditorState, RangeSetBuilder, StateEffect, StateField } from "@codemirror/state";
   import { Decoration, type DecorationSet, drawSelection, EditorView, keymap, ViewPlugin } from "@codemirror/view";
-  import { defaultKeymap, history, historyField, historyKeymap, indentWithTab, redo, undo } from "@codemirror/commands";
+  import { defaultKeymap, history, historyField, historyKeymap, indentWithTab, isolateHistory, redo, undo } from "@codemirror/commands";
   import { indentUnit } from "@codemirror/language";
   import { findNext, findPrevious, replaceNext, replaceAll, search, SearchCursor, SearchQuery, setSearchQuery } from "@codemirror/search";
   import { glyphAtomicRanges, liveGlyphs, lineStateAnnouncement } from "../editor/glyphs";
@@ -567,6 +567,8 @@
             v.dispatch({
               changes: [{ from: pos, to: pos, insert: step.insert }, ...renumber],
               selection: { anchor: pos + step.insert.length },
+              userEvent: "input",
+              annotations: isolateHistory.of("full"),
               scrollIntoView: true,
             });
           } else {

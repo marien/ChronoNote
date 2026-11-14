@@ -110,6 +110,13 @@ describe("Rule 1 & Rule 2: Tab and Shift+Tab on first item / within parent / sel
     pressKey(view, "Tab");
     expect(view.state.doc.toString()).toBe("1. a\n   1.1. b\n2. c\n     1. d");
   });
+
+  it("Rule 2: Tab on an item with a different delimiter shifts the group +2", () => {
+    const doc = "1. a\n   1. b\n   1) cd\n   2) e";
+    const view = createView(doc, { anchor: caretAtLine(doc, 2) });
+    pressKey(view, "Tab");
+    expect(view.state.doc.toString()).toBe("1. a\n   1. b\n     1) cd\n     2) e");
+  });
 });
 
 describe("Rule 4 & Rule 5: splitting, joining, and digit edits", () => {
@@ -180,6 +187,13 @@ describe("Rule 6, 7, 8, 9: Backspace, empty sub-items, and selection Shift+Tab",
     expect(view2.state.doc.toString()).toBe("1. a\n   b\n2. c");
     pressKey(view2, "Backspace");
     expect(view2.state.doc.toString()).toBe("1. a\nb\n1. c");
+
+    const doc3 = "4. a\n5. b\n6. c";
+    const view3 = createView(doc3, { anchor: caretAtLine(doc3, 1, 3) });
+    pressKey(view3, "Backspace");
+    expect(view3.state.doc.toString()).toBe("4. a\n   b\n5. c");
+    pressKey(view3, "Backspace");
+    expect(view3.state.doc.toString()).toBe("4. a\nb\n1. c");
   });
 
   it("Rule 7: Backspace on an empty sub-item with a numbered parent moves it out like Enter", () => {
@@ -210,6 +224,13 @@ describe("Rule 6, 7, 8, 9: Backspace, empty sub-items, and selection Shift+Tab",
     const view = createView(doc, { anchor: caretAtLine(doc, 1, 0), head: caretAtLine(doc, 2) });
     pressKey(view, "Tab", true);
     expect(view.state.doc.toString()).toBe("1. a\n2. b\n3. c\n   1. d");
+  });
+
+  it("Rule 10: Shift+Tab on a dotted item does not shift its new sub-items by marker width delta", () => {
+    const doc = "1. a\n   1.1. x\n2. b\n   2.1. c\n   2.2. d\n3. e";
+    const view = createView(doc, { anchor: caretAtLine(doc, 3) });
+    pressKey(view, "Tab", true);
+    expect(view.state.doc.toString()).toBe("1. a\n   1.1. x\n2. b\n3. c\n   3.1. d\n4. e");
   });
 });
 

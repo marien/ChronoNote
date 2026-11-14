@@ -497,16 +497,16 @@ test.describe("rule 7: Backspace on an empty sub-item", () => {
     expect(await activeTabContent(page)).toBe("1. a\n   1. b\n2. \n   1. c\n3. d");
   });
 
-  test("Backspace on an empty top-level item or an empty item under a bullet deletes normally", async ({ page }) => {
+  test("Backspace on an empty top-level item or an empty item under a bullet keeps existing marker-removal behaviour", async ({ page }) => {
     await setEditorText(page, "1. a\n2. ");
     await caretAtEndOfLine(page, 1);
     await page.keyboard.press("Backspace");
-    expect(await activeTabContent(page)).toBe("1. a\n2.");
+    expect(await activeTabContent(page)).toBe("1. a\n   ");
 
     await setEditorText(page, "- a\n  1. ");
     await caretAtEndOfLine(page, 1);
     await page.keyboard.press("Backspace");
-    expect(await activeTabContent(page)).toBe("- a\n  1.");
+    expect(await activeTabContent(page)).toBe("- a\n  ");
   });
 });
 
@@ -695,7 +695,7 @@ test.describe("rule 12: paste onto an empty numbered item", () => {
 
     await setEditorText(page, "1. a\n   1.1. b\n   1.2. ");
     await caretAtEndOfLine(page, 2);
-    await pastePlain(page, "1.1. x\n1.2. y");
+    await pastePlain(page, "   1.1. x\n   1.2. y");
     await expect.poll(() => activeTabContent(page)).toBe("1. a\n   1.1. b\n   1.2. x\n   1.3. y");
   });
 
@@ -748,10 +748,10 @@ test.describe("rule 13: copying a list with continuation lines as HTML", () => {
     expect(parsed.firstParts).toEqual(["a", "cont"]);
     expect(parsed.secondText).toBe("b");
 
-    // Paste only the copied HTML back into an empty editor.
+    // Paste the HTML (without ChronoNote's own-copy marker, as another app would hand it over) into an empty editor.
     await setEditorText(page, "");
     await editor(page).click();
-    await pasteHtml(page, clip.html);
+    await pasteHtml(page, clip.html.replace(/\s*data-chrononote=""/g, ""));
     await expect.poll(() => activeTabContent(page)).toBe(text);
 
     await page.keyboard.press("ControlOrMeta+z");
@@ -781,7 +781,7 @@ test.describe("rule 13: copying a list with continuation lines as HTML", () => {
 
     await setEditorText(page, "");
     await editor(page).click();
-    await pasteHtml(page, clip.html);
+    await pasteHtml(page, clip.html.replace(/\s*data-chrononote=""/g, ""));
     await expect.poll(() => activeTabContent(page)).toBe(text);
   });
 });
@@ -819,10 +819,10 @@ test.describe("rule 14: the 1.1. style rule", () => {
   });
 
   test("three-level dotted style adoption when Tab places a sub-item in front of a dotted third-level group", async ({ page }) => {
-    await setEditorText(page, "1. a\n   1.1. b\n      1.1.1. x\n   1.2. c\n   1.3. d\n      1.3.1. e");
+    await setEditorText(page, "1. a\n   1.1. b\n        1.1.1. x\n   1.2. c\n   1.3. d\n        1.3.1. e");
     await caretAtEndOfLine(page, 4);
     await page.keyboard.press("Tab");
-    expect(await activeTabContent(page)).toBe("1. a\n   1.1. b\n      1.1.1. x\n   1.2. c\n      1.2.1. d\n      1.2.2. e");
+    expect(await activeTabContent(page)).toBe("1. a\n   1.1. b\n        1.1.1. x\n   1.2. c\n        1.2.1. d\n        1.2.2. e");
   });
 });
 

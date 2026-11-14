@@ -334,6 +334,10 @@ describe("NL-F rules in numberedLists.ts", () => {
     expect(shiftTabIndentTarget(["\t1. a", "     1. b"], 1)).toBe("\t");
   });
 
+  it("rule 2: tabIndentTarget requires the preceding item at the same indent to share delimiter", () => {
+    expect(tabIndentTarget(["1. a", "   1. b", "   1) c", "   2) d"], 2)).toBeNull();
+  });
+
   it("rule 15: getGroupsInBlock is linear on a 3,000-item nested list", () => {
     const lines: string[] = [];
     for (let i = 1; i <= 1500; i++) {

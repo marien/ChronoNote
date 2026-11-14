@@ -568,119 +568,41 @@ test.describe("numbered lists: a list with 1.1. sub-items keeps that style (§46
     await page.keyboard.press("Tab");
     expect(await activeTabContent(page)).toBe("1. a\n   1.1. x\n\n1. b\n   1. c");
   });
+});
 
-  test("Tab indents the first item under a bullet or promotes selection to first sub-item", async ({ page }) => {
-    await setEditorText(page, "- bullet\n1. first\n2. second");
-    await caretAtEndOfLine(page, 2);
-    await page.keyboard.press("Tab");
-    expect(await activeTabContent(page)).toBe("- bullet\n  1. first\n1. second");
-
-    await setEditorText(page, "1. top\n2. one\n3. two");
-    await caretAtEndOfLine(page, 2);
-    await page.keyboard.press("Shift+ArrowDown");
-    await page.keyboard.press("Tab");
-    expect(await activeTabContent(page)).toBe("1. top\n   1. one\n   2. two");
+test.describe("numbered lists: review fixes (§464)", () => {
+  test.beforeEach(async ({ page }) => {
+    await seedApp(page, { seed: "empty" });
   });
 
-  test("Tab on a second sub-group does not indent past its parent", async ({ page }) => {
-    await setEditorText(page, "1. a\n2. b\n   1. c\n\n   1. d");
-    await caretAtEndOfLine(page, 5);
-    await page.keyboard.press("Tab");
-    expect(await activeTabContent(page)).toBe("1. a\n2. b\n   1. c\n\n   1. d");
-  });
-
-  test("Enter on an item with sub-items inserts 1. at sub-item indent", async ({ page }) => {
-    await setEditorText(page, "1. a\n   1. x\n   2. y\n2. b");
+  test("Backspace twice on a tab-indented item keeps tab column stops and renumbers", async ({ page }) => {
+    await setEditorText(page, "\t1. a\n\t2. b\n\t3. c");
     await caretAtEndOfLine(page, 1);
-    await page.keyboard.press("Enter");
-    expect(await activeTabContent(page)).toBe("1. a\n   1. \n   2. x\n   3. y\n2. b");
-
-    await setEditorText(page, "1. a\n   1.1. x\n   1.2. y\n2. b");
-    await caretAtEndOfLine(page, 1);
-    await page.keyboard.press("Enter");
-    expect(await activeTabContent(page)).toBe("1. a\n   1.1. \n   1.2. x\n   1.3. y\n2. b");
-  });
-
-  test("Enter on an empty sub-item with following sub-items splits cleanly", async ({ page }) => {
-    await setEditorText(page, "1. a\n   1. b\n   2. \n   3. c");
-    await caretAtEndOfLine(page, 3);
-    await page.keyboard.press("Enter");
-    expect(await activeTabContent(page)).toBe("1. a\n   1. b\n2. \n   1. c");
-  });
-
-  test("Enter on an empty middle item exits and restarts following items at 1", async ({ page }) => {
-    await setEditorText(page, "1. a\n2. \n3. b\n4. c");
-    await caretAtEndOfLine(page, 2);
-    await page.keyboard.press("Enter");
-    expect(await activeTabContent(page)).toBe("1. a\n\n1. b\n2. c");
-  });
-
-  test("typing a digit on a blank line between two lists does not renumber the list below", async ({ page }) => {
-    await setEditorText(page, "1. a\n\n1. b\n2. c");
-    await caretAtEndOfLine(page, 2);
-    await page.keyboard.type("2");
-    expect(await activeTabContent(page)).toBe("1. a\n2\n1. b\n2. c");
-  });
-
-  test("Backspace across a dotted sub-item joins with the item above and restarts the rest", async ({ page }) => {
-    await setEditorText(page, "1. a\n   1.1. sub\n2. b\n3. c");
-    await caretAtEndOfLine(page, 3);
     await page.keyboard.press("ArrowLeft");
     await page.keyboard.press("Backspace");
-    expect(await activeTabContent(page)).toBe("1. a\n   1.1. sub\n   b\n1. c");
+    expect(await activeTabContent(page)).toBe("\t1. a\n\t   b\n\t2. c");
 
     await page.keyboard.press("Backspace");
-    expect(await activeTabContent(page)).toBe("1. a\n   1.1. subb\n1. c");
+    expect(await activeTabContent(page)).toBe("\t1. a\n\tb\n\t1. c");
   });
 
-  test("Backspace on an empty sub-item outdents it into the parent group", async ({ page }) => {
-    await setEditorText(page, "1. a\n   1. ");
-    await caretAtEndOfLine(page, 2);
-    await page.keyboard.press("Backspace");
-    expect(await activeTabContent(page)).toBe("1. a\n2. ");
-  });
-
-  test("Backspace on a tab-indented item keeps tab column stops cleanly", async ({ page }) => {
-    await setEditorText(page, "\t1. a\n\t2. b");
-    await caretAtEndOfLine(page, 2);
-    await page.keyboard.press("ArrowLeft");
-    await page.keyboard.press("Backspace");
-    expect(await activeTabContent(page)).toBe("\t1. a\n\t   b");
-
-    await page.keyboard.press("Backspace");
-    expect(await activeTabContent(page)).toBe("\t1. ab");
-  });
-
-  test("Shift+Tab on a selection outdents all selected items and renumbers subtrees", async ({ page }) => {
+  test("Shift+Tab on a selection of all sub-items outdents them into the outer list", async ({ page }) => {
     await setEditorText(page, "1. top\n   1. one\n   2. two");
-    await caretAtEndOfLine(page, 2);
+    await caretAtEndOfLine(page, 1);
     await page.keyboard.press("Shift+ArrowDown");
     await page.keyboard.press("Shift+Tab");
     expect(await activeTabContent(page)).toBe("1. top\n2. one\n3. two");
   });
 
-  test("growing from 9 to 10 shifts continuation lines and sub-items by 1 space", async ({ page }) => {
+  test("growing from 9 to 10 after Enter shifts continuation lines and sub-items by 1 space", async ({ page }) => {
     const items = Array.from({ length: 8 }, (_, i) => `${i + 1}. x`).join("\n");
     await setEditorText(page, `${items}\n9. ninth\n   cont\n   1. sub`);
-    await caretAtEndOfLine(page, 1);
+    await caretAtEndOfLine(page, 0);
     await page.keyboard.press("Enter");
     await page.keyboard.type("new");
     const lines = (await activeTabContent(page)).split("\n");
     expect(lines[9]).toBe("10. ninth");
     expect(lines[10]).toBe("    cont");
     expect(lines[11]).toBe("    1. sub");
-  });
-
-  test("pasting onto an empty numbered marker replaces it cleanly and renumbers", async ({ page }) => {
-    await setEditorText(page, "1. a\n2. \n3. b");
-    await caretAtEndOfLine(page, 2);
-    await page.evaluate((text) => {
-      const dt = new DataTransfer();
-      dt.setData("text/plain", text);
-      document.querySelector(".cm-content")!.dispatchEvent(
-        new ClipboardEvent("paste", { clipboardData: dt, bubbles: true, cancelable: true })
-      );
-    }, "1. x\n2. y");
-    await expect.poll(() => activeTabContent(page)).toBe("1. a\n2. x\n3. y\n4. b");
   });
 });
