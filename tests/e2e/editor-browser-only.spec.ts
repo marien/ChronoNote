@@ -500,14 +500,14 @@ test.describe("5. Spell check while typing", () => {
 
   test("5.2: the misspelled mark moves with the text when typing before it", async ({ page }) => {
     await seedApp(page, { seed: { spellCheck: true } });
-    await setEditorText(page, "wrods");
+    // Review: the word the caret is in is never marked (#167), and the caret starts at the line start, so the misspelled word must not be the first one.
+    await setEditorText(page, "here wrods");
 
     const mark = editor(page).locator(".cm-misspelled");
     await expect(mark).toHaveCount(1);
     await expect(mark).toHaveText("wrods");
 
-    await editor(page).click();
-    await page.keyboard.press("Home");
+    await page.keyboard.press("ControlOrMeta+Home");
     await page.keyboard.type("Prefix ");
 
     await expect(mark).toHaveCount(1);
@@ -515,7 +515,7 @@ test.describe("5. Spell check while typing", () => {
 
     // Wait past the spell-check debounce to confirm the recheck keeps the shifted mark exact.
     await page.waitForTimeout(500);
-    expect(await activeTabContent(page)).toBe("Prefix wrods");
+    expect(await activeTabContent(page)).toBe("Prefix here wrods");
     await expect(mark).toHaveCount(1);
     await expect(mark).toHaveText("wrods");
   });

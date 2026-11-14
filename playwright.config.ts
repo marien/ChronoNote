@@ -31,6 +31,12 @@ const ENV_PROJECTS = [
   },
 ].map((p) => ({ ...p, testMatch: LAYOUT_SPECS }));
 
+/** Pill and alignment specs that measure widths and columns in the note's font (§473, editor review test plan step 6):
+ * only the Windows layout job runs them a second time, since the environment projects add nothing for them. */
+const WINDOWS_ALIGNMENT_SPECS = [
+  "drawer-pills.independent", "forward-link-pill.independent", "find-bar-align", "due-flag", "action-tree-lines",
+].map((name) => `**/${name}.spec.ts`);
+
 /** CI's Windows layout job (`E2E_WINDOWS_LAYOUT=1`): only the layout specs, with Windows fonts, at the scales Marien's
  * laptops use. The Linux run missed the @codemirror/view 6.43.14 glyph shift at 150% (§379); only a local Windows run
  * caught it. */
@@ -38,7 +44,7 @@ const WINDOWS_LAYOUT_PROJECTS = [
   { name: "win-100", use: { ...devices["Desktop Chrome"] } },
   { name: "win-125", use: { ...devices["Desktop Chrome"], deviceScaleFactor: 1.25 } },
   { name: "win-150", use: { ...devices["Desktop Chrome"], deviceScaleFactor: 1.5 } },
-].map((p) => ({ ...p, testMatch: LAYOUT_SPECS }));
+].map((p) => ({ ...p, testMatch: [...LAYOUT_SPECS, ...WINDOWS_ALIGNMENT_SPECS] }));
 
 /** `E2E_PORT` runs the suite on its own fresh Vite server on that port (never a reused one): the visual review
  * (`scripts/visual-review.mjs`) captures the working tree and an older commit this way, one after the other, and a dev
