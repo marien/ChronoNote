@@ -12,11 +12,14 @@ import {
   getGroupsInBlock,
   getTouchedRuns,
   indentLen,
+  isFlatStyleGroups,
   listGroups,
+  listGroupSummaries,
   matchGroupStarts,
   parseBulletItem,
   parseListItem,
   refreshRunsForLine,
+  refreshRunsForRange,
   renumberEdited,
   renumberLists,
   renumberPrepared,
@@ -25,9 +28,10 @@ import {
   tabIndentTargetInRun,
   type ListBlock,
   type NumberedGroup,
+  type TouchedRun,
 } from "../numberedLists";
 import { ACTION_SYMBOLS, TOPIC_SYMBOLS } from "../grammar/symbols";
-import { parseNumberedItem, shiftLineIndent } from "../tokens";
+import { parseNumberedItem, shiftLineIndent, type NumberedItem } from "../tokens";
 
 /** Marks a transaction whose numbering is already done, so the renumber filter leaves it alone. */
 export const renumbered = Annotation.define<boolean>();
@@ -228,17 +232,155 @@ function bulletAboveDelta(lines: string[], idx: number): number | null {
   return null;
 }
 
-/** Shift an entire numbered group and all of its subtrees (deeper lines after each item) by `delta` columns (rule 1). */
+/** Shift an entire numbered group and all of its subtrees (deeper lines and same-indent flat descendants) by `delta` columns (rule 1). */
 function shiftGroupWithSubtrees(lines: string[], block: ListBlock, group: NumberedGroup, delta: number): string[] {
   const out = [...lines];
   for (const item of group.items) {
     out[item.line] = shiftLineIndent(lines[item.line], delta);
+    const baseParts = item.item.numbers.length;
     for (let j = item.line + 1; j <= block.end; j++) {
-      if (indentLen(lines[j].match(/^\s*/)![0]) <= group.indent) break;
+      const ind = indentLen(lines[j].match(/^\s*/)![0]);
+      if (ind < group.indent) break;
+      if (ind === group.indent) {
+        const sub = parseListItem(lines[j]);
+        if (!sub || sub.kind !== "numbered" || sub.delimiter !== group.delimiter || sub.numbers.length <= baseParts) break;
+      }
       out[j] = shiftLineIndent(lines[j], delta);
     }
   }
   return out;
+}
+
+function flatPrecedingSibling(
+  run: TouchedRun,
+  idx: number,
+  num: NumberedItem,
+): { index: number; item: NumberedItem } | null {
+  const myIndent = indentLen(num.indent);
+  const myParts = num.numbers.length;
+  for (let i = idx - 1; i >= run.block.start; i--) {
+    const item = run.parsed[i - run.runStart];
+    if (!item) continue;
+    const ind = indentLen(item.indent);
+    if (ind < myIndent) return null;
+    if (ind > myIndent || item.kind !== "numbered" || item.delimiter !== num.delimiter) continue;
+    if (item.numbers.length < myParts) return null;
+    if (item.numbers.length === myParts) return { index: i, item };
+  }
+  return null;
+}
+
+function flatSubtreeEnd(
+  lines: string[],
+  run: TouchedRun,
+  startIdx: number,
+  baseIndent: number,
+  delim: "." | ")",
+  baseParts: number,
+): number {
+  let end = startIdx;
+  for (let j = startIdx + 1; j <= run.block.end; j++) {
+    const item = run.parsed[j - run.runStart];
+    const ind = item ? indentLen(item.indent) : indentLen(lines[j].match(/^\s*/)![0]);
+    if (ind < baseIndent) break;
+    if (ind === baseIndent && item?.kind === "numbered" && item.delimiter === delim && item.numbers.length <= baseParts) {
+      break;
+    }
+    end = j;
+  }
+  return end;
+}
+
+function tryFlatIndent(
+  view: EditorView,
+  lines: string[],
+  offset: number,
+  first: number,
+  last: number,
+  dedent: boolean,
+  precomputedRun?: TouchedRun,
+  precomputedGroups?: NumberedGroup[],
+): boolean | null {
+  let beforeRun = precomputedRun;
+  if (!beforeRun) {
+    const touched = Array.from({ length: last - first + 1 }, (_, k) => first + k);
+    const runs = getTouchedRuns(lines, touched);
+    if (runs.length !== 1) return null;
+    beforeRun = runs[0];
+  }
+  const beforeGroups =
+    precomputedGroups ?? getGroupsInBlock(lines, beforeRun.block, beforeRun.runStart, beforeRun.parsed);
+  if (!isFlatStyleGroups(lines, beforeGroups, beforeRun.runStart, beforeRun.parsed)) return null;
+
+  const firstItem = beforeRun.parsed[first - beforeRun.runStart];
+  if (firstItem?.kind !== "numbered") return null;
+  const baseIndent = indentLen(firstItem.indent);
+  const delim = firstItem.delimiter;
+  const firstParts = firstItem.numbers.length;
+  for (let i = first + 1; i <= last; i++) {
+    const it = beforeRun.parsed[i - beforeRun.runStart];
+    if (
+      it?.kind !== "numbered" ||
+      indentLen(it.indent) !== baseIndent ||
+      it.delimiter !== delim ||
+      it.numbers.length < firstParts
+    ) {
+      return null;
+    }
+  }
+
+  const end = Math.max(last, flatSubtreeEnd(lines, beforeRun, last, baseIndent, delim, firstParts));
+  const working = [...lines];
+  const extra = new Map<number, number>();
+  const skip = new Set<number>();
+
+  if (!dedent) {
+    const prev = flatPrecedingSibling(beforeRun, first, firstItem);
+    if (!prev) return true;
+    for (let i = first; i <= end; i++) {
+      const it = beforeRun.parsed[i - beforeRun.runStart];
+      if (it?.kind === "numbered" && indentLen(it.indent) === baseIndent && it.delimiter === delim && it.numbers.length >= firstParts) {
+        const newNums = [...prev.item.numbers, ...it.numbers.slice(firstParts - 1)];
+        working[i] = reindent(lines[i], it.indent, newNums.join(".") + delim);
+        skip.add(i);
+      }
+    }
+    const refreshed = refreshRunsForRange(working, beforeRun, first, end);
+    if (!refreshed) return false;
+    const firstGroup = refreshed.groups.find((g) => g.items.some((it) => it.line === first));
+    if (firstGroup && firstGroup.first === first) extra.set(first, 1);
+    const edits = renumberPrepared(lines, beforeRun, working, refreshed.run, refreshed.groups, extra, skip, beforeGroups);
+    const after = [...working];
+    for (const e of edits) after[e.line] = e.text;
+    return applyListEdit(view, after, "input.indent", undefined, offset, lines);
+  }
+
+  const parent = findParentInRun(beforeRun, first);
+  if (!parent || parent.item.kind !== "numbered" || indentLen(parent.item.indent) !== baseIndent) {
+    return null;
+  }
+  const pItem = parent.item;
+  const pPrefix = pItem.numbers.slice(0, -1);
+  let rootSeq = pItem.numbers[pItem.numbers.length - 1];
+  for (let i = first; i <= end; i++) {
+    const it = beforeRun.parsed[i - beforeRun.runStart];
+    if (it?.kind === "numbered" && indentLen(it.indent) === baseIndent && it.delimiter === delim && it.numbers.length >= firstParts) {
+      if (it.numbers.length === firstParts) rootSeq += 1;
+      const newNums = [...pPrefix, rootSeq, ...it.numbers.slice(firstParts)];
+      working[i] = reindent(lines[i], it.indent, newNums.join(".") + delim);
+      skip.add(i);
+    }
+  }
+  const refreshed = refreshRunsForRange(working, beforeRun, first, end);
+  if (!refreshed) return false;
+  const oldFirsts = new Set(beforeGroups.map((g) => g.first));
+  for (const g of refreshed.groups) {
+    if (g.first > end && !oldFirsts.has(g.first)) extra.set(g.first, 1);
+  }
+  const edits = renumberPrepared(lines, beforeRun, working, refreshed.run, refreshed.groups, extra, skip, beforeGroups);
+  const after = [...working];
+  for (const e of edits) after[e.line] = e.text;
+  return applyListEdit(view, after, "input.indent", undefined, offset, lines);
 }
 
 /** Tab / Shift+Tab on a line under a list item that is not one itself: to the next (or previous) of the list's
@@ -279,6 +421,10 @@ export function tabCommand(view: EditorView): boolean {
   if (first === last) {
     const beforeRun = getTouchedRuns(lines, [first])[0];
     if (!beforeRun) return false;
+    const beforeGroups = getGroupsInBlock(lines, beforeRun.block, beforeRun.runStart, beforeRun.parsed);
+    const flat = tryFlatIndent(view, lines, offset, first, last, false, beforeRun, beforeGroups);
+    if (flat !== null) return flat;
+
     const target = tabIndentTargetInRun(beforeRun, first);
     const parsedItem = beforeRun.parsed[first - beforeRun.runStart];
     const num = parsedItem?.kind === "numbered" ? parsedItem : null;
@@ -291,9 +437,7 @@ export function tabCommand(view: EditorView): boolean {
         working[first] = shiftLineIndent(lines[first], delta);
         return applyListEdit(view, withRenumbering(lines, working, [first]), "input.indent", undefined, offset, lines);
       }
-      const group = getGroupsInBlock(lines, beforeRun.block, beforeRun.runStart, beforeRun.parsed).find(
-        (g) => g.first === first,
-      );
+      const group = beforeGroups.find((g) => g.first === first);
       const delta = bulletAboveDelta(lines, first) ?? 2;
       if (group) {
         const working = shiftGroupWithSubtrees(lines, beforeRun.block, group, delta);
@@ -327,6 +471,7 @@ export function tabCommand(view: EditorView): boolean {
         (g) => g.indent === indentLen(target) && g.delimiter === num.delimiter && g.parent === parentIdx,
       );
       if (group && group.first === first) {
+        const prevLine = working[first];
         if (num.numbers.length === 1) {
           const runRef = refreshed.run;
           const hasDotted =
@@ -338,24 +483,37 @@ export function tabCommand(view: EditorView): boolean {
                 runRef.parsed[g.parent - runRef.runStart]?.kind === "numbered" &&
                 g.items.some((it) => it.line !== first && it.item.numbers.length > 1),
             );
-          const prevLine = working[first];
           if (hasDotted && parent?.item.kind === "numbered") {
             working[first] = reindent(lines[first], target, [...parent.item.numbers, 1].join(".") + num.delimiter);
           } else if (group.items.length === 1) {
             working[first] = reindent(lines[first], target, `1${num.delimiter}`);
           }
-          if (working[first] !== prevLine) {
-            refreshed = refreshRunsForLine(working, beforeRun, first, first) ?? refreshed;
-          }
+        } else if (parent?.item.kind === "numbered" && num.numbers.length <= parent.item.numbers.length) {
+          working[first] = reindent(lines[first], target, [...parent.item.numbers, 1].join(".") + num.delimiter);
+        }
+        if (working[first] !== prevLine) {
+          refreshed = refreshRunsForLine(working, beforeRun, first, first) ?? refreshed;
         }
         extra.set(first, 1);
       }
     }
-    const edits = renumberPrepared(lines, beforeRun, working, refreshed.run, refreshed.groups, extra, new Set([first]));
+    const edits = renumberPrepared(
+      lines,
+      beforeRun,
+      working,
+      refreshed.run,
+      refreshed.groups,
+      extra,
+      new Set([first]),
+      beforeGroups,
+    );
     const after = [...working];
     for (const e of edits) after[e.line] = e.text;
     return applyListEdit(view, after, "input.indent", undefined, offset, lines);
   }
+
+  const flatMulti = tryFlatIndent(view, lines, offset, first, last, false);
+  if (flatMulti !== null) return flatMulti;
 
   const target = tabIndentTarget(lines, firstList);
 
@@ -397,6 +555,10 @@ export function shiftTabCommand(view: EditorView): boolean {
   const s = selectedLines(view.state);
   if (!s) return false;
   const { offset, lines, first, last, firstList } = s;
+
+  const flat = tryFlatIndent(view, lines, offset, first, last, true);
+  if (flat !== null) return flat;
+
   const target = shiftTabIndentTarget(lines, firstList);
 
   if (first === last) {
@@ -431,7 +593,21 @@ export function shiftTabCommand(view: EditorView): boolean {
     }
 
     const working = [...lines];
-    working[first] = reindent(lines[first], target);
+    const block = getBlockForLine(lines, first);
+    const parent = block ? findParentInBlock(lines, block, first) : null;
+    const num = parseNumberedItem(lines[first]);
+    let marker: string | undefined;
+    if (
+      num &&
+      parent?.item.kind === "numbered" &&
+      indentLen(parent.item.indent) === indentLen(target) &&
+      num.delimiter === parent.item.delimiter &&
+      num.numbers.length > parent.item.numbers.length
+    ) {
+      const pNums = parent.item.numbers;
+      marker = [...pNums.slice(0, -1), pNums[pNums.length - 1] + 1].join(".") + num.delimiter;
+    }
+    working[first] = reindent(lines[first], target, marker);
     // Rule 3: the items that followed it in its old group are now its children, numbered from 1.
     const extra = new Map<number, number>();
     for (const g of listGroups(working, [first])) if (g.parent === first) extra.set(g.first, 1);
@@ -451,6 +627,25 @@ export function shiftTabCommand(view: EditorView): boolean {
   const touched = Array.from({ length: last - first + 1 }, (_, k) => first + k);
   const oldFirsts = new Set(listGroups(lines, touched).map((g) => g.first));
   const working = shiftLines(lines, first, last, delta);
+  const block = getBlockForLine(lines, firstList);
+  const parent = block ? findParentInBlock(lines, block, firstList) : null;
+  const targetIndent = curIndent + delta;
+  if (parent?.item.kind === "numbered" && indentLen(parent.item.indent) === targetIndent) {
+    const pNums = parent.item.numbers;
+    let seq = pNums[pNums.length - 1];
+    for (let i = first; i <= last; i++) {
+      const num = parseNumberedItem(working[i]);
+      if (
+        num &&
+        indentLen(num.indent) === targetIndent &&
+        num.delimiter === parent.item.delimiter &&
+        num.numbers.length > pNums.length
+      ) {
+        seq += 1;
+        working[i] = reindent(working[i], num.indent, [...pNums.slice(0, -1), seq].join(".") + num.delimiter);
+      }
+    }
+  }
   const extra = new Map<number, number>();
   for (const g of listGroups(working, touched)) {
     // Rule 9: sub-items (or trailing siblings) left behind that now start a group start again at 1.
@@ -634,7 +829,7 @@ export const numberedListRenumberFilter = EditorState.transactionFilter.of((tr) 
   const [newMin, newMax] = span(touchedNew);
   const { offset: newOffset, lines: newLines } = readRunSlice(newDoc, newMin, newMax);
   const localNewTouched = touchedNew.map((t) => t - newOffset);
-  const newGroups = listGroups(newLines, localNewTouched);
+  const newGroups = listGroupSummaries(newLines, localNewTouched);
   if (newGroups.length === 0) return tr;
 
   const [oldMin, oldMax] = touchedOld.length > 0 ? span(touchedOld) : [0, 0];
@@ -642,7 +837,7 @@ export const numberedListRenumberFilter = EditorState.transactionFilter.of((tr) 
     touchedOld.length > 0 ? readRunSlice(oldDoc, oldMin, oldMax) : { offset: 0, lines: [] as string[] };
   const localOldTouched = touchedOld.map((t) => t - oldOffset);
 
-  const starts = matchGroupStarts(listGroups(oldLines, localOldTouched), newGroups, (oldLocalFirst) => {
+  const starts = matchGroupStarts(listGroupSummaries(oldLines, localOldTouched), newGroups, (oldLocalFirst) => {
     // Backwards: a change that starts at the list's first line (a line moved, the first item deleted) must not
     // carry the old first line past it, or the old start is lost.
     const mapped = tr.changes.mapPos(oldDoc.line(oldOffset + oldLocalFirst + 1).from, -1);
