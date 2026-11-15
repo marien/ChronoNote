@@ -271,5 +271,7 @@ describe("cross-view line model agreement", () => {
         expect(menuEnd).toEqual({ kind: "plain", symbol: null, hasActionPart: false });
       }
     }
-  });
+    // 360 cases take about 1.3 s alone; beside the whole parallel suite they can pass Vitest's 5 s default
+    // (a push check failed once on 2026-11-15 and passed on every rerun).
+  }, 20_000);
 });
