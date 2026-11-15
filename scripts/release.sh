@@ -17,6 +17,8 @@
 #                  dropped); accepted and ignored.
 #   --force-red    Release although GitHub's last Test run on main failed.
 #                  Say why in the release notes.
+#   --local-gates  On a beta, run the local gates even though GitHub's Test run
+#                  is green on this exact commit (see below).
 #   --beta         An early-updates build (F1): version X.Y.Z-N (N numeric, so
 #                  the early channel's version comparison orders it), published as a GitHub
 #                  pre-release, announced only on the early channel
@@ -36,10 +38,11 @@
 set -euo pipefail
 
 VERSION="${1:-}"; NOTES="${2:-}"
-SKIP_GATES=0; DRY=0; CHECKLIST=0; FORCE_RED=0; BETA=0
+SKIP_GATES=0; DRY=0; CHECKLIST=0; FORCE_RED=0; BETA=0; LOCAL_GATES=0; CI_GATES=0
 for a in "${@:3}"; do
   case "$a" in
     --skip-gates) SKIP_GATES=1 ;;
+    --local-gates) LOCAL_GATES=1 ;;
     --dry-run) DRY=1 ;;
     --checklist-done) CHECKLIST=1 ;;
     --force-red) FORCE_RED=1 ;;
@@ -131,6 +134,12 @@ if [[ $BUMPED == 0 ]]; then
     say "GitHub's last Test run on main: $CI_CONCLUSION. Fix it, or pass --force-red with a reason in the notes." >&2; exit 1
   fi
   ok "GitHub Test: $CI_CONCLUSION"
+  # §476: a beta whose exact commit GitHub's Test run passed needs no second local run of the same suite (the
+  # Windows view comes from the run before the PR). Stable releases keep the local gates as the last Windows check.
+  if [[ $BETA == 1 && $LOCAL_GATES == 0 && $SKIP_GATES == 0 && "$CI_SHA" == "$(git rev-parse HEAD)" \
+        && "$CI_CONCLUSION" == "success" ]]; then
+    SKIP_GATES=1; CI_GATES=1
+  fi
 fi
 
 # A minor release: the phone and the installed web app are checked right after
@@ -169,6 +178,8 @@ if [[ $SKIP_GATES == 0 ]]; then
   for f in check checke2e vitest cargotest playwright; do
     printf '%s    %-10s %s\n' "$(ts)" "$f" "$(grep -Eio '[0-9]+ passed|test result: ok\.[^;]*|COMPLETED.*' "$LOGS/$f.log" | tail -1)"
   done
+elif [[ $CI_GATES == 1 ]]; then
+  step "gates: GitHub's Test run passed on this commit (beta; --local-gates runs them here too)"
 else
   step "gates skipped (--skip-gates)"
 fi
@@ -272,8 +283,8 @@ fi
 # ------------------------------------------------------------------- publish
 step "publish"
 # The pre-push hook (.githooks) would run the checks again on the bump commit;
-# the gates above already did, unless they were skipped.
-if [[ $SKIP_GATES == 0 ]]; then
+# the gates above already did (or GitHub's Test run, for CI_GATES), unless they were skipped by hand.
+if [[ $SKIP_GATES == 0 || $CI_GATES == 1 ]]; then
   CHRONONOTE_SKIP_VERIFY=1 git push -q origin main --follow-tags
 else
   git push -q origin main --follow-tags
@@ -324,10 +335,12 @@ if [[ $BETA == 0 ]]; then
 LIVE="$(curl -fsSL "https://github.com/marien/ChronoNote/releases/latest/download/latest.json" | node -p "JSON.parse(require('fs').readFileSync(0,'utf8')).version")"
 [[ "$LIVE" == "$VERSION" ]] && ok "releases/latest serves $LIVE" || say "   WARNING: releases/latest serves $LIVE (expected $VERSION)"
 fi
-# The release commit gets its own Test run: wait for it, so a red build is
-# seen now and not at the next release.
+# The release commit gets its own Test run. §476: not waited for any more (it only adds the version bump and the
+# CHANGELOG statuses to a commit that already passed); its id is printed so it is checked afterwards, as after
+# every release.
 step "GitHub Test on the release commit"
 sleep 20
+RUN_ID=""
 for _ in 1 2 3 4 5 6; do # see the preflight: the list is sometimes empty
   RUN_ID="$(gh run list --workflow Test --branch main --limit 1 --json databaseId,headSha   -q ".[] | select(.headSha==\"$(git rev-parse HEAD)\") | .databaseId")"
   [[ -n "$RUN_ID" ]] && break
@@ -335,10 +348,8 @@ for _ in 1 2 3 4 5 6; do # see the preflight: the list is sometimes empty
 done
 if [[ -z "$RUN_ID" ]]; then
   say "   WARNING: no Test run found for $(git rev-parse --short HEAD); check GitHub Actions"
-elif gh run watch "$RUN_ID" --exit-status >/dev/null 2>&1; then
-  ok "Test run $RUN_ID green"
 else
-  say "   WARNING: Test run $RUN_ID FAILED: gh run view $RUN_ID --log-failed"
+  ok "Test run $RUN_ID started; check it afterwards: gh run watch $RUN_ID --exit-status"
 fi
 echo
 say "Released $TAG: https://github.com/marien/ChronoNote/releases/tag/$TAG"
