@@ -17,6 +17,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false # §453: no GitHub token left in .git/config for later steps
+          fetch-depth: 0
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           # jsdom (a test-only dependency, for the DOM-touching tests)
@@ -30,6 +31,11 @@ jobs:
       # §453: secret patterns in the checked-out files (the signing key's own content is only checked locally,
       # where the key files are).
       - run: node scripts/secret-scan.mjs --no-history
+      # T3: a pull request may not remove or switch off tests without saying so ("Tests removed: <why>" in its description).
+      - run: node scripts/test-guard.mjs --base "origin/${{ github.base_ref }}"
+        if: github.event_name == 'pull_request'
+        env:
+          TEST_GUARD_PR_BODY: ${{ github.event.pull_request.body }}
       - run: npm ci
       - run: npm run check
       - run: npm test
