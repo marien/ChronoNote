@@ -6,13 +6,9 @@
 //   --base   base ref to compare against via merge-base with HEAD (default: origin/main)
 //   --allow  reason allowing removed or switched-off tests
 
-// @ts-expect-error node:child_process has no type definitions in browser tsconfig
 import { spawnSync } from "node:child_process";
-// @ts-expect-error node:fs has no type definitions in browser tsconfig
 import fs from "node:fs";
-// @ts-expect-error node:path has no type definitions in browser tsconfig
 import path from "node:path";
-// @ts-expect-error node:url has no type definitions in browser tsconfig
 import { fileURLToPath } from "node:url";
 
 const REGEX_PRECEDING_KEYWORDS = new Set([
