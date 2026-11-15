@@ -45,7 +45,7 @@ test.describe("cross-tab search (Ctrl/Cmd+Shift+F)", () => {
     await search(page).locator(".modal-input").fill("the");
 
     const openCount = await rows(search(page)).count();
-    await search(page).getByRole("radio", { name: "All Files" }).click();
+    await search(page).getByRole("radio", { name: "All", exact: true }).click();
     await expect.poll(() => rows(search(page)).count()).toBeGreaterThanOrEqual(openCount);
   });
 
@@ -59,7 +59,7 @@ test.describe("cross-tab search (Ctrl/Cmd+Shift+F)", () => {
     });
     await editor(page).click();
     await page.keyboard.press("ControlOrMeta+Shift+F");
-    await search(page).getByRole("radio", { name: "All Files" }).click();
+    await search(page).getByRole("radio", { name: "All", exact: true }).click();
     const spinner = search(page).locator(".modal-spinner");
     await expect(spinner).toBeVisible();
     const box = (await spinner.boundingBox())!;
@@ -85,7 +85,7 @@ test.describe("cross-tab search (Ctrl/Cmd+Shift+F)", () => {
     await page.keyboard.press("ControlOrMeta+Shift+F");
     await expect(search(page)).toBeVisible();
 
-    await search(page).getByRole("radio", { name: "All Files" }).click();
+    await search(page).getByRole("radio", { name: "All", exact: true }).click();
     await expect(search(page).locator(".modal-spinner")).toBeVisible();
     await expect(search(page).locator(".modal-spinner")).toHaveCount(0, { timeout: 2000 });
 

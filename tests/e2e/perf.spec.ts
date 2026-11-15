@@ -90,7 +90,7 @@ test.describe("performance budgets at real sizes (2,000 notes, ~5,000-line note)
     const searchStart = performance.now();
     await page.keyboard.press("ControlOrMeta+Shift+F");
     await expect(searchModal).toBeVisible();
-    await searchModal.getByRole("radio", { name: "All Files" }).click();
+    await searchModal.getByRole("radio", { name: "All", exact: true }).click();
     await searchModal.locator(".modal-input").fill("Standup");
     await expect(searchModal.locator('.modal-item[role="option"]').first()).toBeVisible();
     const searchAllNotesMs = performance.now() - searchStart;
