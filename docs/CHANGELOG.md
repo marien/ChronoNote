@@ -503,3 +503,4 @@ line, and this index is regenerated with `node scripts/changelog-index.mjs`.
 - §481 Two settings and a session field for wave 2, and one copy helper
 - §482 The Actions pane header in two calm rows, the key hints behind `?`
 - §483 Copy a meeting as minutes
+- §484 No clipped text: a wider audit and three fixes

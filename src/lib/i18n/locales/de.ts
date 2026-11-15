@@ -249,7 +249,7 @@ export const de = {
   "peek.settings.header.always": () =>
     "Immer",
   "peek.settings.header.hover": () =>
-    "Beim Darüberfahren",
+    "Bei Hover",
   "peek.settings.header.never": () =>
     "Ausgeblendet",
   "peek.settings.hint": () =>
@@ -603,7 +603,7 @@ export const de = {
   "searchModal.footer.select": () => "Auswählen",
 
   "datePicker.ariaLabel": () => "Zu einem Datum springen",
-  "datePicker.jumpPlaceholder": () => "Zu einem Datum springen — heute, -2, 2026-09-05…",
+  "datePicker.jumpPlaceholder": () => "Gehe zu: heute, -2, 2026-09-05",
   "datePicker.jumpAriaLabel": () => "Durch Eingabe zu einem Datum springen",
   "datePicker.previousMonth": () => "Vorheriger Monat",
   "datePicker.nextMonth": () => "Nächster Monat",

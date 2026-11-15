@@ -609,7 +609,7 @@ export const it = {
   "searchModal.footer.select": () => "Seleziona",
 
   "datePicker.ariaLabel": () => "Vai alla data",
-  "datePicker.jumpPlaceholder": () => "Vai alla data — oggi, -2, 2026-09-05…",
+  "datePicker.jumpPlaceholder": () => "Vai a: oggi, -2, 2026-09-05",
   "datePicker.jumpAriaLabel": () => "Vai a una data digitando",
   "datePicker.previousMonth": () => "Mese precedente",
   "datePicker.nextMonth": () => "Mese successivo",

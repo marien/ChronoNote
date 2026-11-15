@@ -598,7 +598,7 @@ export const nl = {
   "searchModal.footer.select": () => "Selecteren",
 
   "datePicker.ariaLabel": () => "Naar datum springen",
-  "datePicker.jumpPlaceholder": () => "Naar datum springen — vandaag, -2, 2026-09-05…",
+  "datePicker.jumpPlaceholder": () => "Ga naar: vandaag, -2, 2026-09-05",
   "datePicker.jumpAriaLabel": () => "Spring naar een datum door te typen",
   "datePicker.previousMonth": () => "Vorige maand",
   "datePicker.nextMonth": () => "Volgende maand",

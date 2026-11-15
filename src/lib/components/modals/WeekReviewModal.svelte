@@ -368,15 +368,14 @@
 </script>
 
 {#snippet modalContent()}
+  {@const weekTitle = $t("weekReview.header.weekTitle", {
+    week: $weekReviewWeek,
+    range: formatWeekRange($locale, reviewModel.mondayISO, reviewModel.sundayISO),
+  })}
   <div class="modal-title week-review-header">
     <div class="week-review-title-group">
       <Icon name="actions" size={16} />
-      <span class="week-title">
-        {$t("weekReview.header.weekTitle", {
-          week: $weekReviewWeek,
-          range: formatWeekRange($locale, reviewModel.mondayISO, reviewModel.sundayISO),
-        })}
-      </span>
+      <span class="week-title" title={weekTitle}>{weekTitle}</span>
     </div>
     <div class="week-nav-actions">
       <!-- Arrows only: in a narrow docked pane the labels pushed the week number out of the title. -->
@@ -646,6 +645,10 @@
 }
 .week-title {
   margin: 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-size: 14px;
   font-weight: 600;
   font-family: var(--font-ui);
