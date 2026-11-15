@@ -38,13 +38,13 @@ test.describe("action drawer (Ctrl/Cmd+Shift+A)", () => {
     const d = await openViaShortcut(page, "ControlOrMeta+Shift+A", "actions");
 
     // The list is virtualized (only ~10 rows in the DOM at once) — read the
-    // "N open / M listed" counter rather than counting elements.
+    // "N open · M" counter rather than counting elements.
     const listed = async () => {
       const t = (await d.locator(".modal-counter").textContent()) ?? "";
-      return Number(t.match(/\/\s*(\d+)\s*listed/)?.[1] ?? 0);
+      return Number(t.match(/·\s*(\d+)/)?.[1] ?? 0);
     };
     const openScope = await listed();
-    await d.getByRole("radio", { name: "All Files" }).click();
+    await d.getByRole("radio", { name: "All" }).click();
     await expect.poll(listed).toBeGreaterThan(openScope);
   });
 
@@ -58,7 +58,7 @@ test.describe("action drawer (Ctrl/Cmd+Shift+A)", () => {
     const d = await openViaShortcut(page, "ControlOrMeta+Shift+A", "actions");
     await expect(d).toContainText("an action in an open tab");
 
-    await d.getByRole("radio", { name: "Other Notes" }).click();
+    await d.getByRole("radio", { name: "Other" }).click();
     await expect(d).toContainText("an action in a closed note");
     await expect(d).not.toContainText("an action in an open tab");
   });
@@ -73,7 +73,7 @@ test.describe("action drawer (Ctrl/Cmd+Shift+A)", () => {
     });
     const d = await openViaShortcut(page, "ControlOrMeta+Shift+A", "actions");
 
-    await d.getByRole("radio", { name: "All Files" }).click();
+    await d.getByRole("radio", { name: "All" }).click();
     await expect(d.locator(".modal-spinner")).toBeVisible();
     await expect(d.locator(".modal-spinner")).toHaveCount(0, { timeout: 2000 });
     await expect(d).toContainText("an older action");

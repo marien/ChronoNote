@@ -19,11 +19,11 @@ const detailLine = (page: Page, text: string) => history(page).locator(".history
 const rows = (page: Page): Locator => drawer(page).locator('.modal-item[role="option"]');
 const filterInput = (page: Page): Locator => drawer(page).locator(".modal-input");
 const dueToggleLabel = (page: Page): Locator =>
-  drawer(page).locator(".toggle-switch").filter({ hasText: "By due date" });
-const dueToggleInput = (page: Page): Locator => dueToggleLabel(page).locator("input");
+  drawer(page).locator(".filter-chip").filter({ hasText: /by due date/i });
+const dueToggleInput = (page: Page): Locator => dueToggleLabel(page);
 const onlyOpenToggleLabel = (page: Page): Locator =>
-  drawer(page).locator(".toggle-switch").filter({ hasText: "Only Open" });
-const onlyOpenToggleInput = (page: Page): Locator => onlyOpenToggleLabel(page).locator("input");
+  drawer(page).locator(".filter-chip").filter({ hasText: /only open/i });
+const onlyOpenToggleInput = (page: Page): Locator => onlyOpenToggleLabel(page);
 
 test.describe("due dates slice 3 independent: overdue count and due view", () => {
   test("status bar overdue count covers all notes, scratchpads, live tab edits, multiple parts per line, and updates reactively", async ({
@@ -316,7 +316,7 @@ test.describe("due dates slice 3 independent: overdue count and due view", () =>
 
     await page.locator("#stat-due").click();
     await expect(drawer(page)).toBeVisible();
-    await expect(dueToggleInput(page)).toBeChecked();
+    await expect(dueToggleInput(page)).toHaveAttribute("aria-pressed", "true");
 
     const groupHeadersMonday = drawer(page).locator(".modal-group-header:not(.modal-group-header-sticky)");
     await expect(groupHeadersMonday.nth(0)).toContainText("Overdue");
@@ -382,7 +382,7 @@ test.describe("due dates slice 3 independent: overdue count and due view", () =>
     // Open drawer via status bar overdue button
     await page.locator("#stat-due").click();
     await expect(drawer(page)).toBeVisible();
-    await expect(dueToggleInput(page)).toBeChecked();
+    await expect(dueToggleInput(page)).toHaveAttribute("aria-pressed", "true");
 
     // 1. Undated action is not in due view
     await expect(drawer(page)).not.toContainText("gamma undated action");
@@ -408,15 +408,15 @@ test.describe("due dates slice 3 independent: overdue count and due view", () =>
     // Clear filter
     await filterInput(page).fill("");
 
-    // 5. Uncheck "Only Open" toggle while in due view
-    await expect(onlyOpenToggleInput(page)).toBeChecked();
+    // 5. Uncheck "Only open" chip while in due view
+    await expect(onlyOpenToggleInput(page)).toHaveAttribute("aria-pressed", "true");
     await onlyOpenToggleLabel(page).click();
-    await expect(onlyOpenToggleInput(page)).not.toBeChecked();
+    await expect(onlyOpenToggleInput(page)).toHaveAttribute("aria-pressed", "false");
 
     // 6. Switching due view off restores normal per-note grouping and preserves 'Only open' (unchecked)
     await dueToggleLabel(page).click();
-    await expect(dueToggleInput(page)).not.toBeChecked();
-    await expect(onlyOpenToggleInput(page)).not.toBeChecked();
+    await expect(dueToggleInput(page)).toHaveAttribute("aria-pressed", "false");
+    await expect(onlyOpenToggleInput(page)).toHaveAttribute("aria-pressed", "false");
 
     // With Only Open off in normal view, the completed action and undated action appear!
     await expect(drawer(page)).toContainText("done action");
@@ -424,15 +424,15 @@ test.describe("due dates slice 3 independent: overdue count and due view", () =>
 
     // Check Only Open again
     await onlyOpenToggleLabel(page).click();
-    await expect(onlyOpenToggleInput(page)).toBeChecked();
+    await expect(onlyOpenToggleInput(page)).toHaveAttribute("aria-pressed", "true");
     await expect(drawer(page)).not.toContainText("done action");
 
     // Switch due view on and off again: Only Open remains checked
     await dueToggleLabel(page).click();
-    await expect(dueToggleInput(page)).toBeChecked();
+    await expect(dueToggleInput(page)).toHaveAttribute("aria-pressed", "true");
     await dueToggleLabel(page).click();
-    await expect(dueToggleInput(page)).not.toBeChecked();
-    await expect(onlyOpenToggleInput(page)).toBeChecked();
+    await expect(dueToggleInput(page)).toHaveAttribute("aria-pressed", "false");
+    await expect(onlyOpenToggleInput(page)).toHaveAttribute("aria-pressed", "true");
   });
 
   test("dialog mode (<1000px): Enter jumps and closes modal; Ctrl+Space closes row and it leaves the view while modal stays open", async ({
@@ -558,7 +558,7 @@ test.describe("due dates slice 3 independent: overdue count and due view", () =>
 
     // Toggle "By due date" ON
     await dueToggleLabel(page).click();
-    await expect(dueToggleInput(page)).toBeChecked();
+    await expect(dueToggleInput(page)).toHaveAttribute("aria-pressed", "true");
 
     // Empty state for due view without filter
     const emptyState = drawer(page).locator(".empty-state");

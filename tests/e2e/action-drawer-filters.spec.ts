@@ -65,12 +65,11 @@ test.describe("Action drawer filters & chips", () => {
 
     const d = await openViaShortcut(page, "ControlOrMeta+Shift+A", "actions");
     const input = filterInput(d);
-    const onlyOpenToggle = d.locator(".toggle-switch").filter({ hasText: /only open/i });
-    const onlyOpenCheckbox = onlyOpenToggle.locator('input[type="checkbox"]');
+    const onlyOpenChip = d.locator(".filter-chip").filter({ hasText: /only open/i });
 
     // Only open is on by default and enabled
-    await expect(onlyOpenCheckbox).toBeChecked();
-    await expect(onlyOpenCheckbox).toBeEnabled();
+    await expect(onlyOpenChip).toHaveAttribute("aria-pressed", "true");
+    await expect(onlyOpenChip).toBeEnabled();
 
     // Type is:done
     await input.fill("is:done");
@@ -78,19 +77,19 @@ test.describe("Action drawer filters & chips", () => {
     await expect(chips(d).first()).toContainText("is:done");
 
     // Toggle is disabled with tooltip "Set by is: in the filter"
-    await expect(onlyOpenCheckbox).toBeDisabled();
-    await expect(onlyOpenToggle).toHaveAttribute("title", "Set by is: in the filter");
-    // Stored value remains checked
-    await expect(onlyOpenCheckbox).toBeChecked();
+    await expect(onlyOpenChip).toBeDisabled();
+    await expect(onlyOpenChip).toHaveAttribute("title", "Set by is: in the filter");
+    // Stored value remains pressed
+    await expect(onlyOpenChip).toHaveAttribute("aria-pressed", "true");
 
     // Lists the done action
     await expect(rows(d)).toHaveCount(1);
     await expect(rows(d).first()).toContainText("Settle office invoice");
 
-    // Removing is:done restores Only open toggle
+    // Removing is:done restores Only open chip
     await chips(d).first().locator(".chip-remove-btn").click();
-    await expect(onlyOpenCheckbox).toBeEnabled();
-    await expect(onlyOpenCheckbox).toBeChecked();
+    await expect(onlyOpenChip).toBeEnabled();
+    await expect(onlyOpenChip).toHaveAttribute("aria-pressed", "true");
     await expect(rows(d)).toHaveCount(3);
   });
 
