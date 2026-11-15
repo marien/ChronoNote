@@ -516,8 +516,9 @@ kbd {
     display: flex;
     width: 100%;
   }
+  /* U2: shares follow each label's width (not equal thirds), so "Reading column" fits beside "Full" on a phone. */
   .s-control .segmented:not(.segmented-grid) .segmented-option {
-    flex: 1 1 0;
+    flex: 1 1 auto;
     min-width: 0;
     white-space: normal;
     overflow-wrap: anywhere;
