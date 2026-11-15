@@ -1068,4 +1068,10 @@ export const de = {
   "minutes.toast.empty": () => "Nichts in dieser Besprechung für das Protokoll.",
   "minutes.toast.noSection": () => "Setze den Cursor zuerst in eine Besprechung.",
   "minutes.toast.failed": () => "Kopieren fehlgeschlagen.",
+  "listCopy.button": () => "Liste kopieren",
+  "listCopy.title": () => "Aktionen",
+  "listCopy.onlyOpen": () => "nur offene",
+  "listCopy.byDue": () => "nach Fälligkeit",
+  "listCopy.toast.copied": ({ count }) => `Liste kopiert (${count} Aktionen).`,
+  "listCopy.toast.failed": () => "Kopieren fehlgeschlagen.",
 } satisfies Dictionary;

@@ -1084,4 +1084,10 @@ export const fr = {
   "minutes.toast.empty": () => "Rien dans cette réunion à mettre en compte rendu.",
   "minutes.toast.noSection": () => "Placez d'abord le curseur dans une réunion.",
   "minutes.toast.failed": () => "Impossible de copier.",
+  "listCopy.button": () => "Copier la liste",
+  "listCopy.title": () => "Actions",
+  "listCopy.onlyOpen": () => "ouvertes uniquement",
+  "listCopy.byDue": () => "par échéance",
+  "listCopy.toast.copied": ({ count }) => `Liste copiée (${count} actions).`,
+  "listCopy.toast.failed": () => "Impossible de copier.",
 } satisfies Dictionary;

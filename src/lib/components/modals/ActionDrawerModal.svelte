@@ -51,7 +51,9 @@
     wrapIndex,
     type PlacedRow,
   } from "./virtualList";
-  import { actionDrawerCollapsed, isMobile, editorApi } from "../../stores";
+  import { actionDrawerCollapsed, isMobile, editorApi, showToast } from "../../stores";
+  import { copyRich } from "../../clipboardWrite";
+  import { buildListCopy, cleanCopyText, formatListCopyToday, type CopyRow } from "../../listCopy";
 
   interface Props {
     docked?: boolean;
@@ -245,6 +247,38 @@
     if (docked) {
       editorApi?.focus();
     }
+  }
+
+  async function copyList() {
+    if (flatList.length === 0) return;
+    const copyRows: CopyRow[] = [];
+    for (const group of groups) {
+      const dateLabel = $actionDrawerDueView ? group.label : $noteDateLabel(group.label);
+      for (const r of group.rows) {
+        const item = r.item;
+        copyRows.push({
+          dateISO: noteISODate(item.filename),
+          dateLabel,
+          section: item.header,
+          depth: r.depth,
+          state: nodeState(item),
+          text: cleanCopyText(item, $locale),
+          step: item.kind === "step" ? item.stepIndex : undefined,
+          progress: r.progress,
+          folded: r.hasChildren && !r.expanded,
+        });
+      }
+    }
+    const headerParts = [
+      $t("listCopy.title"),
+      filter.trim(),
+      !hasIsFilter && $actionDrawerShowOnlyOpen ? $t("listCopy.onlyOpen") : "",
+      $actionDrawerDueView ? $t("listCopy.byDue") : "",
+      formatListCopyToday($currentDateISO, $locale),
+    ].filter(Boolean);
+    const { html, plain } = buildListCopy(copyRows, headerParts.join(" · "));
+    const ok = await copyRich(html, plain);
+    showToast(ok ? $t("listCopy.toast.copied", { count: copyRows.length }) : $t("listCopy.toast.failed"));
   }
 
   async function setScope(next: "open" | "other" | "all", force = false) {
@@ -676,7 +710,7 @@
 </script>
 
 {#snippet modalContent()}
-  <div class="modal-input-wrap actions-header-row-1">
+  <div class="modal-input-wrap actions-header-row-1" class:is-narrow={isNarrow}>
     <input
       class="modal-input"
       aria-label={$t("actionDrawer.filter.ariaLabel")}
@@ -687,7 +721,16 @@
       bind:this={inputEl}
       autocomplete="off"
     />
-    <!-- F8: copy button goes here -->
+    <button
+      type="button"
+      class="icon-btn modal-copy-btn"
+      aria-label={$t("listCopy.button")}
+      title={$t("listCopy.button")}
+      disabled={flatList.length === 0}
+      onclick={() => void copyList()}
+    >
+      <Icon name="copy" size={14} />
+    </button>
     <HelpPopoverButton
       title={$t("actionDrawer.help.buttonTitle")}
       hints={[

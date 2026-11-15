@@ -1077,4 +1077,10 @@ export const es = {
   "minutes.toast.empty": () => "No hay nada en esta reunión para poner en el acta.",
   "minutes.toast.noSection": () => "Coloque primero el cursor en una reunión.",
   "minutes.toast.failed": () => "No se pudo copiar.",
+  "listCopy.button": () => "Copiar lista",
+  "listCopy.title": () => "Acciones",
+  "listCopy.onlyOpen": () => "solo pendientes",
+  "listCopy.byDue": () => "por fecha límite",
+  "listCopy.toast.copied": ({ count }) => `Lista copiada (${count} acciones).`,
+  "listCopy.toast.failed": () => "No se pudo copiar.",
 } satisfies Dictionary;

@@ -9,6 +9,7 @@
     weekReviewYear,
     weekReviewWeek,
     weekReviewShowDone,
+    showToast,
   } from "../../stores";
   import { focusTrap } from "../../actions/focusTrap";
   import { sheetSwipe } from "../../actions/sheetSwipe";
@@ -19,7 +20,9 @@
     isoYearAndWeek,
     type WeekReviewItem,
   } from "../../weekReview";
-  import { noteDateLabel } from "../../noteDateLabel";
+  import { noteDateLabel, noteISODate } from "../../noteDateLabel";
+  import { copyRich } from "../../clipboardWrite";
+  import { buildListCopy, cleanCopyText, formatListCopyToday, type CopyRow } from "../../listCopy";
   import { addDaysISO, isoWeekToMonday, todayISO, parseISODateLocal } from "../../date";
   import { refreshAllNotesCache } from "../../persistence";
   import { drawerTreeGuides, type TreeGuide, nodeTextRange } from "../../actionDrawerRows";
@@ -77,6 +80,45 @@
     if (docked) {
       editorApi?.focus();
     }
+  }
+
+  async function copyList() {
+    if (flatList.length === 0) return;
+    const copyRows: CopyRow[] = [];
+    let rowDateISO: string | null = null;
+    let currentDateLabel = "";
+    let currentSection = "";
+
+    for (const row of rows) {
+      if (row.type === "dayHeader") {
+        rowDateISO = row.date;
+        currentDateLabel = $noteDateLabel(row.date);
+        currentSection = "";
+      } else if (row.type === "sectionHeader") {
+        currentSection = row.label;
+      } else if (row.type === "item") {
+        const it = row.item;
+        copyRows.push({
+          dateISO: rowDateISO ?? noteISODate(it.filename),
+          dateLabel: currentDateLabel,
+          section: currentSection,
+          depth: row.depth,
+          state: it.state,
+          text: cleanCopyText(it, $locale),
+          step: it.itemKind === "step" ? it.stepIndex : undefined,
+          folded: false,
+        });
+      }
+    }
+
+    const weekTitle = $t("weekReview.header.weekTitle", {
+      week: $weekReviewWeek,
+      range: formatWeekRange($locale, reviewModel.mondayISO, reviewModel.sundayISO),
+    });
+    const headerLine = [weekTitle, formatListCopyToday($currentDateISO, $locale)].join(" · ");
+    const { html, plain } = buildListCopy(copyRows, headerLine);
+    const ok = await copyRich(html, plain);
+    showToast(ok ? $t("listCopy.toast.copied", { count: copyRows.length }) : $t("listCopy.toast.failed"));
   }
 
   function handleFocusIn(e: FocusEvent) {
@@ -397,7 +439,16 @@
       >
         <Icon name="chevron-right" size={12} />
       </button>
-      <!-- F8: copy button goes here -->
+      <button
+        type="button"
+        class="icon-btn modal-copy-btn"
+        aria-label={$t("listCopy.button")}
+        title={$t("listCopy.button")}
+        disabled={flatList.length === 0}
+        onclick={() => void copyList()}
+      >
+        <Icon name="copy" size={14} />
+      </button>
       <HelpPopoverButton
         title={$t("weekReview.help.buttonTitle")}
         hints={[

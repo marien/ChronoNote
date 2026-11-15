@@ -141,7 +141,8 @@
   background: var(--surface-hover);
   color: var(--text);
 }
-.modal-help-btn {
+.modal-help-btn,
+.modal-copy-btn {
   width: 26px;
   height: 26px;
   display: inline-flex;
@@ -156,17 +157,28 @@
   flex-shrink: 0;
   transition: background var(--motion-normal) ease, color var(--motion-normal) ease;
 }
-.modal-help-btn:hover {
+.modal-help-btn:hover:not(:disabled),
+.modal-copy-btn:hover:not(:disabled) {
   background: var(--surface-hover);
   color: var(--text);
 }
+.modal-copy-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.modal-copy-btn:disabled:hover {
+  background: transparent;
+  color: var(--muted);
+}
 @media (pointer: coarse) {
   .modal-close-btn,
-  .modal-help-btn {
+  .modal-help-btn,
+  .modal-copy-btn {
     position: relative;
   }
   .modal-close-btn::after,
-  .modal-help-btn::after {
+  .modal-help-btn::after,
+  .modal-copy-btn::after {
     content: "";
     position: absolute;
     top: 50%;
@@ -275,9 +287,23 @@ textarea.modal-input.import-textarea {
   padding: 8px 10px;
   gap: 4px;
 }
+.actions-header-row-1.is-narrow {
+  padding: 8px 6px;
+  gap: 2px;
+}
 .actions-header-row-1 .modal-input {
   flex: 1 1 0;
   min-width: 0;
+}
+.actions-header-row-1.is-narrow .modal-input {
+  font-size: 12px;
+  padding: 0;
+}
+.actions-header-row-1.is-narrow .modal-copy-btn,
+.actions-header-row-1.is-narrow .modal-help-btn,
+.actions-header-row-1.is-narrow .modal-close-btn {
+  width: 22px;
+  height: 22px;
 }
 .actions-header-row-1 .modal-close-btn {
   margin-left: 0;

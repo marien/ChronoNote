@@ -1063,4 +1063,10 @@ export const nl = {
   "minutes.toast.empty": () => "Niets in dit overleg om in notulen te zetten.",
   "minutes.toast.noSection": () => "Zet de cursor eerst in een overleg.",
   "minutes.toast.failed": () => "Kopiëren is niet gelukt.",
+  "listCopy.button": () => "Kopieer lijst",
+  "listCopy.title": () => "Acties",
+  "listCopy.onlyOpen": () => "alleen open",
+  "listCopy.byDue": () => "op deadline",
+  "listCopy.toast.copied": ({ count }) => `Lijst gekopieerd (${count} acties).`,
+  "listCopy.toast.failed": () => "Kopiëren is niet gelukt.",
 } satisfies Dictionary;

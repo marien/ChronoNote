@@ -129,6 +129,7 @@ const SAMPLE_PARAMS: Partial<Record<TranslationKey, unknown>> = {
   "toast.calendarSync.autoAddedMore": { title: "Design review", count: 2 },
   "toast.calendarSync.autoRemoved": { title: "1:1 Dana" },
   "toast.calendarSync.autoRemovedMore": { title: "1:1 Dana", count: 2 },
+  "listCopy.toast.copied": { count: 3 },
 };
 
 /** Defense in depth beyond the `satisfies Dictionary` compile-time check

@@ -1111,4 +1111,10 @@ export const pl = {
   "minutes.toast.empty": () => "Brak treści w tym spotkaniu do protokołu.",
   "minutes.toast.noSection": () => "Umieść najpierw kursor w spotkaniu.",
   "minutes.toast.failed": () => "Nie udało się skopiować.",
+  "listCopy.button": () => "Kopiuj listę",
+  "listCopy.title": () => "Zadania",
+  "listCopy.onlyOpen": () => "tylko otwarte",
+  "listCopy.byDue": () => "według terminu",
+  "listCopy.toast.copied": ({ count }) => `Skopiowano listę (${count} zadań).`,
+  "listCopy.toast.failed": () => "Nie udało się skopiować.",
 } satisfies Dictionary;

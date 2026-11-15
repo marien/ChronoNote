@@ -697,7 +697,9 @@ reachable from the top bar, a shortcut, or the command palette:
   note (§426): the topic pill, the due date's flag and outline, `@name`. The row's source (section; note
   date and section in the due view) shows right-aligned only on the selected
   row, and not at all when it does not fit next to the action; the tooltip
-  carries it.
+  carries it. The Copy button in the header copies the shown list (rich HTML
+  and plain text, grouped by day and meeting, with folded counts and cleaned
+  due dates) to the clipboard.
 - **Section History** (`Ctrl/Cmd+Shift+H`) — on a window 1000px or wider
   (not a phone, Zen or Peek) a pane docked right of the note (§343): the
   note stays editable and the app's shortcuts keep working in it, `F6`
@@ -794,7 +796,9 @@ reachable from the top bar, a shortcut, or the command palette:
   the opening week, `Up`/`Down`, `Enter` jumps (a click on a row jumps
   too), `Ctrl+Space` and `Shift+Enter` as in the Action Drawer. Docked
   right of the note on a window 1000px or wider (Actions' pane width), a
-  dialog otherwise. Reads only; nothing is written by opening it.
+  dialog otherwise. Reads only; nothing is written by opening it. The Copy
+  button in the header copies the shown week's actions to the clipboard in the
+  same rich and plain list format.
 - **Cross-Tab Search** (`Ctrl/Cmd+Shift+F`) — full-text search across
   either the open tabs or every file, same open-tabs/all-files toggle as
   the Action Drawer, results glyph-rendered like the drawer's own rows,
