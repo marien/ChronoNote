@@ -97,7 +97,8 @@ const rawNoteFileArb = (includeNumbered: boolean) =>
 
 const typedCharArb = fc.constantFrom("a", "Z", "5", " ", "\t", "!", "\u0301", "\uD83D\uDE00", "\uD83D\uDCC5");
 
-describe("round trip of file bytes properties (fast-check)", () => {
+// 30 s: fine alone, past the 5 s default beside a browser suite and coder runs (2026-11-15).
+describe("round trip of file bytes properties (fast-check)", { timeout: 30_000 }, () => {
   it("normalisation matches storage.rs rules across MockBackend (150 runs)", async () => {
     await fc.assert(
       fc.asyncProperty(rawNoteFileArb(true), async (raw) => {

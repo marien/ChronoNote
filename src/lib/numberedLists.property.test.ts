@@ -422,7 +422,8 @@ function lineStartOffset(lines: string[], lineIdx: number): number {
   return offset;
 }
 
-describe("Numbered list properties (docs/spec.md §2.4)", () => {
+// 30 s: about 2 s alone, but 5-11 s beside a browser suite and coder runs (2026-11-15).
+describe("Numbered list properties (docs/spec.md §2.4)", { timeout: 30_000 }, () => {
   it("keeps numbering consecutive, dotted prefixes matched, and text intact on Tab / Shift-Tab / Enter / Backspace / deleteLine / moveLine", () => {
     fc.assert(
       fc.property(
