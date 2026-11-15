@@ -858,4 +858,74 @@ describe("editing table: Enter & Shift-Enter", () => {
       expect(ed.text()).toBe(after);
     });
   }
+
+  // Flat numbered outlines: Rules 1–5, 17, 18
+  runKeyTable([
+    {
+      label: "Flat Rule 1: Enter on flat sub-item continues at same indent and level",
+      input: "1. a\n1.1. b|",
+      key: "Enter",
+      expected: "1. a\n1.1. b\n1.2. |",
+    },
+    {
+      label: "Flat Rule 1: Enter on three-level flat sub-item continues",
+      input: "1. a\n1.1. b\n1.1.1. c|",
+      key: "Enter",
+      expected: "1. a\n1.1. b\n1.1.1. c\n1.1.2. |",
+    },
+    {
+      label: "Flat Rule 2: Enter on plain item in flat list continues at plain level",
+      input: "1. a\n1.1. b\n1.2. c\n2. e|",
+      key: "Enter",
+      expected: "1. a\n1.1. b\n1.2. c\n2. e\n3. |",
+    },
+    {
+      label: "Flat Rule 3: Enter on empty flat sub-item promotes and shifts later siblings under it",
+      input: "1. a\n1.1. b\n1.2. |\n1.3. d\n2. e",
+      key: "Enter",
+      expected: "1. a\n1.1. b\n2. |\n2.1. d\n3. e",
+    },
+    {
+      label: "Flat Rule 3: Enter on empty 3-level flat sub-item promotes to 2-level",
+      input: "1. a\n1.1. b\n1.1.1. c\n1.1.2. |",
+      key: "Enter",
+      expected: "1. a\n1.1. b\n1.1.1. c\n1.2. |",
+    },
+    {
+      label: "Flat Rule 3: Enter on empty top-level item in flat list exits the list",
+      input: "1. a\n1.1. b\n2. |",
+      key: "Enter",
+      expected: "1. a\n1.1. b\n|",
+    },
+    {
+      label: "Flat Rule 4: Enter at end of parent adopts direct flat sub-items into new sibling",
+      input: "1. a|\n1.1. b\n1.2. c\n2. e",
+      key: "Enter",
+      expected: "1. a\n2. |\n2.1. b\n2.2. c\n3. e",
+    },
+    {
+      label: "Flat Rule 4: Enter at end of 2-level flat parent adopts its 3-level children",
+      input: "1. a\n1.1. b|\n1.1.1. x\n1.2. c\n2. e",
+      key: "Enter",
+      expected: "1. a\n1.1. b\n1.2. |\n1.2.1. x\n1.3. c\n2. e",
+    },
+    {
+      label: "Flat Rule 5: Enter mid-text splits flat sub-item and renumbers following siblings",
+      input: "1. a\n1.1. ab|cd\n1.2. e",
+      key: "Enter",
+      expected: "1. a\n1.1. ab\n1.2. |cd\n1.3. e",
+    },
+    {
+      label: "Flat Rule 17: Enter with lead '# ' continues lead and flat number",
+      input: "# 1. a\n# 1.1. b|",
+      key: "Enter",
+      expected: "# 1. a\n# 1.1. b\n# 1.2. |",
+    },
+    {
+      label: "Flat Rule 18: Enter on ) flat sub-item continues with )",
+      input: "1) a\n1.1) b|",
+      key: "Enter",
+      expected: "1) a\n1.1) b\n1.2) |",
+    },
+  ]);
 });

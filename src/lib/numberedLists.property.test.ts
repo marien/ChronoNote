@@ -207,21 +207,24 @@ function assertSpecInvariants(
   const blocks = blankSplitBlocks.flatMap(splitProseBlocks);
 
   for (const block of blocks) {
-    // Track active parent chain and sibling groups by indent column.
-    // A line at indent C closes all numbered groups/parents strictly deeper than C.
-    // Bullets and deeper continuation lines never clear sibling groups at <= bullet.indentCols
-    // (spec: "deeper sub-items, continuation lines, and bullets never stop sibling renumbering").
-    const groupLastByIndent = new Map<number, SpecNumberedItem>();
+    // Track active parent chain and sibling groups by (parentLine, indentCols, delimiter, parts-unless-indented-numbered-parent).
+    const groupLastByKey = new Map<string, SpecNumberedItem>();
+    const chains = new Map<number, Map<"." | ")", SpecNumberedItem[]>>();
     const parentStack: (SpecNumberedItem | SpecBulletItem)[] = [];
+
+    const clearStrictlyDeeper = (indentCols: number) => {
+      for (const ind of [...chains.keys()]) {
+        if (ind > indentCols) chains.delete(ind);
+      }
+      for (const key of [...groupLastByKey.keys()]) {
+        const prev = groupLastByKey.get(key)!;
+        if (prev.indentCols > indentCols) groupLastByKey.delete(key);
+      }
+    };
 
     for (const line of block) {
       if (line.kind === "bullet") {
-        // Bullets never stop shallower or same-indent numbered sibling groups per spec 2.4;
-        // clear only numbered groups strictly deeper than the bullet, and push bullet onto parentStack
-        // so items nested under a bullet know their immediate parent is a bullet, not a shallower number.
-        for (const ind of [...groupLastByIndent.keys()]) {
-          if (ind > line.indentCols) groupLastByIndent.delete(ind);
-        }
+        clearStrictlyDeeper(line.indentCols);
         while (parentStack.length > 0 && parentStack[parentStack.length - 1].indentCols >= line.indentCols) {
           parentStack.pop();
         }
@@ -230,23 +233,43 @@ function assertSpecInvariants(
       }
 
       if (line.kind !== "numbered") {
-        // Deeper continuation line inside a block: close only strictly deeper groups.
-        for (const ind of [...groupLastByIndent.keys()]) {
-          if (ind > line.indentCols) groupLastByIndent.delete(ind);
-        }
+        clearStrictlyDeeper(line.indentCols);
         continue;
       }
 
-      // Numbered item: close any groups strictly deeper than this item's indent.
-      for (const ind of [...groupLastByIndent.keys()]) {
-        if (ind > line.indentCols) groupLastByIndent.delete(ind);
-      }
+      clearStrictlyDeeper(line.indentCols);
       while (parentStack.length > 0 && parentStack[parentStack.length - 1].indentCols >= line.indentCols) {
         parentStack.pop();
       }
+      const shallowerParent = parentStack.length > 0 ? parentStack[parentStack.length - 1] : null;
+      parentStack.push(line);
 
-      const prevSibling = groupLastByIndent.get(line.indentCols);
-      const own = line.numbers[line.numbers.length - 1];
+      const parts = line.numbers.length;
+      let byDelim = chains.get(line.indentCols);
+      if (!byDelim) {
+        byDelim = new Map();
+        chains.set(line.indentCols, byDelim);
+      }
+      let chain = byDelim.get(line.delim);
+      if (!chain) {
+        chain = [];
+        byDelim.set(line.delim, chain);
+      }
+      while (chain.length > 0 && chain[chain.length - 1].numbers.length >= parts) chain.pop();
+      const flatParent = chain.length > 0 ? chain[chain.length - 1] : null;
+      chain.push(line);
+
+      const parent = flatParent ?? shallowerParent;
+      const parentLineIdx = parent ? parent.lineIndex : null;
+      const numberedIndentedParent = flatParent === null && shallowerParent !== null && shallowerParent.kind === "numbered";
+      const groupKey = numberedIndentedParent
+        ? `${parentLineIdx}:${line.indentCols}:${line.delim}`
+        : flatParent !== null
+          ? `${parentLineIdx}:${line.indentCols}:${line.delim}:flat`
+          : `${parentLineIdx}:${line.indentCols}:${line.delim}:${parts}`;
+
+      const prevSibling = groupLastByKey.get(groupKey);
+      const own = line.numbers[parts - 1];
 
       if (prevSibling) {
         const prevOwn = prevSibling.numbers[prevSibling.numbers.length - 1];
@@ -257,8 +280,7 @@ function assertSpecInvariants(
       }
 
       // Check dotted prefix matches nearest parent when that parent is numbered.
-      const parent = parentStack.length > 0 ? parentStack[parentStack.length - 1] : null;
-      if (line.numbers.length > 1 && parent && parent.kind === "numbered") {
+      if (parts > 1 && parent && parent.kind === "numbered") {
         const prefix = line.numbers.slice(0, -1);
         expect(
           prefix,
@@ -266,8 +288,7 @@ function assertSpecInvariants(
         ).toEqual(parent.numbers);
       }
 
-      groupLastByIndent.set(line.indentCols, line);
-      parentStack.push(line);
+      groupLastByKey.set(groupKey, line);
     }
   }
 }
@@ -293,6 +314,7 @@ const generatedListDocArb: fc.Arbitrary<GeneratedDoc> = fc
     useTabs: fc.boolean(),
     delim: fc.constantFrom<"." | ")">(".", ")"),
     dottedChildren: fc.boolean(),
+    flatStyle: fc.boolean(),
     topStart: fc.constantFrom(1, 4, 8),
     hasSplitBlank: fc.boolean(),
     secondStart: fc.constantFrom(1, 3),
@@ -339,6 +361,9 @@ const generatedListDocArb: fc.Arbitrary<GeneratedDoc> = fc
 
     const baseIndent = cfg.useTabs ? "\t" : "";
     const stepIndent = cfg.useTabs ? "\t" : "  ";
+    const subIndent = cfg.flatStyle ? baseIndent : baseIndent + stepIndent;
+    const grandIndent = cfg.flatStyle ? baseIndent : baseIndent + stepIndent + stepIndent;
+    const useDotted = cfg.flatStyle || cfg.dottedChildren;
 
     cfg.blocks.forEach((block, blockIdx) => {
       if (blockIdx > 0) {
@@ -367,15 +392,15 @@ const generatedListDocArb: fc.Arbitrary<GeneratedDoc> = fc
           lineKinds.push("bullet");
         }
         for (let s = 1; s <= item.subCount; s++) {
-          const subMarker = cfg.dottedChildren ? `${n}.${s}${cfg.delim}` : `${s}${cfg.delim}`;
+          const subMarker = useDotted ? `${n}.${s}${cfg.delim}` : `${s}${cfg.delim}`;
           const subBody = nextBody(item.tail, item.subLead);
-          lines.push(`${baseIndent}${stepIndent}${item.subLead}${subMarker} ${subBody}`);
+          lines.push(`${subIndent}${item.subLead}${subMarker} ${subBody}`);
           lineKinds.push("numbered");
 
           if (item.hasGrandchild && s === 1) {
-            const gMarker = cfg.dottedChildren ? `${n}.${s}.1${cfg.delim}` : `1${cfg.delim}`;
+            const gMarker = useDotted ? `${n}.${s}.1${cfg.delim}` : `1${cfg.delim}`;
             const gBody = nextBody(item.tail, item.subLead);
-            lines.push(`${baseIndent}${stepIndent}${stepIndent}${item.subLead}${gMarker} ${gBody}`);
+            lines.push(`${grandIndent}${item.subLead}${gMarker} ${gBody}`);
             lineKinds.push("numbered");
           }
         }

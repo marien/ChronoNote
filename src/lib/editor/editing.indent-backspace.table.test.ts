@@ -935,6 +935,130 @@ describe("editing table: Tab, Shift-Tab & Backspace", () => {
     },
   ]);
 
+  // Flat numbered outlines: Rules 6–9, 11, 12, 16–18
+  runKeyTable([
+    {
+      label: "Flat Rule 6: Tab deepens plain item under preceding sibling by number",
+      input: "1. a\n1.1. b\n2. c|",
+      key: "Tab",
+      expected: "1. a\n1.1. b\n1.2. c|",
+    },
+    {
+      label: "Flat Rule 6: Tab deepens second-level item under preceding 1.1. sibling",
+      input: "1. a\n1.1. b\n1.1.1. c\n1.2. d|",
+      key: "Tab",
+      expected: "1. a\n1.1. b\n1.1.1. c\n1.1.2. d|",
+    },
+    {
+      label: "Flat Rule 6: Tab on first top-level item in flat list is a no-op",
+      input: "1. a|\n1.1. b",
+      key: "Tab",
+      expected: "1. a|\n1.1. b",
+    },
+    {
+      label: "Flat Rule 6: Tab on first sub-item of flat parent is a no-op",
+      input: "1. a\n1.1. b|\n2. c",
+      key: "Tab",
+      expected: "1. a\n1.1. b|\n2. c",
+    },
+    {
+      label: "Flat Rule 6: Tab carries own flat sub-items deeper and renumbers siblings",
+      input: "1. a\n1.1. b\n1.2. c|\n1.2.1. d\n1.3. e",
+      key: "Tab",
+      expected: "1. a\n1.1. b\n1.1.1. c|\n1.1.1.1. d\n1.2. e",
+    },
+    {
+      label: "Flat Rule 6: Tab on top-level item with flat children deepens both",
+      input: "1. a\n1.1. b\n2. c|\n2.1. d",
+      key: "Tab",
+      expected: "1. a\n1.1. b\n1.2. c|\n1.2.1. d",
+    },
+    {
+      label: "Flat Rule 7: Shift-Tab promotes 3-level flat item to 2-level sibling",
+      input: "1. a\n1.1. b\n1.1.1. c|",
+      key: "Shift-Tab",
+      expected: "1. a\n1.1. b\n1.2. c|",
+    },
+    {
+      label: "Flat Rule 7: Shift-Tab promotes 2-level flat item to plain and renumbers outer",
+      input: "1. a\n1.1. b\n1.2. c|\n2. e",
+      key: "Shift-Tab",
+      expected: "1. a\n1.1. b\n2. c|\n3. e",
+    },
+    {
+      label: "Flat Rule 7: Shift-Tab adopts later siblings of old group from 1",
+      input: "1. a\n1.1. b\n1.2. c|\n1.3. d\n2. e",
+      key: "Shift-Tab",
+      expected: "1. a\n1.1. b\n2. c|\n2.1. d\n3. e",
+    },
+    {
+      label: "Flat Rule 7: Shift-Tab carries own sub-items shallower and adopts later siblings",
+      input: "1. a\n1.1. b\n1.2. c|\n1.2.1. x\n1.3. d\n2. e",
+      key: "Shift-Tab",
+      expected: "1. a\n1.1. b\n2. c|\n2.1. x\n2.2. d\n3. e",
+    },
+    {
+      label: "Flat Rule 7: Shift-Tab on top-level col 0 item in flat list is a no-op",
+      input: "1. a|\n1.1. b",
+      key: "Shift-Tab",
+      expected: "1. a|\n1.1. b",
+    },
+    {
+      label: "Flat Rule 8: Tab in non-flat list still indents under text",
+      input: "1. a\n2. b|",
+      key: "Tab",
+      expected: "1. a\n   1. b|",
+    },
+    {
+      label: "Flat Rule 9: Multi-line selection Tab deepens selected items together",
+      input: "1. a\n1.1. b\n2. [c\n3. d]\n4. e",
+      key: "Tab",
+      expected: "1. a\n1.1. b\n1.2. [c\n1.3. d]\n2. e",
+    },
+    {
+      label: "Flat Rule 9: Multi-line selection Shift-Tab promotes selected items and adopts later sibling",
+      input: "1. a\n1.1. b\n[1.2. c\n1.3. d]\n1.4. e\n2. f",
+      key: "Shift-Tab",
+      expected: "1. a\n1.1. b\n[2. c\n3. d]\n3.1. e\n4. f",
+    },
+    {
+      label: "Flat Rule 11: Backspace on empty flat sub-item promotes it",
+      input: "1. a\n1.1. b\n1.2. |",
+      key: "Backspace",
+      expected: "1. a\n1.1. b\n2. |",
+    },
+    {
+      label: "Flat Rule 11: Backspace on empty flat sub-item adopts later siblings",
+      input: "1. a\n1.1. b\n1.2. |\n1.3. d\n2. e",
+      key: "Backspace",
+      expected: "1. a\n1.1. b\n2. |\n2.1. d\n3. e",
+    },
+    {
+      label: "Flat Rule 12: Backspace at text start of non-empty flat item removes marker and aligns",
+      input: "1. a\n1.1. |b\n1.2. c\n2. d",
+      key: "Backspace",
+      expected: "1. a\n   |b\n1.1. c\n2. d",
+    },
+    {
+      label: "Flat Rule 17: Tab with lead '# ' keeps lead and deepens number",
+      input: "# 1. a\n# 1.1. b\n# 2. c|",
+      key: "Tab",
+      expected: "# 1. a\n# 1.1. b\n# 1.2. c|",
+    },
+    {
+      label: "Flat Rule 18: Tab links only ) items with )",
+      input: "1) a\n1.1) b\n2) c|",
+      key: "Tab",
+      expected: "1) a\n1.1) b\n1.2) c|",
+    },
+    {
+      label: "Flat Rule 18: Delimiters . and ) never link across flat Tab",
+      input: "1. a\n1.1. b\n1) c|",
+      key: "Tab",
+      expected: "1. a\n1.1. b\n1) c|",
+    },
+  ]);
+
   it("dims the escape backslash with glyph-escape and Backspace right after it reveals the live glyph", () => {
     const ed = openEditor("\\|# config");
     const hasClass = (cls: string): boolean => {

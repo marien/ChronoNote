@@ -296,4 +296,9 @@ describe("renumberAfterInsert: a new item in the middle of a list (#123)", () =>
     expect(apply("1. a", ["\t1.1. sub", "2. b"])).toEqual(["\t2.1. sub", "3. b"]);
     expect(apply("  1. a", ["\t\t1.1. sub", "  2. b"])).toEqual(["\t\t2.1. sub", "  3. b"]);
   });
+
+  it("flat sub-items follow parent on insert and never stop sibling renumbering without shifting indent", () => {
+    expect(apply("1. a", ["1.1. b", "1.2. c", "2. e"])).toEqual(["2.1. b", "2.2. c", "3. e"]);
+    expect(apply("8. z", ["9. a", "9.1. b"])).toEqual(["10. a", "10.1. b"]);
+  });
 });
