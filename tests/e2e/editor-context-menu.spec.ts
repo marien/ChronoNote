@@ -150,7 +150,7 @@ test.describe("right-click menus", () => {
       return list;
     };
     const title = await items("Weekly Sync");
-    expect(title).toEqual(["+Section history", "+Peek at this section"]);
+    expect(title).toEqual(["+Section history", "+Copy as minutes", "+Peek at this section"]);
     expect(await items("=====")).toEqual(title);
     const body = await items("task");
     expect(body.length).toBeGreaterThan(4);

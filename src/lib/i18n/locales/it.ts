@@ -1061,4 +1061,18 @@ export const it = {
   "phoneChanges.noteChanged": () => "La nota è cambiata. Controlla di nuovo e scegli.",
   "phoneChanges.writeFailed": () => "Impossibile modificare la nota. Riprova.",
   "commandPalette.applyPhoneChanges.label": () => "Applica le modifiche dal telefono",
+
+  // Copy meeting as minutes (F2)
+  "minutes.command": () => "Copia come verbale",
+  "minutes.decisions": () => "Decisioni",
+  "minutes.actions": () => "Azioni",
+  "minutes.done": () => "Completate",
+  "minutes.stillOpen": () => "Ancora aperto",
+  "minutes.remember": () => "Da ricordare",
+  "minutes.notDiscussed": () => "non discusso",
+  "minutes.by": () => "entro",
+  "minutes.toast.copied": () => "Verbale copiato.",
+  "minutes.toast.empty": () => "Niente in questa riunione da mettere nel verbale.",
+  "minutes.toast.noSection": () => "Posiziona prima il cursore in una riunione.",
+  "minutes.toast.failed": () => "Impossibile copiare.",
 } satisfies Dictionary;

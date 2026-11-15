@@ -1043,6 +1043,20 @@ export type TranslationParams = {
   "phoneChanges.noteChanged": undefined;
   "phoneChanges.writeFailed": undefined;
   "commandPalette.applyPhoneChanges.label": undefined;
+
+  // Copy meeting as minutes (F2)
+  "minutes.command": undefined;
+  "minutes.decisions": undefined;
+  "minutes.actions": undefined;
+  "minutes.done": undefined;
+  "minutes.stillOpen": undefined;
+  "minutes.remember": undefined;
+  "minutes.notDiscussed": undefined;
+  "minutes.by": undefined;
+  "minutes.toast.copied": undefined;
+  "minutes.toast.empty": undefined;
+  "minutes.toast.noSection": undefined;
+  "minutes.toast.failed": undefined;
 };
 
 export type TranslationKey = keyof TranslationParams;

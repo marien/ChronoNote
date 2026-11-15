@@ -1050,4 +1050,18 @@ export const de = {
   "phoneChanges.noteChanged": () => "Die Notiz hat sich geändert. Bitte erneut prüfen und wählen.",
   "phoneChanges.writeFailed": () => "Die Notiz konnte nicht geändert werden. Versuche es erneut.",
   "commandPalette.applyPhoneChanges.label": () => "Änderungen vom Telefon übernehmen",
+
+  // Copy meeting as minutes (F2)
+  "minutes.command": () => "Als Protokoll kopieren",
+  "minutes.decisions": () => "Entscheidungen",
+  "minutes.actions": () => "Aktionen",
+  "minutes.done": () => "Erledigt",
+  "minutes.stillOpen": () => "Noch offen",
+  "minutes.remember": () => "Merken",
+  "minutes.notDiscussed": () => "nicht besprochen",
+  "minutes.by": () => "bis",
+  "minutes.toast.copied": () => "Protokoll kopiert.",
+  "minutes.toast.empty": () => "Nichts in dieser Besprechung für das Protokoll.",
+  "minutes.toast.noSection": () => "Setze den Cursor zuerst in eine Besprechung.",
+  "minutes.toast.failed": () => "Kopieren fehlgeschlagen.",
 } satisfies Dictionary;

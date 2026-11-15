@@ -1059,4 +1059,18 @@ export const es = {
   "phoneChanges.noteChanged": () => "La nota cambió. Vuelve a mirar y elige.",
   "phoneChanges.writeFailed": () => "No se pudo cambiar la nota. Inténtalo de nuevo.",
   "commandPalette.applyPhoneChanges.label": () => "Aplicar cambios del teléfono",
+
+  // Copy meeting as minutes (F2)
+  "minutes.command": () => "Copiar como acta",
+  "minutes.decisions": () => "Decisiones",
+  "minutes.actions": () => "Acciones",
+  "minutes.done": () => "Completadas",
+  "minutes.stillOpen": () => "Pendiente",
+  "minutes.remember": () => "Recordar",
+  "minutes.notDiscussed": () => "no debatido",
+  "minutes.by": () => "para el",
+  "minutes.toast.copied": () => "Acta copiada.",
+  "minutes.toast.empty": () => "No hay nada en esta reunión para poner en el acta.",
+  "minutes.toast.noSection": () => "Coloque primero el cursor en una reunión.",
+  "minutes.toast.failed": () => "No se pudo copiar.",
 } satisfies Dictionary;

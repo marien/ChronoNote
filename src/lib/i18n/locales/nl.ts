@@ -1045,4 +1045,18 @@ export const nl = {
   "phoneChanges.noteChanged": () => "De notitie is veranderd. Kijk opnieuw en kies.",
   "phoneChanges.writeFailed": () => "Kon de notitie niet aanpassen. Probeer het opnieuw.",
   "commandPalette.applyPhoneChanges.label": () => "Wijzigingen van telefoon verwerken",
+
+  // Copy meeting as minutes (F2)
+  "minutes.command": () => "Kopieer als notulen",
+  "minutes.decisions": () => "Besluiten",
+  "minutes.actions": () => "Acties",
+  "minutes.done": () => "Gedaan",
+  "minutes.stillOpen": () => "Nog open",
+  "minutes.remember": () => "Onthouden",
+  "minutes.notDiscussed": () => "niet besproken",
+  "minutes.by": () => "uiterlijk",
+  "minutes.toast.copied": () => "Notulen gekopieerd.",
+  "minutes.toast.empty": () => "Niets in dit overleg om in notulen te zetten.",
+  "minutes.toast.noSection": () => "Zet de cursor eerst in een overleg.",
+  "minutes.toast.failed": () => "Kopiëren is niet gelukt.",
 } satisfies Dictionary;
