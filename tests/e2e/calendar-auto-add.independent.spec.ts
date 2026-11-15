@@ -8,6 +8,8 @@ import {
   activeTabContent,
   toast,
   REFERENCE_INSTANT,
+  mockNote,
+  todayFilename,
 } from "./helpers";
 
 interface AgendaItem {
@@ -173,6 +175,8 @@ test.describe("calendar auto-add", () => {
     await page.keyboard.press("ControlOrMeta+Shift+End");
     await page.keyboard.press("Backspace");
     await expect.poll(() => activeTabContent(page)).not.toContain("Design review");
+    // Review: wait for the deletion to be saved; a reload inside the save delay would bring back the saved text.
+    await expect.poll(() => mockNote(page, todayFilename())).not.toContain("Design review");
 
     await page.reload();
     await expect(page.locator("#top-bar")).toBeVisible({ timeout: 15_000 });
