@@ -18,6 +18,7 @@ async function seedToday(page: Page, content: string, titles: string[]) {
     seed: {
       ...scenario("empty"),
       calendarSyncEnabled: true,
+      calendarAutoAdd: false, // F1: these tests are about the dot and the manual sync, not the automatic add
       agendaJson: agenda(...titles),
       notes: { [TODAY_FILE]: content },
       session: { openTabs: [TODAY_FILE], activeTab: TODAY_FILE },

@@ -842,6 +842,10 @@ export type TranslationParams = {
   "toast.boot.couldntOpenNotes": { filenames: string };
   "toast.calendarSync.noMeetingsOn": { date: string };
   "toast.calendarSync.synced": undefined;
+  "toast.calendarSync.autoAdded": { title: string };
+  "toast.calendarSync.autoAddedMore": { title: string; count: number };
+  "toast.calendarSync.autoRemoved": { title: string };
+  "toast.calendarSync.autoRemovedMore": { title: string; count: number };
   "toast.copyForward.destHere": undefined;
   "toast.copyForward.destToDate": { date: string };
   "toast.copyForward.copied": { dest: string };

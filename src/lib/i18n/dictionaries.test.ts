@@ -125,6 +125,10 @@ const SAMPLE_PARAMS: Partial<Record<TranslationKey, unknown>> = {
   "weekReview.earlierWeeksSingle": { count: 1 },
   "weekReview.sectionAllDone": { section: "Standup" },
   "weekReview.openWeek": { week: 44 },
+  "toast.calendarSync.autoAdded": { title: "Design review" },
+  "toast.calendarSync.autoAddedMore": { title: "Design review", count: 2 },
+  "toast.calendarSync.autoRemoved": { title: "1:1 Dana" },
+  "toast.calendarSync.autoRemovedMore": { title: "1:1 Dana", count: 2 },
 };
 
 /** Defense in depth beyond the `satisfies Dictionary` compile-time check

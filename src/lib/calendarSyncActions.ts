@@ -14,6 +14,8 @@ import { get } from "svelte/store";
 import {
   activeTabId,
   agendaFileExists,
+  autoAddedMeetings,
+  calendarAutoAdd,
   calendarSyncEnabled,
   calendarSyncHasDiff,
   calendarSyncReview,
@@ -25,10 +27,18 @@ import {
   type CalendarSyncRemoval,
   type CalendarSyncRemovalChoice,
 } from "./stores";
-import { writeTabContent, updateNoteOnDisk } from "./persistence";
+import { applyOutsideTabContent, writeTabContent, updateNoteOnDisk } from "./persistence";
 import * as api from "./tauriApi";
 import { todayISO } from "./date";
-import { appendRemovedSectionTo, computeCalendarSync, flagRemovedSection } from "./calendarReconcile";
+import {
+  appendRemovedSectionTo,
+  computeAutoSync,
+  computeCalendarSync,
+  flagRemovedSection,
+  meetingMatchKey,
+} from "./calendarReconcile";
+import { recordAutoAddedMeetings } from "./autoAddedMeetings";
+import { listSections } from "./tokens";
 import { t } from "./i18n";
 import { describeApiError } from "./apiError";
 import { sha256Hex } from "./drift";
@@ -74,8 +84,14 @@ export async function checkCalendarSyncDiff(): Promise<void> {
   try {
     const agendaTitles = (await api.readAgendaForDate(date)).map((t) => t.trim()).filter((t) => t.length > 0);
     const removedTitles = (await api.readAgendaRemovedForDate(date)).map((t) => t.trim()).filter((t) => t.length > 0);
+    const starts = await readAgendaStarts(date);
 
-    const result = computeCalendarSync(tab.content, agendaTitles, removedTitles, await readAgendaStarts(date));
+    // F1: a meeting added automatically earlier whose section the user deleted is not "new" for the dot.
+    const { offer } = computeAutoSync(tab.content, agendaTitles, removedTitles, starts, get(autoAddedMeetings)[date] ?? []);
+    const offered = new Set(offer.map(meetingMatchKey));
+    const agenda = agendaTitles.filter((title) => !offered.has(meetingMatchKey(title)));
+
+    const result = computeCalendarSync(tab.content, agenda, removedTitles, starts);
     const hasDiff =
       result.newTitles.length > 0 ||
       result.removedEmpty.length > 0 ||
@@ -85,6 +101,82 @@ export async function checkCalendarSyncDiff(): Promise<void> {
     calendarSyncHasDiff.set(hasDiff);
   } catch {
     calendarSyncHasDiff.set(false);
+    return;
+  }
+  await maybeAutoSync();
+}
+
+let autoSyncRunning = false;
+
+/** True while something stops an automatic change to the open note right now: a dialog or drawer, the review, or a
+ * caret on a blank line (the user may be about to type there, and the reconciler trims blank lines at the end of
+ * sections). The next check tries again. */
+function autoSyncBlockedNow(): boolean {
+  if (get(modal) !== "none" || get(calendarSyncReview)) return true;
+  if (!editorApi) return true;
+  return editorApi.getSelection().text.trim() === "";
+}
+
+/** F1: adds new meetings to the open note by itself (and removes empty sections whose meeting left the calendar),
+ * as an outside change: not an undo step, the caret stays on its text. Anything that would move or remove text the
+ * user wrote is left to the review dialog (the dot). Does nothing unless every gate in the brief holds. */
+export async function maybeAutoSync(): Promise<void> {
+  if (autoSyncRunning) return;
+  if (!get(calendarSyncEnabled) || !get(calendarAutoAdd) || !get(agendaFileExists)) return;
+  if (!canSyncCalendarForActiveTab()) return;
+  const tab = get(tabs).find((x) => x.id === get(activeTabId));
+  if (!tab || tab.isScratchpad || tab.content.trim() === "") return;
+  if (autoSyncBlockedNow()) return;
+
+  autoSyncRunning = true;
+  try {
+    const date = tab.filename.slice(0, 10);
+    const agendaTitles = (await api.readAgendaForDate(date)).map((x) => x.trim()).filter((x) => x.length > 0);
+    const removedTitles = (await api.readAgendaRemovedForDate(date)).map((x) => x.trim()).filter((x) => x.length > 0);
+    const result = computeAutoSync(
+      tab.content,
+      agendaTitles,
+      removedTitles,
+      await readAgendaStarts(date),
+      get(autoAddedMeetings)[date] ?? [],
+    );
+    if (!result.apply) return;
+
+    // The user may have typed, switched notes or opened a dialog while the agenda was read: stop, the next check runs.
+    const fresh = get(tabs).find((x) => x.id === tab.id);
+    if (!fresh || fresh.content !== tab.content || get(activeTabId) !== tab.id) return;
+    if (autoSyncBlockedNow() || editorApi?.getContent() !== fresh.content) return;
+
+    applyOutsideTabContent(tab.id, result.content);
+    if (result.added.length > 0) recordAutoAddedMeetings(date, result.added);
+
+    const translate = get(t);
+    if (result.added.length > 0) {
+      const first = result.added[0];
+      const more = result.added.length - 1;
+      const message =
+        more === 0
+          ? translate("toast.calendarSync.autoAdded", { title: first })
+          : translate("toast.calendarSync.autoAddedMore", { title: first, count: more });
+      showToast(message, () => {
+        const text = editorApi?.getContent() ?? "";
+        const section = listSections(text).find((s) => meetingMatchKey(s.title) === meetingMatchKey(first));
+        if (section) editorApi?.jumpToLine(section.lineIdx);
+      });
+    } else if (result.removed.length > 0) {
+      const first = result.removed[0];
+      const more = result.removed.length - 1;
+      showToast(
+        more === 0
+          ? translate("toast.calendarSync.autoRemoved", { title: first })
+          : translate("toast.calendarSync.autoRemovedMore", { title: first, count: more }),
+      );
+    }
+    calendarSyncHasDiff.set(result.needsReview);
+  } catch {
+    // The dot already shows the difference; the next check tries again.
+  } finally {
+    autoSyncRunning = false;
   }
 }
 
@@ -100,6 +192,11 @@ let lastCheckedContent: string | null = null;
 let lastCheckedTabId: string | null = null;
 
 export function initCalendarSyncDiffTracking() {
+  // F1: a meeting can appear in the file while the window stays focused and the note untouched.
+  setInterval(() => {
+    if (typeof document !== "undefined" && document.visibilityState === "visible") void checkCalendarSyncDiff();
+  }, 60_000);
+
   activeTabId.subscribe((id) => {
     if (id !== lastCheckedTabId) {
       lastCheckedTabId = id;
@@ -194,6 +291,7 @@ export function maybeSilentSyncEmptyNote(tab: NoteTab): Promise<boolean> {
       if (!result.content || result.content.trim() === "") return false;
 
       tabs.set(writeTabContent(currentTab.id, result.content, currentList));
+      recordAutoAddedMeetings(dateStr, result.newTitles);
 
       const hash = await sha256Hex(result.content);
       markTabClean(currentTab.id, hash);
@@ -243,17 +341,20 @@ function openCalendarSyncReview(
   agendaTitles: string[],
   removedTitles: string[] = [],
   agendaStarts: Record<string, string> = {},
+  offerTitles: string[] = [],
 ) {
   const cleaned = agendaTitles.map((t) => t.trim()).filter((t) => t.length > 0);
   const removed = removedTitles.map((t) => t.trim()).filter((t) => t.length > 0);
   const result = computeCalendarSync(tab.content, cleaned, removed, agendaStarts);
+  // F1: a meeting that was added automatically and then deleted by the user is listed, but unchecked.
+  const offered = new Set(offerTitles.map(meetingMatchKey));
   calendarSyncReview.set({
     tabId: tab.id,
     originalContent: tab.content,
     agendaTitles: cleaned,
     removedTitles: removed,
     agendaStarts,
-    newItems: result.newTitles.map((title) => ({ title, checked: true })),
+    newItems: result.newTitles.map((title) => ({ title, checked: !offered.has(meetingMatchKey(title)) })),
     reorderedTitles: result.reorderedTitles,
     removedEmpty: result.removedEmpty,
     removals: result.removedWithContent.map((r) => ({ ...r, choice: "flag" as CalendarSyncRemovalChoice, moveDate: todayISO() })),
@@ -284,7 +385,15 @@ export async function syncCalendarFromFile(): Promise<void> {
     showToast(get(t)("toast.calendarSync.noMeetingsOn", { date }));
     return;
   }
-  openCalendarSyncReview(tab, agendaTitles, removedTitles, await readAgendaStarts(date));
+  const starts = await readAgendaStarts(date);
+  const { offer } = computeAutoSync(
+    tab.content,
+    agendaTitles,
+    removedTitles,
+    starts,
+    get(autoAddedMeetings)[date] ?? [],
+  );
+  openCalendarSyncReview(tab, agendaTitles, removedTitles, starts, offer);
 }
 
 export function toggleSyncNewItem(index: number) {

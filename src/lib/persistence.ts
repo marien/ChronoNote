@@ -554,6 +554,21 @@ function setTabText(tabId: string, content: string): void {
   if (tabId === get(activeTabId) && editorApi) editorApi.setContent(content, { outside: true });
 }
 
+/** `writeTabContent` for a change the user did not make by typing (F1: a meeting added from the calendar): the same
+ * save, but the text goes in as an outside change, so it is not an undo step and the caret stays on its text.
+ * Sets the `tabs` store itself. */
+export function applyOutsideTabContent(tabId: string, newContent: string, options?: { keepVersion?: boolean }): void {
+  cancelScheduledSave(tabId);
+  const tab = get(tabs).find((x) => x.id === tabId);
+  if (!tab) return;
+  setTabText(tabId, newContent);
+  if (!tab.isScratchpad) {
+    writeNoteAndInvalidateCache(tab.filename, newContent, { kind: "tabBaseline" }, options).catch((e) => {
+      if (!isWriteConflictError(e)) showToast(get(t)("toast.persistence.failedToSaveNote", undefined));
+    });
+  }
+}
+
 /** `writeTabContent` for a caller that must know the text reached the disk (the phone companion reports changes as
  * applied). Awaits the write; when it fails, the phone's change is removed while keeping any user edits made
  * meanwhile, and the error is thrown. A write refused because the file changed on disk is not an error here:
