@@ -19,7 +19,7 @@
 .week-review-pane {
   display: flex;
   flex-direction: column;
-  min-width: 300px;
+  min-width: 180px;
   flex-shrink: 0;
   height: 100%;
   min-height: 0;

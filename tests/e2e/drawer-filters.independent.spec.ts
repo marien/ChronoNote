@@ -12,9 +12,9 @@ const rows = (page: Page): Locator => drawer(page).locator('.modal-item[role="op
 const filterInput = (page: Page): Locator => drawer(page).locator(".modal-input");
 const chips = (page: Page): Locator => drawer(page).locator(".search-chip, .chip");
 const onlyOpenToggle = (page: Page): Locator =>
-  drawer(page).locator(".toggle-switch").filter({ hasText: /only open/i });
+  drawer(page).locator(".filter-chip").filter({ hasText: /only open/i });
 const dueViewToggle = (page: Page): Locator =>
-  drawer(page).locator(".toggle-switch").filter({ hasText: /by due date/i });
+  drawer(page).locator(".filter-chip").filter({ hasText: /by due date/i });
 
 /**
  * Setup helper to seed notes and open the Action Drawer in "All Files" scope.
@@ -50,8 +50,8 @@ async function setupDrawer(
   });
 
   const d = await openViaShortcut(page, "ControlOrMeta+Shift+A", "actions");
-  // Ensure "All Files" scope is active so notes across files are listed
-  const allFilesRadio = d.getByRole("radio", { name: "All Files" });
+  // Ensure "All" scope is active so notes across files are listed
+  const allFilesRadio = d.getByRole("radio", { name: "All" });
   if (await allFilesRadio.isVisible()) {
     await allFilesRadio.click();
     const spinner = d.locator(".modal-spinner");
@@ -130,10 +130,9 @@ test.describe("Action Drawer Search Filters", () => {
     const d = await setupDrawer(page);
     const input = filterInput(page);
     const toggle = onlyOpenToggle(page);
-    const toggleInput = toggle.locator("input");
 
     // "Only open" is on by default and resolved item is hidden
-    await expect(toggleInput).toBeChecked();
+    await expect(toggle).toHaveAttribute("aria-pressed", "true");
     await expect(d).not.toContainText("send the numbers");
 
     // Type is:done
@@ -144,16 +143,15 @@ test.describe("Action Drawer Search Filters", () => {
     // Open items should not be listed with is:done
     await expect(d).not.toContainText("call the vendor");
 
-    // The Only-open toggle shows that it does not apply (disabled, aria-disabled, or a title)
+    // The Only-open chip shows that it does not apply (disabled, aria-disabled, or a title)
     await expect.poll(async () => {
-      const inputDisabled = await toggleInput.isDisabled().catch(() => false);
-      const inputAriaDisabled = (await toggleInput.getAttribute("aria-disabled")) === "true";
-      const labelAriaDisabled = (await toggle.getAttribute("aria-disabled")) === "true";
+      const btnDisabled = await toggle.isDisabled().catch(() => false);
+      const btnAriaDisabled = (await toggle.getAttribute("aria-disabled")) === "true";
       const classAttr = (await toggle.getAttribute("class")) ?? "";
       const hasDisabledClass = classAttr.includes("disabled");
-      const title = ((await toggle.getAttribute("title")) ?? (await toggleInput.getAttribute("title")) ?? "").toLowerCase();
+      const title = ((await toggle.getAttribute("title")) ?? "").toLowerCase();
       const titleIndicates = /not apply|overridden|ignored|disabled|inactive|filter|is:done/i.test(title);
-      return inputDisabled || inputAriaDisabled || labelAriaDisabled || hasDisabledClass || titleIndicates;
+      return btnDisabled || btnAriaDisabled || hasDisabledClass || titleIndicates;
     }).toBe(true);
   });
 
@@ -266,7 +264,7 @@ test.describe("Action Drawer Search Filters", () => {
 
     // Switch to "By due date" view
     await dueToggle.click();
-    await expect(dueToggle.locator("input")).toBeChecked();
+    await expect(dueToggle).toHaveAttribute("aria-pressed", "true");
 
     // Dated action is visible in due view
     await expect(d).toContainText("pay invoice");

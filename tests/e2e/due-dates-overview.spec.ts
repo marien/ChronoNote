@@ -14,8 +14,8 @@ const drawer = (page: Page): Locator => modalCard(page, MODAL_LABELS.actions);
 const rows = (page: Page): Locator => drawer(page).locator('.modal-item[role="option"]');
 const filterInput = (page: Page): Locator => drawer(page).locator(".modal-input");
 const dueToggleLabel = (page: Page): Locator =>
-  drawer(page).locator(".toggle-switch").filter({ hasText: "By due date" });
-const dueToggleInput = (page: Page): Locator => dueToggleLabel(page).locator("input");
+  drawer(page).locator(".filter-chip").filter({ hasText: "By due date" });
+const dueToggleInput = (page: Page): Locator => dueToggleLabel(page);
 
 test.describe("due dates slice 3: status bar and Action Drawer due view", () => {
   test.beforeEach(async ({ page }) => {
@@ -107,11 +107,11 @@ test.describe("due dates slice 3: status bar and Action Drawer due view", () => 
     // Click overdue button
     await page.locator("#stat-due").click();
 
-    // Drawer opens in All files scope with due view enabled
+    // Drawer opens in All scope with due view enabled
     await expect(drawer(page)).toBeVisible();
-    await expect(dueToggleInput(page)).toBeChecked();
+    await expect(dueToggleInput(page)).toHaveAttribute("aria-pressed", "true");
 
-    const allFilesRadio = drawer(page).getByRole("radio", { name: "All Files" });
+    const allFilesRadio = drawer(page).getByRole("radio", { name: "All" });
     await expect(allFilesRadio).toBeChecked();
 
     // Verify the groups appear in order: Overdue, Today, one heading per day in the next 7 days (§449), Later
@@ -144,7 +144,7 @@ test.describe("due dates slice 3: status bar and Action Drawer due view", () => 
 
     // Toggle switches back to normal view
     await dueToggleLabel(page).click();
-    await expect(dueToggleInput(page)).not.toBeChecked();
+    await expect(dueToggleInput(page)).toHaveAttribute("aria-pressed", "false");
     // Normal view groups by file (top group is today's note)
     await expect(groupHeaders.first()).toContainText(today);
   });

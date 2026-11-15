@@ -39,6 +39,7 @@
   import { t, locale } from "../../i18n";
   import Icon from "../../icons/Icon.svelte";
   import EmptyState from "../EmptyState.svelte";
+  import HelpPopoverButton from "./HelpPopoverButton.svelte";
 
   interface Props {
     docked?: boolean;
@@ -397,6 +398,20 @@
       >
         <Icon name="chevron-right" size={12} />
       </button>
+      <!-- F8: copy button goes here -->
+      <HelpPopoverButton
+        title={$t("weekReview.help.buttonTitle")}
+        hints={[
+          { keys: "Enter", label: $t("weekReview.footer.goToLine") },
+          { keys: "Shift+Enter", label: $t("weekReview.footer.forwardToToday") },
+          { keys: "Ctrl+Space", label: $t("weekReview.footer.changeState") },
+          { keys: "←/→", label: $t("weekReview.footer.prevNextWeek") },
+          { keys: "Home", label: $t("weekReview.footer.thisWeek") },
+        ]}
+        onCloseFocus={() => {
+          if (!$isMobile) listEl?.focus();
+        }}
+      />
       <button
         type="button"
         class="icon-btn modal-close-btn"
@@ -591,14 +606,6 @@
       </div>
     {/if}
   </div>
-
-  {#if !$isMobile}
-    <div class="modal-footer">
-      <div class="modal-footer-hints">
-        <kbd>Enter</kbd> {$t("weekReview.footer.goToLine")} · <kbd>Shift+Enter</kbd> {$t("weekReview.footer.forwardToToday")} · <kbd>Ctrl+Space</kbd> {$t("weekReview.footer.changeState")} · <kbd>←</kbd>/<kbd>→</kbd> {$t("weekReview.footer.prevNextWeek")} · <kbd>Home</kbd> {$t("weekReview.footer.thisWeek")}
-      </div>
-    </div>
-  {/if}
 {/snippet}
 
 {#if docked}
@@ -626,11 +633,16 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--edge-soft);
+  background: var(--surface-raised);
+  gap: 8px;
 }
 .week-review-title-group {
   display: flex;
   align-items: center;
   gap: 8px;
+  min-width: 0;
 }
 .week-title {
   margin: 0;
@@ -638,10 +650,14 @@
   font-weight: 600;
   font-family: var(--font-ui);
 }
-.week-nav-buttons {
+.week-nav-actions {
   display: flex;
   align-items: center;
   gap: 4px;
+  flex-shrink: 0;
+}
+.week-nav-actions :global(.modal-close-btn) {
+  margin-left: 0;
 }
 .week-nav-btn {
   display: inline-flex;
@@ -686,16 +702,6 @@
   display: flex;
   align-items: center;
   gap: 8px;
-}
-.modal-footer {
-  padding: 6px 12px;
-  font-size: 11.5px;
-  color: var(--text-tertiary);
-  border-top: 1px solid var(--border);
-}
-.modal-footer-hints kbd {
-  font-family: var(--font-mono);
-  font-size: 11px;
 }
 .item-glyph {
   flex: none;

@@ -260,6 +260,7 @@ export type TranslationParams = {
   "actionDrawer.modal.ariaLabel": undefined;
   "actionDrawer.filterPlaceholder": undefined;
   "actionDrawer.counter": { open: number; listed: number };
+  "actionDrawer.counterShort": { open: number; listed: number };
   "actionDrawer.group.expand": undefined;
   "actionDrawer.group.collapse": undefined;
   "actionDrawer.group.progressTitle": { resolved: number; total: number };
@@ -269,6 +270,7 @@ export type TranslationParams = {
   "actionDrawer.scope.otherNotes.title": undefined;
   "actionDrawer.scope.allFiles.label": undefined;
   "actionDrawer.scope.allFiles.title": undefined;
+  "actionDrawer.scope.menuAriaLabel": undefined;
   "actionDrawer.onlyOpen.label": undefined;
   "actionDrawer.onlyOpen.title": undefined;
   "actionDrawer.onlyOpen.setByFilterTitle": undefined;
@@ -287,6 +289,15 @@ export type TranslationParams = {
   "actionDrawer.footer.goToLine": undefined;
   "actionDrawer.footer.forwardToToday": undefined;
   "actionDrawer.footer.changeState": undefined;
+  "actionDrawer.help.buttonTitle": undefined;
+  "actionDrawer.help.at": undefined;
+  "actionDrawer.help.isOpen": undefined;
+  "actionDrawer.help.isDone": undefined;
+  "actionDrawer.help.tag": undefined;
+  "actionDrawer.help.hasAssignee": undefined;
+  "actionDrawer.help.since": undefined;
+  "actionDrawer.help.before": undefined;
+  "actionDrawer.help.due": undefined;
 
   // Section History (`HistoryModal.svelte`, Ctrl/Cmd+Shift+H).
   "history.modal.ariaLabel": undefined;
@@ -1002,6 +1013,7 @@ export type TranslationParams = {
   "weekReview.footer.forwardToToday": undefined;
   "weekReview.footer.prevNextWeek": undefined;
   "weekReview.footer.thisWeek": undefined;
+  "weekReview.help.buttonTitle": undefined;
   "weekReview.empty.title": undefined;
   "weekReview.empty.subtitle": undefined;
 

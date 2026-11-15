@@ -25,6 +25,7 @@ export const ICONS = {
   promote: `<path d="M14.5 21H7a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h6l4 4v3"/><path d="M13 5v4h4"/><path d="M18 21v-8M15 16l3-3 3 3"/>`,
   settings: `<path d="M4 7h16M4 12h16M4 17h16"/><circle cx="9" cy="7" r="1.6" fill="currentColor" stroke="none"/><circle cx="15" cy="12" r="1.6" fill="currentColor" stroke="none"/><circle cx="8" cy="17" r="1.6" fill="currentColor" stroke="none"/>`,
   about: `<circle cx="12" cy="12" r="8.2"/><path d="M12 11.5v4.5"/><circle cx="12" cy="8" r="0.4" stroke-width="1.6"/>`,
+  help: `<path d="M9.5 9a2.7 2.7 0 0 1 5.2.8c0 1.6-2.7 2.1-2.7 3.7"/><circle cx="12" cy="17.2" r="0.5" stroke-width="1.8"/>`,
   keyboard: `<rect x="3" y="6" width="18" height="12" rx="2"/><path d="M6.5 10h0M10 10h0M13.5 10h0M17 10h0" stroke-width="2.1"/><path d="M6.5 14.5h6.5" stroke-width="2.1"/>`,
   command: `<path d="M7.5 8l4 4-4 4"/><path d="M13 16h5"/>`,
   update: `<path d="M5 15v2.5A1.5 1.5 0 0 0 6.5 19h11a1.5 1.5 0 0 0 1.5-1.5V15"/><path d="M12 4v10M8 10l4 4 4-4"/>`,

@@ -35,6 +35,7 @@
   import Icon from "../../icons/Icon.svelte";
   import Segmented from "../Segmented.svelte";
   import EmptyState from "../EmptyState.svelte";
+  import HelpPopoverButton from "./HelpPopoverButton.svelte";
   import { locale, t } from "../../i18n";
   import type { ActionSnapshotItem } from "../../types";
   import {
@@ -72,6 +73,49 @@
   // nothing to show that anything's happening otherwise (the toggle just
   // sits there).
   let loadingAllFiles = $state(false);
+  let isNarrow = $state(false);
+  let scopeMenuOpen = $state(false);
+  let scopeMenuPos = $state({ x: 8, y: 8 });
+  let scopeBtnEl = $state<HTMLButtonElement>();
+  let scopeMenuEl = $state<HTMLDivElement>();
+  let paneResizeObserver: ResizeObserver | undefined;
+
+  const scopeOptions = $derived([
+    {
+      value: "open" as const,
+      label: $t("actionDrawer.scope.openTabs.label"),
+      title: $t("actionDrawer.scope.openTabs.title"),
+    },
+    {
+      value: "other" as const,
+      label: $t("actionDrawer.scope.otherNotes.label"),
+      title: $t("actionDrawer.scope.otherNotes.title"),
+    },
+    {
+      value: "all" as const,
+      label: $t("actionDrawer.scope.allFiles.label"),
+      title: $t("actionDrawer.scope.allFiles.title"),
+    },
+  ]);
+  const currentScopeOption = $derived(scopeOptions.find((o) => o.value === scope) ?? scopeOptions[0]);
+
+  function onDocumentMousedown(e: MouseEvent) {
+    if (
+      scopeMenuOpen &&
+      !scopeMenuEl?.contains(e.target as Node) &&
+      !scopeBtnEl?.contains(e.target as Node)
+    ) {
+      scopeMenuOpen = false;
+    }
+  }
+
+  function onWindowResize() {
+    scopeMenuOpen = false;
+  }
+
+  $effect(() => {
+    if (!isNarrow) scopeMenuOpen = false;
+  });
 
   // §42: open focused on whatever entry belongs to the currently active
   // tab, instead of always starting at the top of the (most-recent-first)
@@ -86,12 +130,115 @@
     if (!$isMobile) inputEl?.focus();
     scrollSelectedIntoView();
     mounted = true;
+    const updateWidth = (w: number) => {
+      if (w > 0) isNarrow = w < 300;
+    };
+    if (rootEl) {
+      updateWidth(rootEl.clientWidth);
+      if (typeof ResizeObserver !== "undefined") {
+        paneResizeObserver = new ResizeObserver((entries) => {
+          for (const entry of entries) {
+            updateWidth(entry.contentRect.width);
+          }
+        });
+        paneResizeObserver.observe(rootEl);
+      }
+    }
     document.addEventListener("keydown", onKeydown);
+    document.addEventListener("mousedown", onDocumentMousedown);
+    window.addEventListener("resize", onWindowResize);
   });
 
   onDestroy(() => {
+    paneResizeObserver?.disconnect();
     document.removeEventListener("keydown", onKeydown);
+    document.removeEventListener("mousedown", onDocumentMousedown);
+    window.removeEventListener("resize", onWindowResize);
   });
+
+  function placeScopeMenu() {
+    if (!scopeBtnEl) return;
+    const r = scopeBtnEl.getBoundingClientRect();
+    const menuW = scopeMenuEl?.offsetWidth ?? 180;
+    const menuH = scopeMenuEl?.offsetHeight ?? 120;
+    const x = Math.max(8, Math.min(r.left, window.innerWidth - menuW - 8));
+    let y = r.bottom + 6;
+    if (y + menuH > window.innerHeight - 8) {
+      y = Math.max(8, r.top - menuH - 6);
+    }
+    scopeMenuPos = { x, y };
+  }
+
+  async function openScopeMenu() {
+    scopeMenuOpen = true;
+    placeScopeMenu();
+    await tick();
+    placeScopeMenu();
+    const items = Array.from(scopeMenuEl?.querySelectorAll<HTMLButtonElement>('[role="menuitemradio"]') ?? []);
+    const activeIdx = scopeOptions.findIndex((o) => o.value === scope);
+    (items[activeIdx >= 0 ? activeIdx : 0] ?? items[0])?.focus();
+  }
+
+  function closeScopeMenu(restoreTriggerFocus = false) {
+    if (!scopeMenuOpen) return;
+    scopeMenuOpen = false;
+    if (restoreTriggerFocus) scopeBtnEl?.focus();
+  }
+
+  function toggleScopeMenu() {
+    if (scopeMenuOpen) {
+      closeScopeMenu(true);
+    } else {
+      void openScopeMenu();
+    }
+  }
+
+  function selectScopeFromMenu(next: "open" | "other" | "all") {
+    scopeMenuOpen = false;
+    if (scope === next) {
+      if (!$isMobile) inputEl?.focus();
+      return;
+    }
+    void setScope(next);
+  }
+
+  function onScopeTriggerKeydown(e: KeyboardEvent) {
+    if (e.key === "ArrowDown" && !scopeMenuOpen) {
+      e.preventDefault();
+      e.stopPropagation();
+      void openScopeMenu();
+    }
+  }
+
+  function onScopeMenuKeydown(e: KeyboardEvent) {
+    if (!scopeMenuEl) return;
+    const items = Array.from(scopeMenuEl.querySelectorAll<HTMLButtonElement>('[role="menuitemradio"]'));
+    if (items.length === 0) return;
+    const idx = items.indexOf(document.activeElement as HTMLButtonElement);
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      e.stopPropagation();
+      items[(idx + 1) % items.length].focus();
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      e.stopPropagation();
+      items[(idx - 1 + items.length) % items.length].focus();
+    } else if (e.key === "Home") {
+      e.preventDefault();
+      e.stopPropagation();
+      items[0].focus();
+    } else if (e.key === "End") {
+      e.preventDefault();
+      e.stopPropagation();
+      items[items.length - 1].focus();
+    } else if (e.key === "Escape") {
+      e.preventDefault();
+      e.stopPropagation();
+      closeScopeMenu(true);
+    } else if (e.key === "Tab") {
+      scopeMenuOpen = false;
+    }
+  }
 
   function handleClose() {
     controller.closeAllModals();
@@ -298,6 +445,7 @@
       return sym !== "v" && sym !== "x";
     }).length,
   );
+  const fullCounterText = $derived($t("actionDrawer.counter", { open: uncompletedCount, listed: flatList.length }));
   // Re-clamps the stored index (a shrunk list keeps it clamped persistently,
   // as before); writes only when the value actually changes.
   $effect.pre(() => {
@@ -479,6 +627,12 @@
     if (!rootEl?.contains(e.target as Node)) {
       return;
     }
+    if (scopeMenuOpen && e.key === "Escape") {
+      e.preventDefault();
+      e.stopPropagation();
+      closeScopeMenu(true);
+      return;
+    }
     // List keys belong to the filter field and the list; a focused button or toggle keeps its own Enter/Space.
     const onControl = e.target instanceof HTMLButtonElement || (e.target instanceof HTMLInputElement && e.target !== inputEl);
     if (onControl && e.key !== "Escape") return;
@@ -522,8 +676,7 @@
 </script>
 
 {#snippet modalContent()}
-  <div class="modal-input-wrap">
-    <Icon name="actions" size={15} />
+  <div class="modal-input-wrap actions-header-row-1">
     <input
       class="modal-input"
       aria-label={$t("actionDrawer.filter.ariaLabel")}
@@ -534,7 +687,28 @@
       bind:this={inputEl}
       autocomplete="off"
     />
-    <span class="modal-counter">{$t("actionDrawer.counter", { open: uncompletedCount, listed: flatList.length })}</span>
+    <!-- F8: copy button goes here -->
+    <HelpPopoverButton
+      title={$t("actionDrawer.help.buttonTitle")}
+      hints={[
+        { keys: "Enter", label: $t("actionDrawer.footer.goToLine") },
+        { keys: "Shift+Enter", label: $t("actionDrawer.footer.forwardToToday") },
+        { keys: "Ctrl+Space", label: $t("actionDrawer.footer.changeState") },
+      ]}
+      operators={[
+        { code: "@", label: $t("actionDrawer.help.at") },
+        { code: "is:open", label: $t("actionDrawer.help.isOpen") },
+        { code: "is:done", label: $t("actionDrawer.help.isDone") },
+        { code: "tag:", label: $t("actionDrawer.help.tag") },
+        { code: "has:@name", label: $t("actionDrawer.help.hasAssignee") },
+        { code: "since:", label: $t("actionDrawer.help.since") },
+        { code: "before:", label: $t("actionDrawer.help.before") },
+        { code: "due:", label: $t("actionDrawer.help.due") },
+      ]}
+      onCloseFocus={() => {
+        if (!$isMobile) inputEl?.focus();
+      }}
+    />
     <button
       type="button"
       class="icon-btn modal-close-btn"
@@ -561,36 +735,82 @@
       {/each}
     </div>
   {/if}
-  <div class="modal-input-wrap">
-    <div class="settings-toggle-row">
+  <div class="modal-input-wrap actions-header-row-2" class:is-mobile={$isMobile} class:is-narrow={isNarrow}>
+    {#if isNarrow}
+      <button
+        type="button"
+        class="filter-chip scope-chip active"
+        aria-haspopup="menu"
+        aria-expanded={scopeMenuOpen}
+        title={currentScopeOption.title}
+        bind:this={scopeBtnEl}
+        onclick={toggleScopeMenu}
+        onkeydown={onScopeTriggerKeydown}
+      >
+        <span>{currentScopeOption.label}</span>
+        <span class="scope-caret" aria-hidden="true">▾</span>
+      </button>
+    {:else}
       <Segmented
-        options={[
-          { value: "open", label: $t("actionDrawer.scope.openTabs.label"), title: $t("actionDrawer.scope.openTabs.title") },
-          { value: "other", label: $t("actionDrawer.scope.otherNotes.label"), title: $t("actionDrawer.scope.otherNotes.title") },
-          { value: "all", label: $t("actionDrawer.scope.allFiles.label"), title: $t("actionDrawer.scope.allFiles.title") },
-        ]}
+        options={scopeOptions}
         value={scope}
         onChange={(v) => setScope(v as "open" | "other" | "all")}
       />
-      {#if loadingAllFiles}
-        <span class="modal-spinner" aria-label={$t("common.loading")}>⟳</span>
-      {/if}
-      <label
-        class="toggle-switch"
-        class:disabled={hasIsFilter}
-        title={hasIsFilter ? $t("actionDrawer.onlyOpen.setByFilterTitle") : $t("actionDrawer.onlyOpen.title")}
-      >
-        <input type="checkbox" bind:checked={$actionDrawerShowOnlyOpen} disabled={hasIsFilter} />
-        <span class="toggle-switch-track"></span>
-        {$t("actionDrawer.onlyOpen.label")}
-      </label>
-      <label class="toggle-switch" title={$t("actionDrawer.dueView.title")}>
-        <input type="checkbox" bind:checked={$actionDrawerDueView} />
-        <span class="toggle-switch-track"></span>
-        {$t("actionDrawer.dueView.label")}
-      </label>
-    </div>
+    {/if}
+    {#if loadingAllFiles}
+      <span class="modal-spinner" aria-label={$t("common.loading")}>⟳</span>
+    {/if}
+    <button
+      type="button"
+      class="filter-chip"
+      aria-pressed={$actionDrawerShowOnlyOpen}
+      disabled={hasIsFilter}
+      title={hasIsFilter ? $t("actionDrawer.onlyOpen.setByFilterTitle") : $t("actionDrawer.onlyOpen.title")}
+      onclick={() => ($actionDrawerShowOnlyOpen = !$actionDrawerShowOnlyOpen)}
+    >
+      {$t("actionDrawer.onlyOpen.label")}
+    </button>
+    <button
+      type="button"
+      class="filter-chip"
+      aria-pressed={$actionDrawerDueView}
+      title={$t("actionDrawer.dueView.title")}
+      onclick={() => ($actionDrawerDueView = !$actionDrawerDueView)}
+    >
+      {$t("actionDrawer.dueView.label")}
+    </button>
+    <span
+      class="modal-counter actions-header-counter"
+      title={fullCounterText}
+      aria-label={fullCounterText}
+    >
+      {isNarrow ? `${uncompletedCount} · ${flatList.length}` : $t("actionDrawer.counterShort", { open: uncompletedCount, listed: flatList.length })}
+    </span>
   </div>
+  {#if scopeMenuOpen}
+    <!-- svelte-ignore a11y_interactive_supports_focus -->
+    <div
+      class="more-actions-pop actions-scope-pop"
+      bind:this={scopeMenuEl}
+      role="menu"
+      aria-label={$t("actionDrawer.scope.menuAriaLabel")}
+      style="top: {scopeMenuPos.y}px; left: {scopeMenuPos.x}px;"
+      onkeydown={onScopeMenuKeydown}
+    >
+      {#each scopeOptions as opt (opt.value)}
+        <button
+          type="button"
+          class="more-actions-item {opt.value === scope ? 'is-selected' : ''}"
+          role="menuitemradio"
+          aria-checked={opt.value === scope}
+          title={opt.title}
+          onclick={() => selectScopeFromMenu(opt.value)}
+        >
+          <span>{opt.label}</span>
+        </button>
+      {/each}
+    </div>
+  {/if}
   <div
     class="modal-list"
     id="action-drawer-list"
@@ -724,13 +944,6 @@
       {/each}
     </div>
   </div>
-  {#if !$isMobile}
-    <div class="modal-footer">
-      <div class="modal-footer-hints">
-        <kbd>Enter</kbd> {$t("actionDrawer.footer.goToLine")} · <kbd>Shift+Enter</kbd> {$t("actionDrawer.footer.forwardToToday")} · <kbd>Ctrl+Space</kbd> {$t("actionDrawer.footer.changeState")}
-      </div>
-    </div>
-  {/if}
 {/snippet}
 
 {#if docked}

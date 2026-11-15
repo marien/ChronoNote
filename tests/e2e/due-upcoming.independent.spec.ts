@@ -13,8 +13,8 @@ const rows = (page: Page): Locator => drawer(page).locator('.modal-item[role="op
 const filterInput = (page: Page): Locator => drawer(page).locator(".modal-input");
 const chips = (page: Page): Locator => drawer(page).locator(".search-chip");
 const dueToggleLabel = (page: Page): Locator =>
-  drawer(page).locator(".toggle-switch").filter({ hasText: "By due date" });
-const dueToggleInput = (page: Page): Locator => dueToggleLabel(page).locator("input");
+  drawer(page).locator(".filter-chip").filter({ hasText: "By due date" });
+const dueToggleInput = (page: Page): Locator => dueToggleLabel(page);
 const statDue = (page: Page): Locator => page.locator("#stat-due");
 const statDueOverdue = (page: Page): Locator => statDue(page).locator(".stat-due-overdue");
 const statDueUpcoming = (page: Page): Locator => statDue(page).locator(".stat-due-upcoming");
@@ -229,7 +229,7 @@ test.describe("due dates upcoming, due: filter, and per-day headings", () => {
 
     // Opens Actions drawer with "By due date" checked
     await expect(drawer(page)).toBeVisible();
-    await expect(dueToggleInput(page)).toBeChecked();
+    await expect(dueToggleInput(page)).toHaveAttribute("aria-pressed", "true");
   });
 
   test("live update: typing a new upcoming action in open note updates count without reload", async ({
@@ -298,7 +298,7 @@ test.describe("due dates upcoming, due: filter, and per-day headings", () => {
 
     // Open Actions drawer
     const d = await openViaShortcut(page, "ControlOrMeta+Shift+A", "actions");
-    const allFilesRadio = d.getByRole("radio", { name: "All Files" });
+    const allFilesRadio = d.getByRole("radio", { name: "All" });
     await allFilesRadio.click();
 
     const input = filterInput(page);
@@ -373,12 +373,12 @@ test.describe("due dates upcoming, due: filter, and per-day headings", () => {
       },
     });
 
-    // Open via stat button or shortcut, ensure due view and All Files
+    // Open via stat button or shortcut, ensure due view and All
     await statDue(page).click();
     await expect(drawer(page)).toBeVisible();
-    await expect(dueToggleInput(page)).toBeChecked();
+    await expect(dueToggleInput(page)).toHaveAttribute("aria-pressed", "true");
 
-    const allFilesRadio = drawer(page).getByRole("radio", { name: "All Files" });
+    const allFilesRadio = drawer(page).getByRole("radio", { name: "All" });
     await expect(allFilesRadio).toBeChecked();
 
     const headers = groupHeaders(page);

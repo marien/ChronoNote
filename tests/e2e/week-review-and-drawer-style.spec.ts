@@ -257,8 +257,8 @@ test.describe("Dates in tabs and lists & shared list style (Part 1 & 2)", () => 
     const filterInput = actionDrawer.locator(".modal-input");
     await expect(filterInput).toHaveValue(expectedQuery);
 
-    // Verify All Files radio is active
-    const allFilesRadio = actionDrawer.getByRole("radio", { name: "All Files" });
+    // Verify All radio is active
+    const allFilesRadio = actionDrawer.getByRole("radio", { name: "All" });
     await expect(allFilesRadio).toBeChecked();
 
     // Close Action Drawer and reopen Week Review to test overdue link
@@ -274,9 +274,9 @@ test.describe("Dates in tabs and lists & shared list style (Part 1 & 2)", () => 
     await overdueBtn2.click();
     await expect(actionDrawer).toBeVisible();
 
-    // Verify Due View toggle is checked
-    const dueToggleInput = actionDrawer.locator(".toggle-switch").filter({ hasText: /due date/i }).locator("input");
-    await expect(dueToggleInput).toBeChecked();
+    // Verify Due View chip is pressed
+    const dueChip = actionDrawer.locator(".filter-chip").filter({ hasText: /due date/i });
+    await expect(dueChip).toHaveAttribute("aria-pressed", "true");
     await expect(allFilesRadio).toBeChecked();
     await expect(filterInput).toHaveValue(expectedQuery);
 

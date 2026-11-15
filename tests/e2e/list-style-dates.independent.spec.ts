@@ -447,8 +447,8 @@ test.describe("List style for week review and Action Drawer, and date setting (S
     const d = drawer(page);
     await expect(d).toBeVisible();
 
-    const allFilesRadio = d.getByRole("radio", { name: /All files/i });
-    const allFilesSeg = d.locator(".seg span.on, [role='tab'][aria-selected='true']").filter({ hasText: /All files/i });
+    const allFilesRadio = d.getByRole("radio", { name: /^All$/i });
+    const allFilesSeg = d.locator(".seg span.on, [role='tab'][aria-selected='true']").filter({ hasText: /^All$/i });
     const isAllFilesActive =
       (await allFilesRadio.isChecked().catch(() => false)) ||
       (await allFilesSeg.isVisible().catch(() => false));
@@ -478,15 +478,8 @@ test.describe("List style for week review and Action Drawer, and date setting (S
 
     await expect(d).toBeVisible();
 
-    const dueRadio = d.getByRole("radio", { name: /By due date/i });
-    // Review: in the app the due view is a switch (checkbox), not a radio.
-    const dueSwitch = d.getByRole("checkbox", { name: /By due date/i });
-    const dueSeg = d.locator(".seg span.on, [role='tab'][aria-selected='true']").filter({ hasText: /By due date/i });
-    const isDueActive =
-      (await dueSwitch.isChecked().catch(() => false)) ||
-      (await dueRadio.isChecked().catch(() => false)) ||
-      (await dueSeg.isVisible().catch(() => false));
-    expect(isDueActive).toBe(true);
+    const dueChip = d.locator(".filter-chip").filter({ hasText: /By due date/i });
+    await expect(dueChip).toHaveAttribute("aria-pressed", "true");
 
     const filterText2 =
       (await filterInput.inputValue().catch(() => "")) +

@@ -643,7 +643,7 @@
 
   function computePaneWidth(share: number, windowWidth: number): number {
     const raw = share * windowWidth;
-    const minW = 300;
+    const minW = 180;
     const maxW = Math.max(minW, windowWidth - 420);
     return Math.min(maxW, Math.max(minW, raw));
   }
@@ -660,7 +660,7 @@
   function handlePointerMove(pane: "history" | "actions" | "weekReview", e: PointerEvent) {
     if (isDraggingPane !== pane) return;
     const rawShare = (windowInnerWidth - e.clientX) / windowInnerWidth;
-    const minShare = Math.max(0.18, 300 / windowInnerWidth);
+    const minShare = Math.max(0.18, 180 / windowInnerWidth);
     const maxShare = Math.min(0.60, (windowInnerWidth - 420) / windowInnerWidth);
     const clampedShare = Math.min(maxShare, Math.max(minShare, rawShare));
     if (pane === "history") {
@@ -692,7 +692,7 @@
       const current = get(pane === "history" ? historyPaneShare : actionsPaneShare);
       const delta = e.key === "ArrowLeft" ? 0.02 : -0.02;
       const rawShare = current + delta;
-      const minShare = Math.max(0.18, 300 / windowInnerWidth);
+      const minShare = Math.max(0.18, 180 / windowInnerWidth);
       const maxShare = Math.min(0.60, (windowInnerWidth - 420) / windowInnerWidth);
       const clampedShare = Math.min(maxShare, Math.max(minShare, rawShare));
       if (pane === "history") {
