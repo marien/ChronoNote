@@ -16,12 +16,15 @@ const REFERENCE_NOTE = [
 ].join("\n");
 
 function fmtLong(locale: string, y: number, m: number, d: number): string {
-  return new Intl.DateTimeFormat(locale, {
+  const parts = new Intl.DateTimeFormat(locale, {
     weekday: "long",
     day: "numeric",
     month: "long",
     year: "numeric",
-  }).format(new Date(y, m - 1, d, 12));
+  }).formatToParts(new Date(y, m - 1, d, 12));
+  // The title has its own comma before the date: no comma right after the weekday (the brief's reference).
+  if (parts[0]?.type === "weekday" && parts[1]?.type === "literal") parts[1] = { ...parts[1], value: parts[1].value.replace(",", "") };
+  return parts.map((p) => p.value).join("");
 }
 
 function fmtShort(locale: string, y: number, m: number, d: number): string {

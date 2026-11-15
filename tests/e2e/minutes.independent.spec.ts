@@ -11,7 +11,8 @@ const MEETING_NOTE = [
   "! No meeting next week",
 ].join("\n");
 
-function expectMeetingMinutes(text: string): void {
+function expectMeetingMinutes(raw: string): void {
+  const text = raw.replace(/\r\n/g, "\n"); // Review: the Windows clipboard returns CRLF line ends.
   expect(text).toContain("Design review, ");
   expect(text).toContain("Decisions\n- Vendor choice: we go with Acme");
   expect(text).toContain("Actions\n- Ask Sam for numbers: Sam");
