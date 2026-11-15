@@ -1,8 +1,9 @@
 // @vitest-environment jsdom
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
-import { defaultKeymap, history, historyKeymap, indentWithTab, moveLineDown } from "@codemirror/commands";
+import { defaultKeymap, deleteLine, history, historyKeymap, indentWithTab, moveLineDown } from "@codemirror/commands";
 import { EditorSelection, EditorState } from "@codemirror/state";
 import { EditorView, keymap, runScopeHandlers } from "@codemirror/view";
+import { bulletContinuation, indentLines } from "./commands";
 import { exitNumberedList, moveEmptySubItemOut, numberedListKeymap, numberedListRenumberFilter } from "./numberedListKeys";
 import { pasteOverEmptyMarker } from "./pasteOverEmptyMarker";
 
@@ -326,5 +327,68 @@ describe("Rule 10, 11, 12, 14, 15: width shift, tabs, paste over marker, 1.1. st
     const pos = caretAtLine(doc, 1500);
     view.dispatch({ changes: { from: pos, to: pos, insert: "a" }, selection: { anchor: pos + 1 }, userEvent: "input.type" });
     expect(toStringSpy).not.toHaveBeenCalled();
+  });
+
+  it("Flat Rule 10: phone toolbar indentLines(view, false/true) follows flat Tab/Shift-Tab", () => {
+    const doc = "1. a\n1.1. b\n2. c";
+    const view = createView(doc, { anchor: caretAtLine(doc, 2) });
+    expect(indentLines(view, false)).toBe(true);
+    expect(view.state.doc.toString()).toBe("1. a\n1.1. b\n1.2. c");
+    expect(indentLines(view, true)).toBe(true);
+    expect(view.state.doc.toString()).toBe("1. a\n1.1. b\n2. c");
+  });
+
+  it("Flat Rule 13: deleting parent keeps orphaned flat sub-item prefix and renumbers outer siblings", () => {
+    const doc = "1. a\n1.1. b\n2. e";
+    const view = createView(doc, { anchor: caretAtLine(doc, 0) });
+    deleteLine(view);
+    expect(view.state.doc.toString()).toBe("1.1. b\n1. e");
+
+    const doc4 = "4. a\n4.1. b\n5. e";
+    const view4 = createView(doc4, { anchor: caretAtLine(doc4, 0) });
+    deleteLine(view4);
+    expect(view4.state.doc.toString()).toBe("4.1. b\n4. e");
+  });
+
+  it("Flat Rule 14 & 15: parentless dotted list keeps numbers and typing 1.1. never renumbers", () => {
+    const doc = "1. a\n";
+    const view = createView(doc, { anchor: doc.length });
+    view.dispatch({ changes: { from: doc.length, to: doc.length, insert: "1.1. b" }, userEvent: "input.type" });
+    expect(view.state.doc.toString()).toBe("1. a\n1.1. b");
+
+    const top = "1.1. a\n1.2. b\n2. c";
+    const viewTop = createView(top, { anchor: caretAtLine(top, 2) });
+    deleteLine(viewTop);
+    expect(viewTop.state.doc.toString()).toBe("1.1. a\n1.2. b");
+  });
+
+  it("Flat Rule 16: width change 9. -> 10. updates flat prefix without shifting indent, while indented subtrees still shift", () => {
+    const doc = "9. a\n9.1. b\n   note";
+    const view = createView(doc, { anchor: caretAtLine(doc, 0) });
+    expect(bulletContinuation(true)(view)).toBe(true);
+    expect(view.state.doc.toString()).toBe("9. a\n10. \n10.1. b\n    note");
+  });
+
+  it("Flat list: same-indent bullet between flat sub-items does not break parent chain", () => {
+    const doc = "1. a\n1.1. b\n- note\n1.2. c\n2. d";
+    const view = createView(doc, { anchor: caretAtLine(doc, 1) });
+    expect(bulletContinuation(true)(view)).toBe(true);
+    expect(view.state.doc.toString()).toBe("1. a\n1.1. b\n1.2. \n- note\n1.3. c\n2. d");
+  });
+
+  it("Flat speed: Tab on item 3 of a 3,000-line flat list takes well under 100 ms", () => {
+    const lines = ["1. item 1", "1.1. sub", ...Array.from({ length: 2998 }, (_, i) => `${i + 2}. item ${i + 2}`)];
+    const doc = lines.join("\n");
+    const anchor = caretAtLine(doc, 2);
+    const warmView = createView(doc, { anchor });
+    pressKey(warmView, "Tab");
+    const view = createView(doc, { anchor });
+    const t0 = performance.now();
+    pressKey(view, "Tab");
+    const elapsed = performance.now() - t0;
+    expect(elapsed).toBeLessThan(100);
+    expect(view.state.doc.line(3).text).toBe("1.2. item 2");
+    expect(view.state.doc.line(4).text).toBe("2. item 3");
+    expect(view.state.doc.line(3000).text).toBe("2998. item 2999");
   });
 });

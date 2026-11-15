@@ -12313,3 +12313,29 @@ here. Tests only; no app code changed.
   that need a real browser stay: clipboard, the context menu, the phone bar, the 3,000-line speed checks.
   `numbered-lists-smart.independent.spec.ts` became empty and was removed. The full browser suite dropped from about
   14 to 13 minutes.
+
+## 475. Flat numbered outlines: `1.`, `1.1.`, `2.` at the start of the line again
+
+**Status: on main, not released yet.**
+
+Marien (2026-11-15, on the 0.38.0-1 beta): an outline written by hand at the start of each line (`1. a`, `1.1. b`,
+`2. c`) no longer worked; `1.1. b` became `2. b` on the next Enter. Found here: that changed in v0.37.2 (§457), not in
+the 0.38 work. Before it (§201, v0.12.3) the app never renumbered, so a flat outline stayed as typed; §457's
+renumbering read a list's levels from indentation only, so two items at the same indent were always siblings. Marien
+chose to bring the flat style back, with rules approved the same day (`agent-tools/briefs/flat-behaviour.md`, outside
+the repo):
+
+- At the same indent and delimiter, an item with more number parts than the nearest numbered item above it is a flat
+  sub-item of that item. Groups, renumbering (the prefix follows the parent), Enter (`1.1.` gives `1.2.`; an empty
+  flat sub-item moves out as the parent list's next number), Backspace on an empty sub-item and the marker width rule
+  (`9.` to `10.` never shifts a flat sub-item) all use that (`getGroupsInBlock`, `findParentInBlock` and
+  `findParentInRun` in `src/lib/numberedLists.ts`).
+- In a list with a flat sub-item, Tab and Shift+Tab change the level by number at the same indent (`1.2.` to `1.1.1.`,
+  `1.2.` to `2.`), with the item's own sub-items; in other lists they indent as before (`numberedListKeys.ts`). The
+  phone toolbar's Indent follows. A selection does this only when all its lines are numbered items of one flat list.
+- Copying a flat outline as HTML nests the lists by level (`richClipboard.ts`).
+
+Indented lists behave as before. Built by Gemini 4 Hydrogen; independent tests written from the behaviour file alone
+by a second Hydrogen run (`src/lib/editor/flatLists.independent.test.ts`, 57 tests, and
+`tests/e2e/flat-lists.independent.spec.ts`); 56 passed on the coder's branch at once, the 57th read rule 12 against
+its words (the text lines up under the item right above, `1.1. b`) and was corrected. Reviewed here.

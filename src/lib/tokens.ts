@@ -420,19 +420,23 @@ export function renumberAfterInsert(following: string[], item: NumberedItem): { 
       newLine = rewrite(line, p, newNums);
       markerDelta = newNums.join(".").length + 1 - p.marker.length;
     } else if (
-      pIndentLen > itemIndentLen &&
+      pIndentLen >= itemIndentLen &&
       p.numbers.length > depth &&
       samePrefix(p.numbers) &&
       p.delimiter === item.delimiter &&
-      (p.numbers[depth - 1] === item.numbers[depth - 1] || bumped.has(p.numbers[depth - 1]))
+      (((pIndentLen > itemIndentLen || bumped.size === 0) && p.numbers[depth - 1] === item.numbers[depth - 1]) ||
+        bumped.has(p.numbers[depth - 1]))
     ) {
       const numbers = [...p.numbers];
       numbers[depth - 1] =
         p.numbers[depth - 1] === item.numbers[depth - 1] ? item.numbers[depth - 1] + 1 : bumped.get(p.numbers[depth - 1])!;
       newLine = rewrite(line, p, numbers);
       markerDelta = numbers.join(".").length + 1 - p.marker.length;
-    } else if (pIndentLen > itemIndentLen) {
-      // Deeper item (plain sub-item, different delimiter, etc.): never stops sibling renumbering.
+    } else if (
+      pIndentLen > itemIndentLen ||
+      (p.numbers.length > depth && (p.delimiter !== item.delimiter || samePrefix(p.numbers)))
+    ) {
+      // Deeper item (indented or flat sub-item): never stops sibling renumbering.
     } else {
       break;
     }

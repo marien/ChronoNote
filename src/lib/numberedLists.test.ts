@@ -351,4 +351,13 @@ describe("NL-F rules in numberedLists.ts", () => {
     expect(groups).toHaveLength(1501);
     expect(elapsed).toBeLessThan(100);
   });
+
+  it("flat sub-items link by (indent, numbers.length, delimiter), ignore bullets, and follow parent prefix", () => {
+    const lines = ["1. a", "2.1. b", "- note", "1.5. c", "2. d"];
+    expect(apply(lines, [0])).toEqual(["1. a", "1.1. b", "- note", "1.2. c", "2. d"]);
+
+    expect(apply(["9. a", "9.1. b"], [0], new Map([[0, 10]]))).toEqual(["10. a", "10.1. b"]);
+    expect(apply(["1. a", "1.1) b", "1.2) c"], [0])).toEqual(["1. a", "1.1) b", "1.2) c"]);
+    expect(emptySubItemEnter(["1. a", "1.1. b", "1.2. ", "2. e"], 2)).toBe("2. ");
+  });
 });

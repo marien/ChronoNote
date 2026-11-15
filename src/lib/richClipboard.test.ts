@@ -393,6 +393,17 @@ describe("richClipboard", () => {
         own('<ul><li>Star bullet</li></ul><ol start="2"><li>Paren numbered</li></ol>')
       );
     });
+
+    it("nests <ol> by number depth for flat numbered outlines", () => {
+      const text = "1. a\n1.1. b\n1.1.1. c\n2. d";
+      const html = noteTextToHtml(text);
+      expect(html).toBe(
+        own("<ol><li>a<ol><li>b<ol><li>c</li></ol></li></ol></li><li>d</li></ol>")
+      );
+
+      const parentless = "1.1. a\n1.2. b";
+      expect(noteTextToHtml(parentless)).toBe(own("<ol><li>a</li><li>b</li></ol>"));
+    });
   });
 
   describe("round trip", () => {

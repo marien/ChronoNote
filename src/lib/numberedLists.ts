@@ -173,10 +173,20 @@ export function findParentInBlock(
   block: ListBlock,
   idx: number,
 ): { index: number; item: ParsedItem } | null {
-  const myIndent = indentLen(lines[idx].match(/^\s*/)?.[0] ?? "");
+  const cur = parseListItem(lines[idx]);
+  const myIndent = cur ? indentLen(cur.indent) : indentLen(lines[idx].match(/^\s*/)?.[0] ?? "");
   for (let i = idx - 1; i >= block.start; i--) {
     const item = parseListItem(lines[i]);
-    if (item && indentLen(item.indent) < myIndent) {
+    if (!item) continue;
+    const ind = indentLen(item.indent);
+    if (ind < myIndent) return { index: i, item };
+    if (
+      ind === myIndent &&
+      cur?.kind === "numbered" &&
+      item.kind === "numbered" &&
+      item.delimiter === cur.delimiter &&
+      item.numbers.length < cur.numbers.length
+    ) {
       return { index: i, item };
     }
   }
@@ -250,22 +260,49 @@ export function getGroupsInBlock(
 ): NumberedGroup[] {
   const groups: NumberedGroup[] = [];
   const groupMap = new Map<string, NumberedGroup>();
-  const parentStack: { index: number; indent: number }[] = [];
+  const parentStack: { index: number; indent: number; item: ParsedItem }[] = [];
+  const chains = new Map<number, Map<"." | ")", { index: number; parts: number }[]>>();
 
   for (let i = block.start; i <= block.end; i++) {
     const item = parsedCache && parsedOffset !== undefined ? parsedCache[i - parsedOffset] : parseListItem(lines[i]);
     if (!item) continue;
 
     const ind = indentLen(item.indent);
+    while (parentStack.length > 0 && parentStack[parentStack.length - 1].indent > ind) {
+      chains.delete(parentStack[parentStack.length - 1].indent);
+      parentStack.pop();
+    }
     while (parentStack.length > 0 && parentStack[parentStack.length - 1].indent >= ind) {
       parentStack.pop();
     }
-    const parentIdx = parentStack.length > 0 ? parentStack[parentStack.length - 1].index : null;
-    parentStack.push({ index: i, indent: ind });
+    const shallowerEntry = parentStack.length > 0 ? parentStack[parentStack.length - 1] : null;
+    parentStack.push({ index: i, indent: ind, item });
 
     if (item.kind !== "numbered") continue;
 
-    const key = `${parentIdx}:${ind}:${item.delimiter}`;
+    const parts = item.numbers.length;
+    let byDelim = chains.get(ind);
+    if (!byDelim) {
+      byDelim = new Map();
+      chains.set(ind, byDelim);
+    }
+    let chain = byDelim.get(item.delimiter);
+    if (!chain) {
+      chain = [];
+      byDelim.set(item.delimiter, chain);
+    }
+    while (chain.length > 0 && chain[chain.length - 1].parts >= parts) chain.pop();
+    const flatParent = chain.length > 0 ? chain[chain.length - 1].index : null;
+    chain.push({ index: i, parts });
+
+    const parentIdx = flatParent ?? (shallowerEntry ? shallowerEntry.index : null);
+    const numberedIndentedParent = flatParent === null && shallowerEntry !== null && shallowerEntry.item.kind === "numbered";
+    const key = numberedIndentedParent
+      ? `${parentIdx}:${ind}:${item.delimiter}`
+      : flatParent !== null
+        ? `${parentIdx}:${ind}:${item.delimiter}:flat`
+        : `${parentIdx}:${ind}:${item.delimiter}:${parts}`;
+
     let g = groupMap.get(key);
     if (!g) {
       g = {
@@ -273,7 +310,7 @@ export function getGroupsInBlock(
         indent: ind,
         delimiter: item.delimiter,
         parent: parentIdx,
-        start: item.numbers[item.numbers.length - 1],
+        start: item.numbers[parts - 1],
         items: [],
       };
       groupMap.set(key, g);
@@ -283,6 +320,22 @@ export function getGroupsInBlock(
   }
 
   return groups;
+}
+
+/** True when a list block contains at least one flat sub-item (same indent as its parent). */
+export function isFlatStyleGroups(
+  lines: string[],
+  groups: NumberedGroup[],
+  parsedOffset?: number,
+  parsedCache?: (ParsedItem | null)[],
+): boolean {
+  for (const g of groups) {
+    if (g.parent === null) continue;
+    const pItem =
+      parsedCache && parsedOffset !== undefined ? parsedCache[g.parent - parsedOffset] : parseListItem(lines[g.parent]);
+    if (pItem && indentLen(pItem.indent) === g.indent) return true;
+  }
+  return false;
 }
 
 export interface TouchedRun {
@@ -319,6 +372,32 @@ export function getTouchedRuns(lines: string[], touched: number[]): TouchedRun[]
   return result.sort((a, b) => a.block.start - b.block.start);
 }
 
+/** Recompute blocks inside an already-parsed run after lines `[fromIdx, toIdx]` changed (rule 15). */
+export function refreshRunsForRange(
+  lines: string[],
+  run: TouchedRun,
+  fromIdx: number,
+  toIdx: number,
+  focusIdx = fromIdx,
+): { run: TouchedRun; groups: NumberedGroup[] } | null {
+  const parsed = [...run.parsed];
+  const lo = Math.max(run.runStart, fromIdx);
+  const hi = Math.min(run.runEnd, toIdx);
+  let sameBlock = focusIdx >= run.block.start && focusIdx <= run.block.end;
+  for (let i = lo; i <= hi; i++) {
+    const prev = parsed[i - run.runStart];
+    const next = parseListItem(lines[i]);
+    if (!prev || !next || indentLen(prev.indent) !== indentLen(next.indent)) sameBlock = false;
+    parsed[i - run.runStart] = next;
+  }
+  const block = sameBlock
+    ? run.block
+    : findBlocksInRange(lines, run.runStart, run.runEnd, run.runStart, parsed).find((b) => focusIdx >= b.start && focusIdx <= b.end);
+  if (!block) return null;
+  const updated: TouchedRun = { block, runStart: run.runStart, runEnd: run.runEnd, parsed };
+  return { run: updated, groups: getGroupsInBlock(lines, block, run.runStart, parsed) };
+}
+
 /** Recompute blocks inside an already-parsed run after `changedIdx` changed (rule 15). */
 export function refreshRunsForLine(
   lines: string[],
@@ -326,13 +405,7 @@ export function refreshRunsForLine(
   changedIdx: number,
   idx: number,
 ): { run: TouchedRun; groups: NumberedGroup[] } | null {
-  const parsed = [...run.parsed];
-  parsed[changedIdx - run.runStart] = parseListItem(lines[changedIdx]);
-  const blocks = findBlocksInRange(lines, run.runStart, run.runEnd, run.runStart, parsed);
-  const block = blocks.find((b) => idx >= b.start && idx <= b.end);
-  if (!block) return null;
-  const updated: TouchedRun = { block, runStart: run.runStart, runEnd: run.runEnd, parsed };
-  return { run: updated, groups: getGroupsInBlock(lines, block, run.runStart, parsed) };
+  return refreshRunsForRange(lines, run, changedIdx, changedIdx, idx);
 }
 
 /** Fast single-run indent target lookup using pre-parsed items (rule 2, rule 15). */
@@ -360,10 +433,22 @@ export function tabIndentTargetInRun(run: TouchedRun, idx: number): string | nul
 }
 
 export function findParentInRun(run: TouchedRun, idx: number): { index: number; item: ParsedItem } | null {
-  const myIndent = indentLen((run.parsed[idx - run.runStart]?.indent) ?? "");
+  const cur = run.parsed[idx - run.runStart];
+  const myIndent = indentLen(cur?.indent ?? "");
   for (let i = idx - 1; i >= run.block.start; i--) {
     const item = run.parsed[i - run.runStart];
-    if (item && indentLen(item.indent) < myIndent) return { index: i, item };
+    if (!item) continue;
+    const ind = indentLen(item.indent);
+    if (ind < myIndent) return { index: i, item };
+    if (
+      ind === myIndent &&
+      cur?.kind === "numbered" &&
+      item.kind === "numbered" &&
+      item.delimiter === cur.delimiter &&
+      item.numbers.length < cur.numbers.length
+    ) {
+      return { index: i, item };
+    }
   }
   return null;
 }
@@ -389,12 +474,39 @@ export function listGroups(
   return out;
 }
 
+export function listGroupSummaries(
+  lines: string[],
+  touched: number[],
+): { first: number; indent: number; delimiter: "." | ")"; parent: number | null; start: number; parts: number }[] {
+  const out: {
+    first: number;
+    indent: number;
+    delimiter: "." | ")";
+    parent: number | null;
+    start: number;
+    parts: number;
+  }[] = [];
+  for (const { block, runStart, parsed } of getTouchedRuns(lines, touched)) {
+    for (const g of getGroupsInBlock(lines, block, runStart, parsed)) {
+      out.push({
+        first: g.first,
+        indent: g.indent,
+        delimiter: g.delimiter,
+        parent: g.parent,
+        start: g.start,
+        parts: g.items[0].item.numbers.length,
+      });
+    }
+  }
+  return out;
+}
+
 /** Pairs each new group with the old group of the same indent and delimiter whose mapped first line is closest
  *  at or before it, and returns the starts map for `renumberLists`. When one old group splits into several new ones,
  *  only the first keeps the old start and every split-off part starts again at 1 (rule 4). */
 export function matchGroupStarts(
-  oldGroups: { first: number; indent: number; delimiter: "." | ")"; parent: number | null; start: number }[],
-  newGroups: { first: number; indent: number; delimiter: "." | ")"; parent: number | null; start: number }[],
+  oldGroups: { first: number; indent: number; delimiter: "." | ")"; parent: number | null; start: number; parts?: number }[],
+  newGroups: { first: number; indent: number; delimiter: "." | ")"; parent: number | null; start: number; parts?: number }[],
   mappedFirstLine: (oldFirst: number) => number,
 ): Map<number, number> {
   const starts = new Map<number, number>();
@@ -403,7 +515,11 @@ export function matchGroupStarts(
     let bestOld: (typeof oldGroups)[0] | null = null;
     let bestDist = Infinity;
     for (const og of oldGroups) {
-      if (og.indent === ng.indent && og.delimiter === ng.delimiter) {
+      if (
+        og.indent === ng.indent &&
+        og.delimiter === ng.delimiter &&
+        (og.parts === undefined || ng.parts === undefined || og.parts === ng.parts)
+      ) {
         const mappedLine = mappedFirstLine(og.first);
         if (mappedLine <= ng.first) {
           const dist = ng.first - mappedLine;
@@ -553,8 +669,9 @@ export function renumberPrepared(
   workingGroups: NumberedGroup[],
   extraStarts?: Map<number, number>,
   skipWidthShift?: Set<number>,
+  oldGroupsOverride?: NumberedGroup[],
 ): LineEdit[] {
-  const oldGroups = getGroupsInBlock(before, beforeRun.block, beforeRun.runStart, beforeRun.parsed);
+  const oldGroups = oldGroupsOverride ?? getGroupsInBlock(before, beforeRun.block, beforeRun.runStart, beforeRun.parsed);
   return renumberFromGroups(working, oldGroups, [{ block: workingRun.block, groups: workingGroups }], extraStarts, skipWidthShift);
 }
 
@@ -565,9 +682,18 @@ function renumberFromGroups(
   extraStarts?: Map<number, number>,
   skipWidthShift?: Set<number>,
 ): LineEdit[] {
+  const withParts = (groups: NumberedGroup[]) =>
+    groups.map((g) => ({
+      first: g.first,
+      indent: g.indent,
+      delimiter: g.delimiter,
+      parent: g.parent,
+      start: g.start,
+      parts: g.items[0].item.numbers.length,
+    }));
   const newGroups: NumberedGroup[] = [];
   for (const r of newRuns) newGroups.push(...r.groups);
-  const starts = matchGroupStarts(oldGroups, newGroups, (first) => first);
+  const starts = matchGroupStarts(withParts(oldGroups), withParts(newGroups), (first) => first);
   for (const [k, v] of extraStarts ?? []) starts.set(k, v);
   return renumberRuns(working, newRuns, starts, skipWidthShift);
 }
@@ -709,7 +835,12 @@ export function emptySubItemEnter(lines: string[], idx: number): string | null {
   let prevSibling: NumberedItem = parentItem;
   for (let i = idx - 1; i > parent.index; i--) {
     const prevNum = parseNumberedItem(lines[i]);
-    if (prevNum && indentLen(prevNum.indent) === parentIndentLen && prevNum.delimiter === parentItem.delimiter) {
+    if (
+      prevNum &&
+      indentLen(prevNum.indent) === parentIndentLen &&
+      prevNum.delimiter === parentItem.delimiter &&
+      prevNum.numbers.length === parentItem.numbers.length
+    ) {
       const prevParent = findParentInBlock(lines, block, i);
       const prevParentIdx = prevParent ? prevParent.index : null;
       if (prevParentIdx === grandparentIdx) {
