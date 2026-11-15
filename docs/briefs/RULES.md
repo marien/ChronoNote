@@ -76,13 +76,11 @@ then exactly `Co-Authored-By: Gemini 4 Hydrogen <noreply@google.com>` (or the mo
 
 Keep a plan of four to eight steps in the plan file the run gives you and tick steps off as you go.
 
-Your last message is the report and nothing comes after it:
+Your last message is the report and nothing comes after it. Start with the full output of `npm run agent:report`,
+followed by:
 
-1. Commit hash(es).
-2. What you changed, per file, one line each.
-3. Checks run and their result (the exact commands).
-4. Existing tests you changed, and why. Tests you added.
-5. Anything you were unsure about, anything in the brief that did not match the code, anything you saw and left.
+1. Existing tests you changed, and why. Tests you added.
+2. Anything you were unsure about, anything in the brief that did not match the code, anything you saw and left.
 
 If the brief is wrong, contradicts the code, or you cannot make a check pass after two honest attempts: stop, commit
 nothing broken, and say so in the report. A truthful "could not" is worth more than a green run that hides it.
