@@ -307,8 +307,8 @@ describe("Flat numbered outlines: independent tests", () => {
       assertKeyAndUndo("1. a\n1.1. b\n1.2. |c\n1.3. d", "Backspace", "1. a\n1.1. b\n     |c\n1.2. d");
     });
 
-    it("Rule 12: Backspace at text start of non-empty top-level item after flat sub-item aligns under sibling", () => {
-      assertKeyAndUndo("1. a\n1.1. b\n2. |c\n3. d", "Backspace", "1. a\n1.1. b\n   |c\n2. d");
+    it("Rule 12: Backspace at text start of non-empty top-level item after flat sub-item aligns under the item above (1.1. b)", () => {
+      assertKeyAndUndo("1. a\n1.1. b\n2. |c\n3. d", "Backspace", "1. a\n1.1. b\n     |c\n2. d");
     });
   });
 
