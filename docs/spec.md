@@ -834,7 +834,18 @@ reachable from the top bar, a shortcut, or the command palette:
   for today or later while meetings exist for it fills the meeting
   sections **silently**, without the review, with the caret on line 3 (it
   writes the file at once, so opening a future day with meetings creates
-  its note).
+  its note). With the setting **Add new meetings automatically** on (the
+  default), a note that already has text gets the same treatment for changes
+  that cannot lose anything: a new meeting becomes a section, and a section
+  that is empty for a meeting that left the calendar is removed, without the
+  review, as an outside change (no undo step, the caret stays on its text),
+  with a status message that jumps to the new section. Only for a note dated
+  today or later, only while no dialog is open and the caret is not on a blank
+  line, and checked on tab switch, shortly after edits, on window focus and
+  once a minute. A reorder, or a section with text whose meeting left the
+  calendar, still goes to the review and the dot. A meeting added this way
+  and then deleted by the user is not added again (remembered per day in the
+  session file); the review lists it unchecked.
 - **Shortcuts & Symbols** (`Ctrl/Cmd+/` or `Ctrl/Cmd+Shift+/`) — the
   keyboard shortcut table (§4) and the token→glyph vocabulary (§2.2)
   side by side in two independently-scrollable columns. Each column

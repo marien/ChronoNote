@@ -172,6 +172,7 @@ test.describe("calendar sync: file-based agenda", () => {
       seed: {
         ...scenario("empty"),
         calendarSyncEnabled: true,
+        calendarAutoAdd: false, // F1: this test is about the manual review, so meetings are not added by themselves
         agendaJson: JSON.stringify([
           { date: today, start: "09:00", end: "09:30", title: "Standup " }, // trailing space
           { date: today, start: "10:00", end: "10:30", title: "Design Review" },
@@ -209,6 +210,7 @@ test.describe("sync review improvements (#78)", () => {
       seed: {
         ...scenario("empty"),
         calendarSyncEnabled: true,
+        calendarAutoAdd: false, // F1: this test is about the manual review, so meetings are not added by themselves
         agendaJson: JSON.stringify([meeting("09:00", "Alpha"), meeting("10:00", "Bravo"), meeting("11:00", "Charlie")]),
         // Pre-seed today's note so Area 3 (silent auto-sync on empty note) does
         // not auto-fill it on open — this test is about keyboard UX in the review modal.

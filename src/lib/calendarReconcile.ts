@@ -34,6 +34,9 @@ function matchKey(title: string): string {
   return titleForMatching(normalizeHeaderTitle(title.trim())).toLowerCase();
 }
 
+/** The identity of a meeting title, as the reconciler compares titles (F1: also used to match `autoAddedMeetings`). */
+export { matchKey as meetingMatchKey };
+
 const CANCELED_PREFIX = /^\[CANCELED\]\s*/i;
 
 function isCancelledHeader(header: string): boolean {
@@ -263,6 +266,57 @@ export function computeCalendarSync(
   const newContent = joinBlocks(preamble, [...before.map((s) => s.lines), ...finalBlockLines]);
 
   return { content: newContent, newTitles, reorderedTitles, removedEmpty, removedWithContent };
+}
+
+export interface AutoSyncResult {
+  /** True when `content` differs from the input and may be written without asking. */
+  apply: boolean;
+  content: string;
+  added: string[];
+  removed: string[];
+  /** True when the sync would move or remove text the user wrote (a reorder, or a section with text to remove). */
+  needsReview: boolean;
+  /** Agenda titles added automatically earlier whose section the user has since deleted: not added again. */
+  offer: string[];
+}
+
+/** F1: the part of a sync that can never lose text, decided without asking. New meetings and empty sections that
+ * left the calendar are applied; anything that would reorder sections or remove a section with text is left to the
+ * review dialog (`needsReview`). A meeting in `alreadyAdded` (an earlier automatic add) whose section is gone is
+ * the user's deletion: it is taken out of the agenda first and returned in `offer`. */
+export function computeAutoSync(
+  content: string,
+  agendaTitles: string[],
+  removedTitles: string[],
+  agendaStarts: Record<string, string>,
+  alreadyAdded: string[],
+): AutoSyncResult {
+  const addedKeys = new Set(alreadyAdded.map((x) => x.trim()).filter(Boolean).map(matchKey));
+  const sectionKeys = new Set(
+    parseSections(content)
+      .sections.filter((s) => !isAdhocSection(s.header))
+      .map((s) => s.matchKey),
+  );
+  const offer: string[] = [];
+  const agenda: string[] = [];
+  for (const raw of agendaTitles) {
+    const title = raw.trim();
+    if (!title) continue;
+    const key = matchKey(title);
+    if (addedKeys.has(key) && !sectionKeys.has(key)) offer.push(title);
+    else agenda.push(title);
+  }
+  const result = computeCalendarSync(content, agenda, removedTitles, agendaStarts);
+  const needsReview = result.reorderedTitles.length > 0 || result.removedWithContent.length > 0;
+  const apply = !needsReview && (result.newTitles.length > 0 || result.removedEmpty.length > 0);
+  return {
+    apply,
+    content: apply ? result.content : content,
+    added: apply ? result.newTitles : [],
+    removed: apply ? result.removedEmpty : [],
+    needsReview,
+    offer,
+  };
 }
 
 /** Sync review "Leave it, flagged" (§2.4/§3.3) — reinserts a removed section

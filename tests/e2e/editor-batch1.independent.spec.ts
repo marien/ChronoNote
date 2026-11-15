@@ -380,6 +380,7 @@ test.describe("Editor batch 1 — independent tests", () => {
       await seedApp(page, {
         seed: {
           calendarSyncEnabled: true,
+          calendarAutoAdd: false, // F1: this test is about the manual sync being undoable
           agendaJson: JSON.stringify([{ date: REFERENCE_TODAY, start: "09:00", end: "09:30", title: "Standup" }]),
           notes: { [file]: "Scratch notes\n" },
           session: { openTabs: [file], activeTab: file },

@@ -47,7 +47,10 @@ because they react to what it contains:
 - **An empty note fills itself.** Opening an empty note dated today or later,
   when the file has meetings for that day, writes the meeting sections
   straight away without the review step and puts the caret on the first body
-  line. A note that already has content is never changed without the review.
+  line. A note that already has content is never changed without the review,
+  except that with the setting "Add new meetings automatically" on, new
+  meetings are also added to it by themselves (anything that would move or
+  remove text you wrote still goes through the review).
 
 ## 2. Where it lives
 
