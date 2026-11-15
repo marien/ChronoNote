@@ -12358,3 +12358,7 @@ CHANGELOG statuses. Marien's choice:
 
 A beta goes from about 35 to about 6 minutes, a stable from about 35 to about 20. The runs before the PR, on the PR
 (the required checks) and on main after the merge (which also runs Native smoke) stay.
+
+Also: the two Vitest speed checks for Tab in a 3,000-item list (plain, §464, and flat, §475) allowed 100 ms; alone they
+take about 30 ms, but beside the whole parallel suite the flat one measured 110 ms and stopped the 0.38.0-2 push. Both
+now allow 250 ms (before §464 it took 12 seconds, so a real slowdown still fails).
