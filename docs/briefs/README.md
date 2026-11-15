@@ -34,7 +34,7 @@ P6, found: `installMockTauri` restores whatever state the browser tab saved earl
 scenario keeps that empty state, whatever `?scenario=` says later. Fix: `bootMockBackend`
 (`src/lib/testing/bootMock.ts`) gives a scenario seed the id `scenario:<name>`.
 
-## Wave 2 · daily gains (briefs ready)
+## Wave 2 · daily gains (merged 2026-11-15, §481-§486)
 
 Designs and Marien's decisions of 2026-11-15: `docs/design/wave2-designs.html`. F1, F2 and F8 change behaviour, so
 each also gets an independent test writer: a second run that receives only the brief's behaviour tables and reference
@@ -43,12 +43,12 @@ from another model family reads each diff before it merges.
 
 | ID | What | Brief | Order | Model |
 | :--- | :--- | :--- | :--- | :--- |
-| W2-0 | Two settings, one session field, a rich-copy helper | [wave-2/W2-0-shared-pieces.md](wave-2/W2-0-shared-pieces.md) | first | Hydrogen |
-| U1 | Actions pane header in two rows, hints behind `?` | [wave-2/U1-actions-header.md](wave-2/U1-actions-header.md) | any time (beside W2-0) | Hydrogen |
-| F1 | Calendar sync adds new meetings by itself | [wave-2/F1-calendar-auto-add.md](wave-2/F1-calendar-auto-add.md) | after W2-0 | Google-Sonnet |
-| F2 | Copy a meeting as minutes | [wave-2/F2-minutes.md](wave-2/F2-minutes.md) | after W2-0 (beside F1) | Hydrogen |
-| F8 | Copy the Actions list as shown | [wave-2/F8-copy-actions-list.md](wave-2/F8-copy-actions-list.md) | after W2-0 and U1 | Hydrogen |
-| U2 | No clipped text in any language | [wave-2/U2-no-clipped-text.md](wave-2/U2-no-clipped-text.md) | after U1 | Hydrogen |
+| W2-0 | Two settings, one session field, a rich-copy helper | [wave-2/W2-0-shared-pieces.md](wave-2/W2-0-shared-pieces.md) | first | Hydrogen · merged #237 |
+| U1 | Actions pane header in two rows, hints behind `?` | [wave-2/U1-actions-header.md](wave-2/U1-actions-header.md) | any time (beside W2-0) | Hydrogen · merged #238 |
+| F1 | Calendar sync adds new meetings by itself | [wave-2/F1-calendar-auto-add.md](wave-2/F1-calendar-auto-add.md) | after W2-0 | Google-Sonnet · merged #241 |
+| F2 | Copy a meeting as minutes | [wave-2/F2-minutes.md](wave-2/F2-minutes.md) | after W2-0 (beside F1) | Hydrogen · merged #239 |
+| F8 | Copy the Actions list as shown | [wave-2/F8-copy-actions-list.md](wave-2/F8-copy-actions-list.md) | after W2-0 and U1 | Hydrogen · merged #242 |
+| U2 | No clipped text in any language | [wave-2/U2-no-clipped-text.md](wave-2/U2-no-clipped-text.md) | after U1 | Hydrogen · merged #240 |
 
 One simplification against the design page, in F1: a new meeting is added by itself only when nothing else is
 pending for that day. If a meeting also moved, or a section with text lost its meeting, the dot shows and the dialog
