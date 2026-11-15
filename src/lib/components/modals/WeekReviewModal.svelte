@@ -687,12 +687,17 @@
   border-bottom: 1px solid var(--edge-soft);
   background: var(--surface-raised);
   gap: 8px;
+  /* F8 review: with the Copy button the narrow docked pane (1000 px window) left the title 1 px; the buttons now move
+     to a second row when the title cannot keep 140 px beside them. */
+  flex-wrap: wrap;
+  row-gap: 4px;
 }
 .week-review-title-group {
   display: flex;
   align-items: center;
   gap: 8px;
   min-width: 0;
+  flex: 1 1 140px;
 }
 .week-title {
   margin: 0;
