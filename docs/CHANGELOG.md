@@ -12007,7 +12007,7 @@ the fix; the ninth checks a really empty line still draws the glyph as the space
 
 ## 464. Numbered lists: fixes from a cross-model review
 
-**Status: released in beta 0.38.0-1 (early channel only).**
+**Status: released in v0.38.0 (beta 0.38.0-1 first).**
 
 Marien (2026-11-13) asked Gemini 4 Hydrogen to review the numbered lists (§457, §462) for correctness, test
 coverage and completeness. Its read-only review reported 10 correctness findings, the Tab-on-the-first-item edge
@@ -12054,7 +12054,7 @@ lines without `Math.min(...list)`, which overflows on a select-all delete of a v
 
 ## 465. Editing review, batch 1: no lost text
 
-**Status: released in beta 0.38.0-1 (early channel only).**
+**Status: released in v0.38.0 (beta 0.38.0-1 first).**
 
 Marien (2026-11-14) asked for a full review of the editor, the tokenizer and their surroundings, design and tests
 included, because the numbered-list bugs (§464) and §463 shook his confidence in editing. Four Gemini 4 Hydrogen
@@ -12098,7 +12098,7 @@ vs. the file, undo grouping of typing at one spot, the spell-check mark held bac
 
 ## 466. Editing commands out of the editor component, and a test editor in Vitest
 
-**Status: released in beta 0.38.0-1 (early channel only).**
+**Status: released in v0.38.0 (beta 0.38.0-1 first).**
 
 Step 1 of the editor review's test plan (`docs/design/editor-review.html`, approved 2026-11-14): the editing commands
 lived inside `EditorPane.svelte`, so they could only be tested in a browser, one case at a time. Moved, unchanged, to
@@ -12113,7 +12113,7 @@ change: the full browser suite passes unchanged. Built by Gemini 4 Hydrogen, rev
 
 ## 467. Editing review, batch 2: keys and commands
 
-**Status: released in beta 0.38.0-1 (early channel only).**
+**Status: released in v0.38.0 (beta 0.38.0-1 first).**
 
 Batch 2 of the editor review (`docs/design/editor-review.html`, approved 2026-11-14), with step 2 of its test plan: a
 table of 882 cases (`src/lib/editor/editing.*.table.test.ts`, every editing command on every kind of line, caret
@@ -12154,7 +12154,7 @@ for column 0 or Shift+Enter for a plain break now use the new keys. Built by Gem
 
 ## 468. Editing review, batch 3: one line, one meaning
 
-**Status: released in beta 0.38.0-1 (early channel only).**
+**Status: released in v0.38.0 (beta 0.38.0-1 first).**
 
 Batch 3 of the editor review (`docs/design/editor-review.html`, approved 2026-11-14). Several features read a line
 with their own regexes, so the editor, the drawer, the counts, export and the menu disagreed about the same line. Each
@@ -12190,7 +12190,7 @@ action line continues it, so `===` typed after it was `# ===`).
 
 ## 469. Editing review, batch 4: tokenizer edges, pasting and dropping
 
-**Status: released in beta 0.38.0-1 (early channel only).**
+**Status: released in v0.38.0 (beta 0.38.0-1 first).**
 
 Batch 4, the last fix batch of the editor review (`docs/design/editor-review.html`, approved 2026-11-14):
 
@@ -12219,7 +12219,7 @@ the test plan).
 
 ## 470. Editing review, test plan step 3: property tests
 
-**Status: released in beta 0.38.0-1 (early channel only).**
+**Status: released in v0.38.0 (beta 0.38.0-1 first).**
 
 Step 3 of the editor review's test plan (`docs/design/editor-review.html`): fast-check properties that generate many
 cases instead of hand-picked ones. `src/lib/roundTrip.property.test.ts`: open, edit, save and reload give the bytes the
@@ -12236,7 +12236,7 @@ Built by Gemini 4 Hydrogen, reviewed here.
 
 ## 471. Editing review, decision D4: list keys behind a state symbol
 
-**Status: released in beta 0.38.0-1 (early channel only).**
+**Status: released in v0.38.0 (beta 0.38.0-1 first).**
 
 Decision D4 of the editor review (`docs/design/editor-review.html`), designed with Marien on 2026-11-14: the
 numbered-list and bullet rules see through an action or topic symbol in front of the marker (`# 1. task`,
@@ -12267,7 +12267,7 @@ Reviewed here.
 
 ## 472. Editing review, decision D11: word moves around glyphs, dates, pills and names
 
-**Status: released in beta 0.38.0-1 (early channel only).**
+**Status: released in v0.38.0 (beta 0.38.0-1 first).**
 
 Decision D11 of the editor review (`docs/design/editor-review.html`), with Marien's choices of 2026-11-14 on the
 taste cases (`! ` and number markers, dates and `@name` all one word): Ctrl+Left/Right (with Shift), Ctrl+Backspace,
@@ -12290,7 +12290,7 @@ here.
 
 ## 473. Editing review, test plan steps 4 and 6: browser-only tests, a phone tap fix, Windows layout specs
 
-**Status: released in beta 0.38.0-1 (early channel only).**
+**Status: released in v0.38.0 (beta 0.38.0-1 first).**
 
 Step 4 of the editor review's test plan (`docs/design/editor-review.html`): `tests/e2e/editor-browser-only.spec.ts`,
 22 tests for what Vitest cannot show, written by Gemini 4 Hydrogen from the spec: composition and US-International
@@ -12310,7 +12310,7 @@ review's recommendation).
 
 ## 474. Editing review, test plan step 5: no fixed sleeps, key tests folded into the tables
 
-**Status: released in beta 0.38.0-1 (early channel only).**
+**Status: released in v0.38.0 (beta 0.38.0-1 first).**
 
 Step 5 of the editor review's test plan (`docs/design/editor-review.html`), done by Gemini 4 Hydrogen and reviewed
 here. Tests only; no app code changed.
@@ -12326,7 +12326,7 @@ here. Tests only; no app code changed.
 
 ## 475. Flat numbered outlines: `1.`, `1.1.`, `2.` at the start of the line again
 
-**Status: released in beta 0.38.0-2 (early channel only).**
+**Status: released in v0.38.0 (beta 0.38.0-2 first).**
 
 Marien (2026-11-15, on the 0.38.0-1 beta): an outline written by hand at the start of each line (`1. a`, `1.1. b`,
 `2. c`) no longer worked; `1.1. b` became `2. b` on the next Enter. Found here: that changed in v0.37.2 (§457), not in
@@ -12353,7 +12353,7 @@ confirmed the lists on the 0.38.0-2 beta (2026-11-15).
 
 ## 476. Faster releases: no second local run of a suite GitHub already passed, no waiting on the release commit
 
-**Status: on main, not released yet.**
+**Status: released in v0.38.0.**
 
 Marien (2026-11-15) counted the full test suite running several times for one beta. It ran five times: locally before
 the PR, on the PR, on main after the merge, in `release.sh`'s gates, and on the release commit. The last two added
@@ -12377,7 +12377,7 @@ its words (the text lines up under the item right above, `1.1. b`) and was corre
 
 ## 477. An outside change keeps the caret on its line when blank lines move
 
-**Status: on main, not released yet.**
+**Status: released in v0.38.0.**
 
 The property test of outside changes (§470) failed on the 0.38.0-2 release commit with a random case: two blank lines
 at the top of a note moved to the bottom (as a sync from another device can do) while the lines around the caret
