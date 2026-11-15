@@ -65,9 +65,9 @@ npm run verify
 npm run build
 ```
 
-Browser tests: only the spec files the brief names, always on the port the brief gives you, for example
-`E2E_PORT=1441 npx playwright test tests/e2e/<file>.spec.ts --workers=2 --reporter=line`. A new test that depends on
-timing is run ten times (`--repeat-each=10`) and must pass all ten.
+Browser tests: only the spec files the brief names (each checkout derives its own port and server automatically), for
+example `npx playwright test tests/e2e/<file>.spec.ts --workers=2 --reporter=line`. A new test that depends on timing
+is run ten times (`--repeat-each=10`) and must pass all ten.
 
 Commit message: a short subject in the imperative, a blank line, what and why in two or three lines, a blank line,
 then exactly `Co-Authored-By: Gemini 4 Hydrogen <noreply@google.com>` (or the model named in the brief).
@@ -76,13 +76,11 @@ then exactly `Co-Authored-By: Gemini 4 Hydrogen <noreply@google.com>` (or the mo
 
 Keep a plan of four to eight steps in the plan file the run gives you and tick steps off as you go.
 
-Your last message is the report and nothing comes after it:
+Your last message is the report and nothing comes after it. Start with the full output of `npm run agent:report`,
+followed by:
 
-1. Commit hash(es).
-2. What you changed, per file, one line each.
-3. Checks run and their result (the exact commands).
-4. Existing tests you changed, and why. Tests you added.
-5. Anything you were unsure about, anything in the brief that did not match the code, anything you saw and left.
+1. Existing tests you changed, and why. Tests you added.
+2. Anything you were unsure about, anything in the brief that did not match the code, anything you saw and left.
 
 If the brief is wrong, contradicts the code, or you cannot make a check pass after two honest attempts: stop, commit
 nothing broken, and say so in the report. A truthful "could not" is worth more than a green run that hides it.
