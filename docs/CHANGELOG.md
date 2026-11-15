@@ -12338,7 +12338,8 @@ the repo):
 Indented lists behave as before. Built by Gemini 4 Hydrogen; independent tests written from the behaviour file alone
 by a second Hydrogen run (`src/lib/editor/flatLists.independent.test.ts`, 57 tests, and
 `tests/e2e/flat-lists.independent.spec.ts`); 56 passed on the coder's branch at once, the 57th read rule 12 against
-its words (the text lines up under the item right above, `1.1. b`) and was corrected. Reviewed here.
+its words (the text lines up under the item right above, `1.1. b`) and was corrected. Reviewed here. Marien
+confirmed the lists on the 0.38.0-2 beta (2026-11-15).
 
 ## 476. Faster releases: no second local run of a suite GitHub already passed, no waiting on the release commit
 
