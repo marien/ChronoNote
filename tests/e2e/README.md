@@ -20,8 +20,11 @@ npm run test:e2e:report     # open the last HTML report
 npm run check:e2e           # type-check the specs (tsc, no browser)
 ```
 
-Playwright starts the Vite dev server itself (`webServer` in
-`playwright.config.ts`) and reuses one already on `:1420`.
+Playwright starts a fresh Vite dev server itself (`webServer` in
+`playwright.config.ts`) on a port derived from the checkout folder
+(1500-1899) with a per-port cache directory, so checkouts never collide.
+Pass `E2E_PORT=<n>` to choose a port, or `E2E_REUSE=1` (outside CI) to
+reuse a dev server already running on `:1420`.
 
 First-time setup on a new machine:
 

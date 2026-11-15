@@ -65,9 +65,9 @@ npm run verify
 npm run build
 ```
 
-Browser tests: only the spec files the brief names, always on the port the brief gives you, for example
-`E2E_PORT=1441 npx playwright test tests/e2e/<file>.spec.ts --workers=2 --reporter=line`. A new test that depends on
-timing is run ten times (`--repeat-each=10`) and must pass all ten.
+Browser tests: only the spec files the brief names (each checkout derives its own port and server automatically), for
+example `npx playwright test tests/e2e/<file>.spec.ts --workers=2 --reporter=line`. A new test that depends on timing
+is run ten times (`--repeat-each=10`) and must pass all ten.
 
 Commit message: a short subject in the imperative, a blank line, what and why in two or three lines, a blank line,
 then exactly `Co-Authored-By: Gemini 4 Hydrogen <noreply@google.com>` (or the model named in the brief).
