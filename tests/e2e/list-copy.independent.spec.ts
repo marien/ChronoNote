@@ -47,13 +47,19 @@ test.describe("Actions pane copy list (independent)", () => {
       })),
     );
 
+    // Review: the due date follows the app's language through Intl (en: "Fri, Nov 20"; the brief's example is en-GB).
+    const dueLabel = await page.evaluate((iso) => {
+      const [y, m, d] = iso.split("-").map(Number);
+      return new Intl.DateTimeFormat("en", { weekday: "short", day: "numeric", month: "short" }).format(new Date(y, m - 1, d, 12));
+    }, dueISO);
+
     const buildExpectedGroups = (includeDoneStep: boolean): string[] => {
       const out: string[] = [];
       for (const band of bandOrder) {
         if (band.iso === day1) {
           out.push(
             `${band.label} · Design review`,
-            "☐ (budget) send draft by Fri 20 Nov",
+            `☐ (budget) send draft by ${dueLabel}`,
             "  ☐ 1. numbers from Sam",
           );
           if (includeDoneStep) {
@@ -76,7 +82,7 @@ test.describe("Actions pane copy list (independent)", () => {
     await expect(toast(page)).toContainText("List copied (3");
 
     const openOnlyClip = await page.evaluate(() => navigator.clipboard.readText());
-    const openOnlyLines = openOnlyClip.split("\n");
+    const openOnlyLines = openOnlyClip.split(/\r?\n/); // Review: the Windows clipboard returns CRLF.
     expect(openOnlyLines[0].startsWith("Actions · tag:budget")).toBe(true);
     expect(openOnlyLines[0]).toContain(" · only open · ");
     expect(openOnlyLines[1]).toBe("");
@@ -92,7 +98,7 @@ test.describe("Actions pane copy list (independent)", () => {
     await expect(toast(page)).toContainText("List copied (4");
 
     const allClip = await page.evaluate(() => navigator.clipboard.readText());
-    const allLines = allClip.split("\n");
+    const allLines = allClip.split(/\r?\n/);
     expect(allLines[0].startsWith("Actions · tag:budget")).toBe(true);
     expect(allLines[0]).not.toContain("only open");
     expect(allLines[1]).toBe("");

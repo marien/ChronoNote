@@ -156,8 +156,10 @@ describe("buildListCopy (independent)", () => {
 
     const doc = new DOMParser().parseFromString(html, "text/html");
     const items = Array.from(doc.querySelectorAll("li"));
-    expect(items[0].textContent?.trim()).toBe("context line");
-    expect(items[1].textContent?.trim()).toBe("nested context");
+    // Review: a nested <ul> sits inside its parent <li>, so compare each item's own text only.
+    const ownText = (li: Element) => Array.from(li.childNodes).filter((n) => n.nodeType === 3).map((n) => n.textContent).join("").trim();
+    expect(ownText(items[0])).toBe("context line");
+    expect(ownText(items[1])).toBe("nested context");
   });
 
   it("omits the separator when section is empty", () => {
