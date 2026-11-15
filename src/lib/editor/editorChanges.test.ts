@@ -111,4 +111,15 @@ describe("editorChanges", () => {
     expect(after.doc).toBe(newText);
     expect(after.doc.slice(after.caret - 5, after.caret + targetLine.length - 5)).toBe(targetLine);
   });
+
+  it("keeps the caret's line when two blank lines tie with two text lines (property test case, 2026-11-15)", () => {
+    // Blank lines moved from the top to the bottom while the lines around the caret stayed: the kept text lines must
+    // win, so the caret's line is only edited at its end and the caret stays in ANCHOR.
+    const oldText = "\n\nGUARD_ABOVE\n ANCHOR WORD alpha\nGUARD_BELOW\nalpha\n";
+    const newText = "a\nGUARD_ABOVE\n ANCHOR WORD \nGUARD_BELOW\n\n\n";
+    const caret = oldText.indexOf("ANCHOR") + 1;
+    const after = apply(oldText, caret, newText);
+    expect(after.doc).toBe(newText);
+    expect(after.doc.slice(after.caret - 1, after.caret + 5)).toBe("ANCHOR");
+  });
 });

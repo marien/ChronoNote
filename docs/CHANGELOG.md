@@ -12363,3 +12363,16 @@ A beta goes from about 35 to about 6 minutes, a stable from about 35 to about 20
 Also: the two Vitest speed checks for Tab in a 3,000-item list (plain, §464, and flat, §475) allowed 100 ms; alone they
 take about 30 ms, but beside the whole parallel suite the flat one measured 110 ms and stopped the 0.38.0-2 push. Both
 now allow 250 ms (before §464 it took 12 seconds, so a real slowdown still fails).
+its words (the text lines up under the item right above, `1.1. b`) and was corrected. Reviewed here.
+
+## 477. An outside change keeps the caret on its line when blank lines move
+
+**Status: on main, not released yet.**
+
+The property test of outside changes (§470) failed on the 0.38.0-2 release commit with a random case: two blank lines
+at the top of a note moved to the bottom (as a sync from another device can do) while the lines around the caret
+stayed. `editorChanges` (`src/lib/editor/editorChanges.ts`), which turns an outside change into the smallest edit,
+matched lines by longest common subsequence, and the two blank lines tied with the two kept text lines around the
+caret; the tie went to the blank lines, so the caret's line counted as replaced and the caret jumped to a blank line.
+The text itself was always right. Now a kept text line counts twice as much as a blank line, so the text lines win.
+Test: a case in `editorChanges.test.ts` that fails without the fix.
