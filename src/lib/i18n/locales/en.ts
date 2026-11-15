@@ -1054,4 +1054,10 @@ export const en = {
   "minutes.toast.empty": () => "Nothing in this meeting to put in minutes.",
   "minutes.toast.noSection": () => "Put the caret in a meeting first.",
   "minutes.toast.failed": () => "Could not copy.",
+  "listCopy.button": () => "Copy list",
+  "listCopy.title": () => "Actions",
+  "listCopy.onlyOpen": () => "only open",
+  "listCopy.byDue": () => "by due date",
+  "listCopy.toast.copied": ({ count }) => `List copied (${count} actions).`,
+  "listCopy.toast.failed": () => "Could not copy.",
 } satisfies Dictionary;

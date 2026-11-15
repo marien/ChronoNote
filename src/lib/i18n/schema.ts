@@ -1061,6 +1061,13 @@ export type TranslationParams = {
   "minutes.toast.empty": undefined;
   "minutes.toast.noSection": undefined;
   "minutes.toast.failed": undefined;
+  // List copy (F8)
+  "listCopy.button": undefined;
+  "listCopy.title": undefined;
+  "listCopy.onlyOpen": undefined;
+  "listCopy.byDue": undefined;
+  "listCopy.toast.copied": { count: number };
+  "listCopy.toast.failed": undefined;
 };
 
 export type TranslationKey = keyof TranslationParams;
