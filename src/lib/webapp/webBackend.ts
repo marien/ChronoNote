@@ -36,6 +36,7 @@ import { PEEK_DEFAULTS, clampPeek } from "../peekDefaults";
 import type { CommandArgs, CommandReturn, TauriCommand, TauriCommands } from "../tauriCommands";
 import { isValidNoteFilename } from "../noteFilename";
 import { normalizeNoteText } from "../noteText";
+import { pruneAutoAddedMeetings } from "../sessionMeetings";
 import { IDB_META_KEYS, IDB_STORES, idbClear, idbDelete, idbGet, idbGetAllEntries, idbGetAllKeys, idbPut, openDb } from "./idb";
 import { WebOneDriveSyncEngine, type SyncCache } from "./webOneDriveSync";
 import { merge3 } from "./lineMerge";
@@ -80,6 +81,8 @@ interface StoredConfig {
   autoCheckUpdates: boolean;
   lastSeenVersion: string | null;
   calendarSyncEnabled: boolean;
+  calendarAutoAdd?: boolean;
+  minutesName?: string;
   fontSize?: number;
   lineHeight?: number;
   pureBlack?: boolean;
@@ -272,6 +275,8 @@ export class WebBackend {
         autoCheckUpdates: true,
         lastSeenVersion: null,
         calendarSyncEnabled: false,
+        calendarAutoAdd: true,
+        minutesName: "",
         fontSize: 13,
         lineHeight: 1.6,
         pureBlack: false,
@@ -315,6 +320,8 @@ export class WebBackend {
       autoCheckUpdates: cfg.autoCheckUpdates,
       lastSeenVersion: cfg.lastSeenVersion,
       calendarSyncEnabled: cfg.calendarSyncEnabled,
+      calendarAutoAdd: cfg.calendarAutoAdd ?? true,
+      minutesName: cfg.minutesName ?? "",
       fontSize: cfg.fontSize ?? 13,
       lineHeight: cfg.lineHeight ?? 1.6,
       pureBlack: cfg.pureBlack ?? false,
@@ -466,6 +473,8 @@ export class WebBackend {
       if (patch.readableLineLength !== undefined) cfg.readableLineLength = patch.readableLineLength;
       if (patch.autoCheckUpdates !== undefined) cfg.autoCheckUpdates = patch.autoCheckUpdates;
       if (patch.calendarSyncEnabled !== undefined) cfg.calendarSyncEnabled = patch.calendarSyncEnabled;
+      if (patch.calendarAutoAdd !== undefined) cfg.calendarAutoAdd = patch.calendarAutoAdd;
+      if (patch.minutesName !== undefined) cfg.minutesName = Array.from(patch.minutesName.trim()).slice(0, 60).join("");
       if (patch.fontSize !== undefined) cfg.fontSize = Math.min(18, Math.max(12, patch.fontSize));
       if (patch.lineHeight !== undefined) cfg.lineHeight = Math.min(1.8, Math.max(1.3, patch.lineHeight));
       if (patch.occurrenceHint !== undefined) cfg.occurrenceHint = patch.occurrenceHint;
@@ -711,15 +720,20 @@ export class WebBackend {
       return (await idbGet<TabSession>(db, STORE_META, key)) ?? null;
     },
 
-    write_tab_session: async ({ openTabs, activeTab, lastOpenedDate }) => {
+    write_tab_session: async ({ openTabs, activeTab, lastOpenedDate, autoAddedMeetings }) => {
       const db = await this.db();
       const key = await this.getActiveSessionKey();
-      await idbPut(db, STORE_META, key, {
+      const pruned = pruneAutoAddedMeetings(autoAddedMeetings, lastOpenedDate);
+      const session: TabSession = {
         schemaVersion: 1,
         openTabs: openTabs ?? [],
         activeTab: activeTab ?? null,
         lastOpenedDate: lastOpenedDate ?? null,
-      });
+      };
+      if (pruned) {
+        session.autoAddedMeetings = pruned;
+      }
+      await idbPut(db, STORE_META, key, session);
     },
 
     import_notes_bundle: async ({ notes, mode }) => {

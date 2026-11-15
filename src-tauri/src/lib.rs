@@ -244,6 +244,7 @@ async fn write_tab_session(
     open_tabs: Vec<String>,
     active_tab: Option<String>,
     last_opened_date: Option<String>,
+    auto_added_meetings: Option<std::collections::BTreeMap<String, Vec<String>>>,
 ) -> Result<(), String> {
     tauri::async_runtime::spawn_blocking(move || {
         storage::write_tab_session(
@@ -253,6 +254,7 @@ async fn write_tab_session(
                 open_tabs,
                 active_tab,
                 last_opened_date,
+                auto_added_meetings,
                 extra: Default::default(),
             },
         )

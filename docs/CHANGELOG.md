@@ -500,3 +500,4 @@ line, and this index is regenerated with `node scripts/changelog-index.mjs`.
 - §478 Two test fixes after 0.38.0
 - §479 Forward review: what comes after 0.38.0, a brief kit, and a mock-scenario fix
 - §480 Forward review wave 1: groundwork for coder runs
+- §481 Two settings and a session field for wave 2, and one copy helper

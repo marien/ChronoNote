@@ -57,6 +57,8 @@ export const fr = {
   "settings.editor.lineSpacing.ariaLabel": () => "Interligne de l'éditeur",
   "settings.calendar.sectionLabel": () => "Calendrier",
   "settings.calendar.showButtonToggle": () => 'Afficher « Synchroniser le calendrier pour ce jour »',
+  "settings.calendar.autoAddToggle": () => "Ajouter automatiquement les nouvelles réunions",
+  "settings.calendar.autoAddHint": () => "Les nouvelles réunions apparaissent d'elles-mêmes dans la note. Les modifications qui déplacent ou suppriment ce que vous avez écrit demandent toujours confirmation.",
   "settings.calendar.agendaHint.before": () => "Lit les réunions depuis un fichier ",
   "settings.calendar.agendaHint.after": () =>
     " dans votre dossier de notes — tenu à jour par le processus de votre choix, pas par ChronoNote. Les réunions sont associées aux sections par leur titre — veillez à ce que les titres correspondent si vous souhaitez resynchroniser. Deux réunions avec le même titre le même jour ne peuvent être distinguées.",
@@ -64,6 +66,8 @@ export const fr = {
   "settings.calendar.agendaMissing.after": () =>
     " trouvé dans ce dossier de notes pour l'instant — le bouton reste grisé tant qu'il n'existe pas.",
   "settings.startup.sectionLabel": () => "Démarrage",
+  "settings.minutesName.label": () => "Votre nom dans les comptes rendus",
+  "settings.minutesName.hint": () => "Affiché comme responsable de vos propres actions lorsque vous copiez une réunion en compte rendu. Vide : aucun responsable.",
   "settings.startup.label": () => "Au démarrage",
   "settings.startup.today": () => "Aujourd'hui",
   "settings.startup.smart": () => "Dernière note",
@@ -816,6 +820,8 @@ export const fr = {
   "toast.boot.failedToSave.readingWidth": () => "Échec de l'enregistrement de la largeur de lecture",
   "toast.boot.failedToSave.updateCheck": () => "Échec de l'enregistrement de la vérification des mises à jour",
   "toast.boot.failedToSave.calendarSync": () => "Échec de l'enregistrement de la synchronisation calendrier",
+  "toast.boot.failedToSave.calendarAutoAdd": () => "Échec de l'enregistrement de la préférence d'ajout automatique des réunions",
+  "toast.boot.failedToSave.minutesName": () => "Échec de l'enregistrement du nom pour les comptes rendus",
   "toast.boot.failedToSave.fontSize": () => "Échec de l'enregistrement de la taille de police",
   "toast.boot.failedToSave.lineHeight": () => "Échec de l'enregistrement de l'interligne",
   "toast.boot.failedToSave.pureBlack": () => "Échec de l'enregistrement du mode noir pur",

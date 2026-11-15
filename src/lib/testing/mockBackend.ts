@@ -36,17 +36,22 @@ import type { ToastOptions } from "../stores";
 import type { CommandArgs, CommandReturn, OneDriveAdvancedConfig, TauriCommand, TauriCommands } from "../tauriCommands";
 import { isValidNoteFilename } from "../noteFilename";
 import { normalizeNoteText } from "../noteText";
+import { pruneAutoAddedMeetings } from "../sessionMeetings";
 
 export type SeedTabSession = Omit<TabSession, "schemaVersion"> & { schemaVersion?: number };
 
 function toTabSession(s: SeedTabSession | null | undefined): TabSession | null {
   if (!s) return null;
-  return {
+  const session: TabSession = {
     schemaVersion: s.schemaVersion ?? 1,
     openTabs: s.openTabs,
     activeTab: s.activeTab,
     lastOpenedDate: s.lastOpenedDate,
   };
+  if (s.autoAddedMeetings) {
+    session.autoAddedMeetings = s.autoAddedMeetings;
+  }
+  return session;
 }
 
 export interface MockSeed {
@@ -82,6 +87,10 @@ export interface MockSeed {
   /** Whether the opt-in "Sync calendar for this day" button is shown at
    * all — mirrors `AppConfig.calendarSyncEnabled`, off by default. */
   calendarSyncEnabled?: boolean;
+  /** Mirrors `AppConfig.calendarAutoAdd`, on by default. */
+  calendarAutoAdd?: boolean;
+  /** Mirrors `AppConfig.minutesName`, empty by default. */
+  minutesName?: string;
   fontSize?: number;
   lineHeight?: number;
   pureBlack?: boolean;
@@ -343,6 +352,8 @@ export class MockBackend {
   lastCheckEarly: boolean | null = null;
   lastSeenVersion: string | null;
   calendarSyncEnabled: boolean;
+  calendarAutoAdd: boolean = true;
+  minutesName: string = "";
   fontSize: number;
   lineHeight: number;
   pureBlack: boolean;
@@ -477,6 +488,8 @@ export class MockBackend {
     this.phoneInbox = seed.phoneInbox ?? null;
     this.lastSeenVersion = seed.lastSeenVersion ?? null;
     this.calendarSyncEnabled = seed.calendarSyncEnabled ?? false;
+    this.calendarAutoAdd = seed.calendarAutoAdd ?? true;
+    this.minutesName = seed.minutesName ?? "";
     this.fontSize = seed.fontSize ?? 13;
     this.lineHeight = seed.lineHeight ?? 1.6;
     this.pureBlack = seed.pureBlack ?? false;
@@ -562,6 +575,8 @@ export class MockBackend {
       phoneLedger: this.phoneLedger,
       lastSeenVersion: this.lastSeenVersion,
       calendarSyncEnabled: this.calendarSyncEnabled,
+      calendarAutoAdd: this.calendarAutoAdd,
+      minutesName: this.minutesName,
       fontSize: this.fontSize,
       lineHeight: this.lineHeight,
       pureBlack: this.pureBlack,
@@ -631,6 +646,8 @@ export class MockBackend {
         phoneLedger?: string | null;
         lastSeenVersion?: string | null;
         calendarSyncEnabled?: boolean;
+        calendarAutoAdd?: boolean;
+        minutesName?: string;
         fontSize?: number;
         lineHeight?: number;
         pureBlack?: boolean;
@@ -672,6 +689,8 @@ export class MockBackend {
       b.phoneLedger = s.phoneLedger ?? null;
       b.lastSeenVersion = s.lastSeenVersion ?? null;
       b.calendarSyncEnabled = s.calendarSyncEnabled ?? false;
+      b.calendarAutoAdd = s.calendarAutoAdd ?? true;
+      b.minutesName = s.minutesName ?? "";
       b.readableLineLength = s.readableLineLength ?? false;
       b.fontSize = s.fontSize ?? 13;
       b.lineHeight = s.lineHeight ?? 1.6;
@@ -749,6 +768,8 @@ export class MockBackend {
       phoneCompanion: this.phoneCompanion,
       lastSeenVersion: this.lastSeenVersion,
       calendarSyncEnabled: this.calendarSyncEnabled,
+      calendarAutoAdd: this.calendarAutoAdd,
+      minutesName: this.minutesName,
       fontSize: this.fontSize,
       lineHeight: this.lineHeight,
       pureBlack: this.pureBlack,
@@ -991,6 +1012,8 @@ export class MockBackend {
       if (patch.earlyUpdates !== undefined) this.earlyUpdates = patch.earlyUpdates;
       if (patch.phoneCompanion !== undefined) this.phoneCompanion = patch.phoneCompanion;
       if (patch.calendarSyncEnabled !== undefined) this.calendarSyncEnabled = patch.calendarSyncEnabled;
+      if (patch.calendarAutoAdd !== undefined) this.calendarAutoAdd = patch.calendarAutoAdd;
+      if (patch.minutesName !== undefined) this.minutesName = Array.from(patch.minutesName.trim()).slice(0, 60).join("");
       if (patch.fontSize !== undefined) this.fontSize = Math.min(18, Math.max(12, patch.fontSize));
       if (patch.lineHeight !== undefined) this.lineHeight = Math.min(1.8, Math.max(1.3, patch.lineHeight));
       if (patch.occurrenceHint !== undefined) this.occurrenceHint = patch.occurrenceHint;
@@ -1219,13 +1242,18 @@ export class MockBackend {
 
     read_tab_session: () => this.dir().session,
 
-    write_tab_session: ({ openTabs, activeTab, lastOpenedDate }) => {
-      this.dir().session = {
+    write_tab_session: ({ openTabs, activeTab, lastOpenedDate, autoAddedMeetings }) => {
+      const pruned = pruneAutoAddedMeetings(autoAddedMeetings, lastOpenedDate);
+      const session: TabSession = {
         schemaVersion: 1,
         openTabs: openTabs ?? [],
         activeTab: activeTab ?? null,
         lastOpenedDate: lastOpenedDate ?? null,
       };
+      if (pruned) {
+        session.autoAddedMeetings = pruned;
+      }
+      this.dir().session = session;
     },
 
     path_exists: ({ path }) => this.dirs.has(path),

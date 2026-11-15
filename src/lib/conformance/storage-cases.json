@@ -113,6 +113,67 @@
     ]
   },
   {
+    "name": "write_tab_session round-trips autoAddedMeetings",
+    "steps": [
+      {
+        "cmd": "write_tab_session",
+        "args": {
+          "openTabs": ["2026-01-05.txt"],
+          "activeTab": "2026-01-05.txt",
+          "lastOpenedDate": "2026-01-05",
+          "autoAddedMeetings": {
+            "2026-01-05": ["Standup", "Design review"]
+          }
+        }
+      },
+      {
+        "cmd": "read_tab_session",
+        "args": {},
+        "expect": {
+          "fields": {
+            "schemaVersion": 1,
+            "openTabs": ["2026-01-05.txt"],
+            "activeTab": "2026-01-05.txt",
+            "lastOpenedDate": "2026-01-05",
+            "autoAddedMeetings": {
+              "2026-01-05": ["Standup", "Design review"]
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "write_tab_session drops autoAddedMeetings dates before today",
+    "steps": [
+      {
+        "cmd": "write_tab_session",
+        "args": {
+          "openTabs": ["2026-01-05.txt"],
+          "activeTab": "2026-01-05.txt",
+          "lastOpenedDate": "2026-01-05",
+          "autoAddedMeetings": {
+            "2026-01-04": ["Yesterday sync"],
+            "2026-01-05": ["Today sync"],
+            "2026-01-06": ["Tomorrow sync"]
+          }
+        }
+      },
+      {
+        "cmd": "read_tab_session",
+        "args": {},
+        "expect": {
+          "fields": {
+            "autoAddedMeetings": {
+              "2026-01-05": ["Today sync"],
+              "2026-01-06": ["Tomorrow sync"]
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
     "name": "write_tab_session is excluded from list_note_files",
     "steps": [
       {

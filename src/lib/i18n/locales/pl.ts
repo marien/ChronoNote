@@ -57,6 +57,8 @@ export const pl = {
   "settings.editor.lineSpacing.ariaLabel": () => "Interlinia edytora",
   "settings.calendar.sectionLabel": () => "Kalendarz",
   "settings.calendar.showButtonToggle": () => 'Pokaż „Synchronizuj kalendarz na ten dzień”',
+  "settings.calendar.autoAddToggle": () => "Dodawaj nowe spotkania automatycznie",
+  "settings.calendar.autoAddHint": () => "Nowe spotkania pojawiają się w notatce samoczynnie. Zmiany, które przenoszą lub usuwają to, co napisałeś, nadal najpierw pytają.",
   "settings.calendar.agendaHint.before": () => "Odczytuje spotkania z pliku ",
   "settings.calendar.agendaHint.after": () =>
     " w Twoim folderze notatek — aktualizowanego przez dowolny proces, którego używasz, a nie przez samo ChronoNote. Spotkania są dopasowywane do sekcji po tytule — zachowaj tytuły sekcji zgodne z kalendarzem. Dwa spotkania o tym samym tytule w tym samym dniu są nierozróżnialne.",
@@ -64,6 +66,8 @@ export const pl = {
   "settings.calendar.agendaMissing.after": () =>
     " w tym folderze notatek — przycisk synchronizacji pozostaje nieaktywny, dopóki plik nie powstanie.",
   "settings.startup.sectionLabel": () => "Uruchamianie",
+  "settings.minutesName.label": () => "Twoje imię w protokołach",
+  "settings.minutesName.hint": () => "Wyświetlane jako właściciel Twoich własnych zadań, gdy kopiujesz spotkanie jako protokół. Puste: brak właściciela.",
   "settings.startup.label": () => "Przy uruchomieniu",
   "settings.startup.today": () => "Dzisiaj",
   "settings.startup.smart": () => "Ostatnia notatka",
@@ -819,6 +823,8 @@ export const pl = {
   "toast.boot.failedToSave.readingWidth": () => "Nie udało się zapisać preferencji szerokości czytania",
   "toast.boot.failedToSave.updateCheck": () => "Nie udało się zapisać preferencji sprawdzania aktualizacji",
   "toast.boot.failedToSave.calendarSync": () => "Nie udało się zapisać preferencji synchronizacji kalendarza",
+  "toast.boot.failedToSave.calendarAutoAdd": () => "Nie udało się zapisać preferencji automatycznego dodawania spotkań",
+  "toast.boot.failedToSave.minutesName": () => "Nie udało się zapisać preferencji nazwy w protokołach",
   "toast.boot.failedToSave.fontSize": () => "Nie udało się zapisać preferencji rozmiaru czcionki",
   "toast.boot.failedToSave.lineHeight": () => "Nie udało się zapisać preferencji interlinii",
   "toast.boot.failedToSave.pureBlack": () => "Nie udało się zapisać preferencji czystej czerni",

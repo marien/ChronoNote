@@ -58,6 +58,8 @@ export const nl = {
   "settings.editor.lineSpacing.ariaLabel": () => "Regelafstand editor",
   "settings.calendar.sectionLabel": () => "Agenda",
   "settings.calendar.showButtonToggle": () => 'Toon "Agenda synchroniseren voor deze dag"',
+  "settings.calendar.autoAddToggle": () => "Nieuwe afspraken automatisch toevoegen",
+  "settings.calendar.autoAddHint": () => "Nieuwe afspraken komen vanzelf in de notitie. Wijzigingen die jouw tekst verplaatsen of verwijderen vragen het eerst.",
   "settings.calendar.agendaHint.before": () => "Leest afspraken uit een ",
   "settings.calendar.agendaHint.after": () =>
     " bestand in je notitiemap — actueel gehouden door welk proces je ook gebruikt om het te synchroniseren, niet door ChronoNote zelf. Afspraken worden gekoppeld aan secties op titel — houd sectietitels overeenkomstig je agenda als je wilt dat opnieuw synchroniseren ze vindt. Twee afspraken met exact dezelfde titel op dezelfde dag zijn niet van elkaar te onderscheiden.",
@@ -65,6 +67,8 @@ export const nl = {
   "settings.calendar.agendaMissing.after": () =>
     " bestand gevonden in deze notitiemap — de synchronisatieknop blijft grijs totdat er een bestaat.",
   "settings.startup.sectionLabel": () => "Opstarten",
+  "settings.minutesName.label": () => "Je naam in notulen",
+  "settings.minutesName.hint": () => "Staat als eigenaar bij je eigen acties als je een overleg als notulen kopieert. Leeg: geen eigenaar.",
   "settings.startup.label": () => "Bij het opstarten",
   "settings.startup.today": () => "Vandaag",
   "settings.startup.smart": () => "Laatste notitie",
@@ -801,6 +805,8 @@ export const nl = {
   "toast.boot.failedToSave.readingWidth": () => "Opslaan van leesbreedtevoorkeur mislukt",
   "toast.boot.failedToSave.updateCheck": () => "Opslaan van updatecontrolevoorkeur mislukt",
   "toast.boot.failedToSave.calendarSync": () => "Opslaan van agendasyncvoorkeur mislukt",
+  "toast.boot.failedToSave.calendarAutoAdd": () => "Opslaan van voorkeur voor automatisch toevoegen van afspraken mislukt",
+  "toast.boot.failedToSave.minutesName": () => "Opslaan van voorkeur voor naam in notulen mislukt",
   "toast.boot.failedToSave.fontSize": () => "Opslaan van lettergroottevoorkeur mislukt",
   "toast.boot.failedToSave.lineHeight": () => "Opslaan van regelhoogtevoorkeur mislukt",
   "toast.boot.failedToSave.pureBlack": () => "Opslaan van puur-zwart-voorkeur mislukt",

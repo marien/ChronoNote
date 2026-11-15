@@ -334,6 +334,12 @@ export const earlyUpdates = writable<boolean>(false);
  * from the top bar/More actions/command palette entirely until turned on
  * in Settings. Mirrors `AppConfig.calendarSyncEnabled`, off by default. */
 export const calendarSyncEnabled = writable<boolean>(false);
+/** Whether Calendar sync adds new meetings automatically. Mirrors `AppConfig.calendarAutoAdd`, on by default. */
+export const calendarAutoAdd = writable<boolean>(true);
+/** User's name used as the owner of their own actions when copying a meeting as minutes. Mirrors `AppConfig.minutesName`. */
+export const minutesName = writable<string>("");
+/** Meeting titles automatically added per date (`YYYY-MM-DD`), mirrored from `TabSession.autoAddedMeetings`. */
+export const autoAddedMeetings = writable<Record<string, string[]>>({});
 /** Whether `.agenda.json` currently exists in the notes folder — drives
  * graying out the sync button rather than hiding it (that's what
  * `calendarSyncEnabled` is for). Refreshed at boot, on window focus, and

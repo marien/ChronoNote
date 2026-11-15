@@ -15,10 +15,12 @@ import {
   activeTabId,
   agendaFileExists,
   appVersion,
+  autoAddedMeetings,
   autoCheckUpdates,
   backendKind,
   devBuild,
   earlyUpdates,
+  calendarAutoAdd,
   calendarSyncEnabled,
   chromeExpanded,
   colorMode,
@@ -26,6 +28,7 @@ import {
   fontSize,
   languageMode,
   lineHeight,
+  minutesName,
   pureBlack,
   isMobile,
   justUpdatedToVersion,
@@ -79,6 +82,7 @@ import { locale, t } from "./i18n";
 import { isFromNewerApp } from "./configSchema";
 import { describeApiError } from "./apiError";
 import { getOnboardingTemplate } from "./onboardingTemplate";
+import { normalizeAutoAddedMeetings } from "./sessionMeetings";
 import {
   handleWebappLaunch,
   readMobileDefaultsApplied,
@@ -397,6 +401,7 @@ export async function restoreOrBootstrapTabs() {
   try {
     const todayFilename = todayISO() + ".txt";
     const session = await api.readTabSession();
+    autoAddedMeetings.set(normalizeAutoAddedMeetings(session?.autoAddedMeetings));
     const otherFilenames = (session?.openTabs ?? []).filter((f) => f !== todayFilename);
 
     // Fire every read concurrently (one IPC round-trip in flight per file,
@@ -523,8 +528,7 @@ function scheduleTabSessionSave() {
   sessionSaveTimer = setTimeout(persistTabSession, 150);
 }
 
-function persistTabSession() {
-  sessionSaveTimer = null;
+function currentTabSessionSnapshot() {
   const list = get(tabs);
   const activeId = get(activeTabId);
   const openTabs = list
@@ -539,12 +543,32 @@ function persistTabSession() {
   // the day rolling over always forces a fresh write, even if the open
   // tabs and active tab are unchanged from yesterday.
   const today = todayISO();
-  const key = JSON.stringify({ openTabs, activeFilename, today });
-  if (key === lastPersistedSessionKey) return;
-  lastPersistedSessionKey = key;
-  api.writeTabSession(openTabs, activeFilename, today).catch(() => {
+  const autoAdded = get(autoAddedMeetings);
+  return {
+    openTabs,
+    activeFilename,
+    today,
+    autoAdded,
+    key: JSON.stringify({ openTabs, activeFilename, today, autoAdded }),
+  };
+}
+
+export function writeTabSessionNow(snap = currentTabSessionSnapshot()): void {
+  if (sessionSaveTimer) {
+    clearTimeout(sessionSaveTimer);
+    sessionSaveTimer = null;
+  }
+  lastPersistedSessionKey = snap.key;
+  api.writeTabSession(snap.openTabs, snap.activeFilename, snap.today, snap.autoAdded).catch(() => {
     // Best-effort bookkeeping, not user note content — fail silently.
   });
+}
+
+function persistTabSession() {
+  sessionSaveTimer = null;
+  const snap = currentTabSessionSnapshot();
+  if (snap.key === lastPersistedSessionKey) return;
+  writeTabSessionNow(snap);
 }
 
 export async function initApp() {
@@ -592,6 +616,8 @@ export async function initApp() {
   autoCheckUpdates.set(cfg.autoCheckUpdates);
   earlyUpdates.set(cfg.earlyUpdates ?? false);
   calendarSyncEnabled.set(cfg.calendarSyncEnabled);
+  calendarAutoAdd.set(cfg.calendarAutoAdd ?? true);
+  minutesName.set(cfg.minutesName ?? "");
   fontSize.set(cfg.fontSize ?? 13);
   lineHeight.set(cfg.lineHeight ?? 1.6);
   pureBlack.set(cfg.pureBlack ?? false);
@@ -628,6 +654,7 @@ export async function initApp() {
           await api.setOnboardingCompleted(true);
         } else {
           const session = await api.readTabSession();
+          autoAddedMeetings.set(normalizeAutoAddedMeetings(session?.autoAddedMeetings));
           if (session && session.openTabs && session.openTabs.length > 0) {
             await api.setOnboardingCompleted(true);
           } else {
@@ -966,6 +993,25 @@ export async function setCalendarSyncEnabled(enabled: boolean) {
     await api.setCalendarSyncEnabled(enabled);
   } catch {
     showToast(get(t)("toast.boot.failedToSave.calendarSync", undefined));
+  }
+}
+
+export async function setCalendarAutoAdd(enabled: boolean) {
+  calendarAutoAdd.set(enabled);
+  try {
+    await api.setCalendarAutoAdd(enabled);
+  } catch {
+    showToast(get(t)("toast.boot.failedToSave.calendarAutoAdd", undefined));
+  }
+}
+
+export async function setMinutesName(name: string) {
+  const clamped = Array.from(name.trim()).slice(0, 60).join("");
+  minutesName.set(clamped);
+  try {
+    await api.setMinutesName(clamped);
+  } catch {
+    showToast(get(t)("toast.boot.failedToSave.minutesName", undefined));
   }
 }
 

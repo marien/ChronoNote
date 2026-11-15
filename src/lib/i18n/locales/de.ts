@@ -60,6 +60,8 @@ export const de = {
   "settings.editor.lineSpacing.ariaLabel": () => "Zeilenabstand des Editors",
   "settings.calendar.sectionLabel": () => "Kalender",
   "settings.calendar.showButtonToggle": () => '„Kalender für diesen Tag synchronisieren" anzeigen',
+  "settings.calendar.autoAddToggle": () => "Neue Besprechungen automatisch hinzufügen",
+  "settings.calendar.autoAddHint": () => "Neue Besprechungen erscheinen von selbst in der Notiz. Änderungen, die deinen Text verschieben oder entfernen, fragen weiterhin vorher nach.",
   "settings.calendar.agendaHint.before": () => "Liest Termine aus einer ",
   "settings.calendar.agendaHint.after": () =>
     "-Datei in deinem Notizordner — aktuell gehalten von welchem Prozess auch immer du zum Synchronisieren verwendest, nicht von ChronoNote selbst. Termine werden Abschnitten anhand des Titels zugeordnet — halte die Abschnittstitel mit deinem Kalender übereinstimmend, wenn eine erneute Synchronisierung sie finden soll. Zwei Termine mit genau demselben Titel am selben Tag lassen sich nicht unterscheiden.",
@@ -67,6 +69,8 @@ export const de = {
   "settings.calendar.agendaMissing.after": () =>
     "-Datei in diesem Notizordner gefunden — die Synchronisierungsschaltfläche bleibt ausgegraut, bis eine existiert.",
   "settings.startup.sectionLabel": () => "Start",
+  "settings.minutesName.label": () => "Dein Name in Protokollen",
+  "settings.minutesName.hint": () => "Wird als Verantwortlicher deiner eigenen Aufgaben angezeigt, wenn du eine Besprechung als Protokoll kopierst. Leer: kein Verantwortlicher.",
   "settings.startup.label": () => "Beim Start",
   "settings.startup.today": () => "Heute",
   "settings.startup.smart": () => "Letzte Notiz",
@@ -806,6 +810,8 @@ export const de = {
   "toast.boot.failedToSave.readingWidth": () => "Speichern der Lesebreite-Einstellung fehlgeschlagen",
   "toast.boot.failedToSave.updateCheck": () => "Speichern der Update-Prüfungseinstellung fehlgeschlagen",
   "toast.boot.failedToSave.calendarSync": () => "Speichern der Kalender-Sync-Einstellung fehlgeschlagen",
+  "toast.boot.failedToSave.calendarAutoAdd": () => "Speichern der Einstellung zum automatischen Hinzufügen von Besprechungen fehlgeschlagen",
+  "toast.boot.failedToSave.minutesName": () => "Speichern des Namens für Protokolle fehlgeschlagen",
   "toast.boot.failedToSave.fontSize": () => "Speichern der Schriftgrößeneinstellung fehlgeschlagen",
   "toast.boot.failedToSave.lineHeight": () => "Speichern der Zeilenabstandseinstellung fehlgeschlagen",
   "toast.boot.failedToSave.pureBlack": () => "Speichern der Reinschwarz-Einstellung fehlgeschlagen",

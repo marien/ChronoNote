@@ -2674,7 +2674,7 @@ describe("initApp", () => {
     apiMock.readTabSession.mockResolvedValue(null);
     await controller.initApp();
     await vi.waitFor(() =>
-      expect(apiMock.writeTabSession).toHaveBeenCalledWith(expect.anything(), expect.anything(), "2026-09-15"),
+      expect(apiMock.writeTabSession).toHaveBeenCalledWith(expect.anything(), expect.anything(), "2026-09-15", {}),
     );
     vi.useRealTimers();
   });

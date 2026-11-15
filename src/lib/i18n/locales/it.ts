@@ -56,6 +56,8 @@ export const it = {
   "settings.editor.lineSpacing.ariaLabel": () => "Interlinea dell'editor",
   "settings.calendar.sectionLabel": () => "Calendario",
   "settings.calendar.showButtonToggle": () => 'Mostra "Sincronizza calendario per questo giorno"',
+  "settings.calendar.autoAddToggle": () => "Aggiungi automaticamente le nuove riunioni",
+  "settings.calendar.autoAddHint": () => "Le nuove riunioni compaiono da sole nella nota. Le modifiche che spostano o rimuovono ciò che hai scritto chiedono comunque prima conferma.",
   "settings.calendar.agendaHint.before": () => "Legge le riunioni da un file ",
   "settings.calendar.agendaHint.after": () =>
     " nella cartella delle note — aggiornato dal processo utilizzato per sincronizzarlo, non da ChronoNote. Le riunioni vengono associate alle sezioni in base al titolo: mantieni i titoli delle sezioni uguali al calendario affinché la risincronizzazione li riconosca. Due riunioni con lo stesso identico titolo nello stesso giorno non possono essere distinte.",
@@ -63,6 +65,8 @@ export const it = {
   "settings.calendar.agendaMissing.after": () =>
     " trovato ancora in questa cartella di note — il pulsante di sincronizzazione rimane disabilitato finché non ne esiste uno.",
   "settings.startup.sectionLabel": () => "Avvio",
+  "settings.minutesName.label": () => "Il tuo nome nei verbali",
+  "settings.minutesName.hint": () => "Mostrato come responsabile delle tue azioni quando copi una riunione come verbale. Vuoto: nessun responsabile.",
   "settings.startup.label": () => "All'avvio",
   "settings.startup.today": () => "Oggi",
   "settings.startup.smart": () => "Ultima nota",
@@ -813,6 +817,8 @@ export const it = {
   "toast.boot.failedToSave.readingWidth": () => "Impossibile salvare la preferenza per la larghezza di lettura",
   "toast.boot.failedToSave.updateCheck": () => "Impossibile salvare la preferenza di verifica aggiornamenti",
   "toast.boot.failedToSave.calendarSync": () => "Impossibile salvare la preferenza di sincronizzazione calendario",
+  "toast.boot.failedToSave.calendarAutoAdd": () => "Impossibile salvare la preferenza per l'aggiunta automatica delle riunioni",
+  "toast.boot.failedToSave.minutesName": () => "Impossibile salvare la preferenza del nome nei verbali",
   "toast.boot.failedToSave.fontSize": () => "Impossibile salvare la preferenza della dimensione carattere",
   "toast.boot.failedToSave.lineHeight": () => "Impossibile salvare la preferenza dell'interlinea",
   "toast.boot.failedToSave.pureBlack": () => "Impossibile salvare la preferenza per il nero assoluto",

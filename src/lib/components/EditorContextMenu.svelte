@@ -11,6 +11,7 @@
   import { recheckAll } from "../editor/spellcheck";
   import { lineMenuStateAt } from "../tokens";
   import { buildPasteDataTransfer } from "../editor/clipboardPaste";
+  import { copyPlain } from "../clipboardWrite";
 
   let menuEl = $state<HTMLDivElement>();
 
@@ -457,17 +458,9 @@
           if (!get(isMobile)) editorApi?.focus();
           if (selText) {
             const md = noteToMarkdown(selText);
-            try {
-              await navigator.clipboard.writeText(md);
-            } catch {
-              const ta = document.createElement("textarea");
-              ta.value = md;
-              document.body.appendChild(ta);
-              ta.select();
-              document.execCommand("copy");
-              document.body.removeChild(ta);
+            if (await copyPlain(md)) {
+              showToast(get(t)("toast.export.copied"));
             }
-            showToast(get(t)("toast.export.copied"));
           }
         }}
       >
