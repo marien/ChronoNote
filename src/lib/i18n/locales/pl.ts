@@ -1093,4 +1093,18 @@ export const pl = {
   "phoneChanges.noteChanged": () => "Notatka się zmieniła. Sprawdź ponownie i wybierz.",
   "phoneChanges.writeFailed": () => "Nie udało się zmienić notatki. Spróbuj ponownie.",
   "commandPalette.applyPhoneChanges.label": () => "Zastosuj zmiany z telefonu",
+
+  // Copy meeting as minutes (F2)
+  "minutes.command": () => "Kopiuj jako protokół",
+  "minutes.decisions": () => "Decyzje",
+  "minutes.actions": () => "Zadania",
+  "minutes.done": () => "Wykonane",
+  "minutes.stillOpen": () => "Nadal otwarte",
+  "minutes.remember": () => "Zapamiętać",
+  "minutes.notDiscussed": () => "nieomówione",
+  "minutes.by": () => "do",
+  "minutes.toast.copied": () => "Skopiowano protokół.",
+  "minutes.toast.empty": () => "Brak treści w tym spotkaniu do protokołu.",
+  "minutes.toast.noSection": () => "Umieść najpierw kursor w spotkaniu.",
+  "minutes.toast.failed": () => "Nie udało się skopiować.",
 } satisfies Dictionary;

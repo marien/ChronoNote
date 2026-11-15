@@ -252,11 +252,12 @@ at the line's indentation (§363).
 * **HTML & Print:**
   * Exported HTML is a complete standalone document with inline styling, app-style glyph representations, monospace body typography, and `@media print` rules. A deferred action (`> `, or `=> > ` after an arrow) gets the editor's box-with-chevron glyph (inline SVG) and the text `(deferred)` after its own text, so it reads right without styles (§468).
   * Printing a note (`Ctrl/Cmd+P`) renders the note as HTML and dispatches to the browser/OS print dialogue via an off-screen iframe.
+* **Copy as minutes:** Turns the section under the caret into formatted minutes on the clipboard (both `text/html` and `text/plain`) without modifying the note, available from the command palette and the editor's right-click menu on any line inside a section (including its title or underline, and in Peek). It groups plain follow-ups (`=> text`) under Decisions, open (`#`) and delegated (`=> @name`) actions under Actions (using `minutesName` as owner for own actions when set), completed (`v`) actions under Done, `o ` and `, ` topics under Still open (marking `, ` as not discussed), and leading `! ` lines under Remember. Deferred (`>`) and won't-do (`x`) actions, discussed topics (`. ` themselves, though their follow-ups are read), forward links, and plain/bullet/numbered/sub-title lines are left out, while `(topic)` tags and `by:YYYY-MM-DD` due dates move cleanly to the end of each entry.
 * **Entry Points:**
   * More menu (`…`) → "Export…" and "Print…".
   * Tab right-click menu → "Export…" and "Print…".
-  * Command palette (`Ctrl/Cmd+K`) → "Export…" and "Print…".
-  * Editor right-click menu → "Copy as Markdown" (when a selection exists).
+  * Command palette (`Ctrl/Cmd+K`) → "Export…", "Print…", and "Copy as minutes".
+  * Editor right-click menu → "Copy as Markdown" (when a selection exists) and "Copy as minutes" (inside a section).
 
 ### 2.6 Spell Check (§370, §375-§378)
 * **Off by default;** Settings → Appearance → "Spell check".

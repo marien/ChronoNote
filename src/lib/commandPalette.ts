@@ -63,6 +63,7 @@ import { checkForUpdates } from "./updates";
 import { formatCombo, formatShortcut, shortcutById } from "./shortcuts";
 import { exportAllNotesToFile } from "./exportImport";
 import { openExportModal, printActiveNote } from "./exportNotes";
+import { copyAsMinutes } from "./minutesActions";
 import { t } from "./i18n";
 import type { TranslationKey } from "./i18n/schema";
 
@@ -265,6 +266,14 @@ function commandItems(): PaletteItem[] {
       hint: formatShortcut("openHistory"),
       group: "Commands",
       run: openMeetingHistory,
+    },
+    {
+      id: "cmd-copy-minutes",
+      label: translate("minutes.command", undefined),
+      group: "Commands",
+      run: async () => {
+        await copyAsMinutes();
+      },
     },
     {
       id: "cmd-week-review",

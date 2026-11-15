@@ -1036,4 +1036,18 @@ export const en = {
   "phoneChanges.noteChanged": () => "The note changed. Look again and choose.",
   "phoneChanges.writeFailed": () => "Couldn't change the note. Try again.",
   "commandPalette.applyPhoneChanges.label": () => "Apply phone changes",
+
+  // Copy meeting as minutes (F2)
+  "minutes.command": () => "Copy as minutes",
+  "minutes.decisions": () => "Decisions",
+  "minutes.actions": () => "Actions",
+  "minutes.done": () => "Done",
+  "minutes.stillOpen": () => "Still open",
+  "minutes.remember": () => "Remember",
+  "minutes.notDiscussed": () => "not discussed",
+  "minutes.by": () => "by",
+  "minutes.toast.copied": () => "Minutes copied.",
+  "minutes.toast.empty": () => "Nothing in this meeting to put in minutes.",
+  "minutes.toast.noSection": () => "Put the caret in a meeting first.",
+  "minutes.toast.failed": () => "Could not copy.",
 } satisfies Dictionary;
