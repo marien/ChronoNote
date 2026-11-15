@@ -94,12 +94,16 @@ function parseSpecLine(line: string, lineIndex: number): SpecLine {
   const ws = line.match(/^[ \t]*/)?.[0] ?? "";
   const leadMatch = line.slice(ws.length).match(/^([#vx>o.,] )/);
   const lead = leadMatch ? leadMatch[1] : "";
+  const extra = lead ? (line.slice(ws.length + lead.length).match(/^ */)?.[0].length ?? 0) : 0;
   return {
     kind: "other",
     lineIndex,
     indent: ws,
-    // Non-list lead lines count at their text column (indent + 2) so they don't split lists.
-    indentCols: indentColumns(ws) + lead.length,
+    // §471 rule 1.3: a lead line with extra spaces after the lead (`#    x`, text under an item's text) counts at its
+    // text column, so it continues the list; any other line, `# call Sam` included, counts at its indent. (This said
+    // indent + 2 for every lead line, so `#  note` under `1.` counted at 2, not 3, and a 2026-11-15 run expected a
+    // flat chain at column 3 to end there.)
+    indentCols: extra > 0 ? indentColumns(ws) + lead.length + extra : indentColumns(ws),
     lead,
     raw: line,
   };

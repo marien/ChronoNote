@@ -12386,3 +12386,18 @@ matched lines by longest common subsequence, and the two blank lines tied with t
 caret; the tie went to the blank lines, so the caret's line counted as replaced and the caret jumped to a blank line.
 The text itself was always right. Now a kept text line counts twice as much as a blank line, so the text lines win.
 Test: a case in `editorChanges.test.ts` that fails without the fix.
+
+## 478. Two test fixes after 0.38.0
+
+**Status: on main, not released yet.**
+
+Tests only; the app is unchanged.
+
+- The numbered-list property test (§470, extended in §475) failed on the 0.38.0 release commit's Test run with a
+  random case: `1.`, a continuation line `#  note 1`, then a flat outline `1.1.` / `1.1.1.` at column 3. The test's own
+  model counted the continuation line at column 2 (indent plus `# `), so it expected the `1.1.` chain at column 3 to
+  end there; §471 rule 1.3 (and `nonListLineColumn`, which the editor uses) counts such a line at its text column, 3,
+  so the chain goes on and the editor's `1.1.1.` was right. The model now follows rule 1.3 (a lead line without extra
+  spaces counts at its indent). The failing seed passes, as do 3,000 random cases per property.
+- `lineAgreement.test.ts` (360 fixed cases, about 1.3 s alone) failed once in a push check beside the whole parallel
+  suite, most likely on Vitest's 5 s default, and passed in 29 runs after; it now has 20 s.
