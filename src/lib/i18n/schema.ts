@@ -63,11 +63,15 @@ export type TranslationParams = {
   "settings.editor.lineSpacing.ariaLabel": undefined;
   "settings.calendar.sectionLabel": undefined;
   "settings.calendar.showButtonToggle": undefined;
+  "settings.calendar.autoAddToggle": undefined;
+  "settings.calendar.autoAddHint": undefined;
   "settings.calendar.agendaHint.before": undefined;
   "settings.calendar.agendaHint.after": undefined;
   "settings.calendar.agendaMissing.before": undefined;
   "settings.calendar.agendaMissing.after": undefined;
   "settings.startup.sectionLabel": undefined;
+  "settings.minutesName.label": undefined;
+  "settings.minutesName.hint": undefined;
   "settings.startup.label": undefined;
   "settings.startup.today": undefined;
   "settings.startup.smart": undefined;
@@ -816,6 +820,8 @@ export type TranslationParams = {
   "toast.boot.failedToSave.readingWidth": undefined;
   "toast.boot.failedToSave.updateCheck": undefined;
   "toast.boot.failedToSave.calendarSync": undefined;
+  "toast.boot.failedToSave.calendarAutoAdd": undefined;
+  "toast.boot.failedToSave.minutesName": undefined;
   "toast.boot.failedToSave.fontSize": undefined;
   "toast.boot.failedToSave.lineHeight": undefined;
   "toast.boot.failedToSave.pureBlack": undefined;

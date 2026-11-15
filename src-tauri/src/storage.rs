@@ -357,6 +357,14 @@ pub struct AppConfig {
     /// Off by default; only one laptop should have it on (docs/design/mobile-companion-design.md).
     #[serde(default)]
     pub phone_companion: bool,
+    /// Whether Calendar sync adds new meetings automatically (§F1).
+    /// On by default; old configs without this field load as true.
+    #[serde(default = "default_true")]
+    pub calendar_auto_add: bool,
+    /// User's display name shown as the owner of their own actions when copying a meeting as minutes.
+    /// Trimmed and capped at 60 characters on save; empty by default.
+    #[serde(default)]
+    pub minutes_name: String,
     #[serde(flatten)]
     #[ts(skip)]
     pub extra: serde_json::Map<String, serde_json::Value>,
@@ -414,6 +422,10 @@ pub struct ConfigPatch {
     pub early_updates: Option<bool>,
     #[ts(optional)]
     pub phone_companion: Option<bool>,
+    #[ts(optional)]
+    pub calendar_auto_add: Option<bool>,
+    #[ts(optional)]
+    pub minutes_name: Option<String>,
 }
 
 impl ConfigPatch {
@@ -488,7 +500,17 @@ impl ConfigPatch {
         if let Some(v) = self.phone_companion {
             cfg.phone_companion = v;
         }
+        if let Some(v) = self.calendar_auto_add {
+            cfg.calendar_auto_add = v;
+        }
+        if let Some(v) = self.minutes_name {
+            cfg.minutes_name = clamp_minutes_name(&v);
+        }
     }
+}
+
+fn clamp_minutes_name(name: &str) -> String {
+    name.trim().chars().take(60).collect()
 }
 
 fn default_true() -> bool {
@@ -763,6 +785,8 @@ fn load_config_at(path: &Path, default_notes_dir: &Path) -> Result<AppConfig, St
         actions_pane_share: default_pane_share(),
         early_updates: false,
         phone_companion: false,
+        calendar_auto_add: true,
+        minutes_name: String::new(),
         extra: Default::default(),
     };
     save_config_at(path, &cfg)?;
@@ -770,7 +794,9 @@ fn load_config_at(path: &Path, default_notes_dir: &Path) -> Result<AppConfig, St
 }
 
 fn save_config_at(path: &Path, cfg: &AppConfig) -> Result<(), String> {
-    let raw = serde_json::to_string_pretty(cfg).map_err(|e| e.to_string())?;
+    let mut cfg = cfg.clone();
+    cfg.minutes_name = clamp_minutes_name(&cfg.minutes_name);
+    let raw = serde_json::to_string_pretty(&cfg).map_err(|e| e.to_string())?;
     atomic_write(path, raw.as_bytes()).map_err(|e| e.to_string())
 }
 
@@ -1693,6 +1719,11 @@ pub struct TabSession {
     #[serde(default)]
     #[ts(optional = nullable)]
     pub last_opened_date: Option<String>,
+    /// Meeting titles automatically added to a day's note by calendar sync,
+    /// keyed by `YYYY-MM-DD`. Entries before `last_opened_date` are dropped on write.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[ts(optional = nullable)]
+    pub auto_added_meetings: Option<std::collections::BTreeMap<String, Vec<String>>>,
     #[serde(flatten)]
     #[ts(skip)]
     pub extra: serde_json::Map<String, serde_json::Value>,
@@ -1718,6 +1749,15 @@ fn read_tab_session_at(root: &Path) -> Result<Option<TabSession>, String> {
 fn write_tab_session_at(root: &Path, session: &TabSession) -> Result<(), String> {
     fs::create_dir_all(root).map_err(|e| e.to_string())?;
     let mut session = session.clone();
+    if let (Some(today), Some(meetings)) = (
+        session.last_opened_date.as_deref(),
+        session.auto_added_meetings.as_mut(),
+    ) {
+        meetings.retain(|date, _| date.as_str() >= today);
+    }
+    if session.auto_added_meetings.as_ref().is_some_and(|m| m.is_empty()) {
+        session.auto_added_meetings = None;
+    }
     let path = root.join(SESSION_FILENAME);
     if path.exists() {
         if let Ok(raw) = fs::read_to_string(&path) {
@@ -2156,6 +2196,8 @@ mod tests {
             actions_pane_share: 0.45,
             early_updates: false,
             phone_companion: false,
+            calendar_auto_add: true,
+            minutes_name: "Alice".to_string(),
             extra: Default::default(),
         };
         save_config_at(&path, &cfg).unwrap();
@@ -2235,6 +2277,8 @@ mod tests {
                 actions_pane_share: default_pane_share(),
                 early_updates: false,
                 phone_companion: false,
+                calendar_auto_add: true,
+                minutes_name: String::new(),
                 extra: Default::default(),
             };
             save_config_at(&path, &cfg).unwrap();
@@ -2392,6 +2436,39 @@ mod tests {
         ConfigPatch { phone_companion: Some(true), ..Default::default() }.apply(&mut cfg);
         save_config_at(&path, &cfg).unwrap();
         assert!(load_config_at(&path, dir.path()).unwrap().phone_companion);
+    }
+
+    #[test]
+    fn calendar_auto_add_and_minutes_name_defaults_patch_and_truncate() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("config.json");
+        fs::write(&path, r#"{"notesDir":"/n"}"#).unwrap();
+        let mut cfg = load_config_at(&path, dir.path()).unwrap();
+        assert!(cfg.calendar_auto_add);
+        assert_eq!(cfg.minutes_name, "");
+
+        ConfigPatch {
+            calendar_auto_add: Some(false),
+            minutes_name: Some("  Marien  ".to_string()),
+            ..Default::default()
+        }
+        .apply(&mut cfg);
+        save_config_at(&path, &cfg).unwrap();
+        let reloaded = load_config_at(&path, dir.path()).unwrap();
+        assert!(!reloaded.calendar_auto_add);
+        assert_eq!(reloaded.minutes_name, "Marien");
+
+        let mut cfg_long = reloaded;
+        let long_name = "a".repeat(80);
+        ConfigPatch {
+            minutes_name: Some(long_name),
+            ..Default::default()
+        }
+        .apply(&mut cfg_long);
+        save_config_at(&path, &cfg_long).unwrap();
+        let reloaded_long = load_config_at(&path, dir.path()).unwrap();
+        assert_eq!(reloaded_long.minutes_name.chars().count(), 60);
+        assert_eq!(reloaded_long.minutes_name, "a".repeat(60));
     }
 
     #[test]
@@ -3146,6 +3223,7 @@ mod tests {
             open_tabs: vec!["2026-09-01.txt".to_string(), "2026-09-02.txt".to_string()],
             active_tab: Some("2026-09-02.txt".to_string()),
             last_opened_date: Some("2026-09-02".to_string()),
+            auto_added_meetings: None,
             extra: Default::default(),
         };
         write_tab_session_at(dir.path(), &session).unwrap();
@@ -3163,6 +3241,30 @@ mod tests {
         assert!(loaded.open_tabs.is_empty());
         assert_eq!(loaded.active_tab, None);
         assert_eq!(loaded.last_opened_date, None);
+        assert_eq!(loaded.auto_added_meetings, None);
+    }
+
+    #[test]
+    fn tab_session_auto_added_meetings_round_trips_and_prunes_old_dates() {
+        let dir = tempdir().unwrap();
+        let mut map = std::collections::BTreeMap::new();
+        map.insert("2026-09-01".to_string(), vec!["Yesterday".to_string()]);
+        map.insert("2026-09-02".to_string(), vec!["Standup".to_string()]);
+        map.insert("2026-09-03".to_string(), vec!["Planning".to_string()]);
+        let session = TabSession {
+            schema_version: CONFIG_SCHEMA_VERSION,
+            open_tabs: vec!["2026-09-02.txt".to_string()],
+            active_tab: Some("2026-09-02.txt".to_string()),
+            last_opened_date: Some("2026-09-02".to_string()),
+            auto_added_meetings: Some(map),
+            extra: Default::default(),
+        };
+        write_tab_session_at(dir.path(), &session).unwrap();
+        let loaded = read_tab_session_at(dir.path()).unwrap().unwrap();
+        let mut expected = std::collections::BTreeMap::new();
+        expected.insert("2026-09-02".to_string(), vec!["Standup".to_string()]);
+        expected.insert("2026-09-03".to_string(), vec!["Planning".to_string()]);
+        assert_eq!(loaded.auto_added_meetings, Some(expected));
     }
 
     #[test]
@@ -3406,6 +3508,7 @@ mod tests {
             open_tabs: vec!["2026-09-02.txt".to_string()],
             active_tab: Some("2026-09-02.txt".to_string()),
             last_opened_date: Some("2026-09-02".to_string()),
+            auto_added_meetings: None,
             extra: Default::default(),
         };
         write_tab_session_at(dir.path(), &new_session).unwrap();
@@ -4259,11 +4362,19 @@ mod tests {
                         let active_tab = args.get("activeTab").and_then(|v| v.as_str().map(String::from));
                         let last_opened_date =
                             args.get("lastOpenedDate").and_then(|v| v.as_str().map(String::from));
+                        let auto_added_meetings: Option<std::collections::BTreeMap<String, Vec<String>>> = args
+                            .get("autoAddedMeetings")
+                            .filter(|v| !v.is_null())
+                            .map(|v| serde_json::from_value(v.clone()))
+                            .transpose()
+                            .map_err(|e| e.to_string())
+                            .unwrap();
                         let session = TabSession {
                             schema_version: CONFIG_SCHEMA_VERSION,
                             open_tabs,
                             active_tab,
                             last_opened_date,
+                            auto_added_meetings,
                             extra: Default::default(),
                         };
                         write_tab_session_at(root, &session).map(|()| serde_json::Value::Null)

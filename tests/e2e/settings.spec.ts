@@ -463,6 +463,42 @@ test.describe("settings page mode and mobile sheet (§Z2)", () => {
     await expect(page.locator(".settings-page .about-version-card")).toContainText("1.2.3");
   });
 
+  test("calendar auto-add toggle and minutes name persist across reload", async ({ page }) => {
+    await seedApp(page, { seed: { notes: {}, calendarSyncEnabled: true } });
+    await openSettings(page);
+    await openSettingsTab(page, "Notes & Sync");
+
+    const autoAddToggle = settings(page).locator(".toggle-switch", {
+      hasText: "Add new meetings automatically",
+    });
+    const autoAddInput = autoAddToggle.locator("input");
+    await expect(autoAddToggle).toBeVisible();
+    await expect(autoAddInput).toBeChecked();
+
+    await autoAddToggle.click();
+    await expect(autoAddInput).not.toBeChecked();
+    expect(await page.evaluate(() => window.__CHRONO_MOCK__!.calendarAutoAdd)).toBe(false);
+
+    const nameInput = settings(page).getByRole("textbox", { name: "Your name in minutes" });
+    await expect(nameInput).toBeVisible();
+    await nameInput.fill("Ada Lovelace");
+    await expect
+      .poll(() => page.evaluate(() => window.__CHRONO_MOCK__!.minutesName))
+      .toBe("Ada Lovelace");
+
+    await page.reload();
+    await openSettings(page);
+    await openSettingsTab(page, "Notes & Sync");
+
+    const reloadedAutoAddInput = settings(page)
+      .locator(".toggle-switch", { hasText: "Add new meetings automatically" })
+      .locator("input");
+    await expect(reloadedAutoAddInput).not.toBeChecked();
+    await expect(settings(page).getByRole("textbox", { name: "Your name in minutes" })).toHaveValue(
+      "Ada Lovelace",
+    );
+  });
+
   test.describe("mobile sheet behavior", () => {
     test.use({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
 

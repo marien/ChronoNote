@@ -56,6 +56,8 @@ export const es = {
   "settings.editor.lineSpacing.ariaLabel": () => "Interlineado del editor",
   "settings.calendar.sectionLabel": () => "Calendario",
   "settings.calendar.showButtonToggle": () => 'Mostrar "Sincronizar calendario para este día"',
+  "settings.calendar.autoAddToggle": () => "Añadir nuevas reuniones automáticamente",
+  "settings.calendar.autoAddHint": () => "Las nuevas reuniones aparecen solas en la nota. Los cambios que mueven o eliminan lo que escribiste siguen preguntando primero.",
   "settings.calendar.agendaHint.before": () => "Lee las reuniones de un archivo ",
   "settings.calendar.agendaHint.after": () =>
     " en su carpeta de notas, actualizado por el proceso que use para sincronizarlo, no por ChronoNote. Las reuniones se asocian a secciones por título; mantenga los títulos de las secciones coincidentes con su calendario si desea que la resincronización las encuentre. Dos reuniones con exactamente el mismo título en el mismo día no se pueden diferenciar.",
@@ -63,6 +65,8 @@ export const es = {
   "settings.calendar.agendaMissing.after": () =>
     " en esta carpeta de notas aún; el botón de sincronización permanece deshabilitado hasta que exista uno.",
   "settings.startup.sectionLabel": () => "Inicio",
+  "settings.minutesName.label": () => "Tu nombre en actas",
+  "settings.minutesName.hint": () => "Se muestra como responsable de tus propias acciones al copiar una reunión como acta. Vacío: sin responsable.",
   "settings.startup.label": () => "Al iniciar",
   "settings.startup.today": () => "Hoy",
   "settings.startup.smart": () => "Última nota",
@@ -811,6 +815,8 @@ export const es = {
   "toast.boot.failedToSave.readingWidth": () => "Error al guardar la preferencia de ancho de lectura",
   "toast.boot.failedToSave.updateCheck": () => "Error al guardar la preferencia de búsqueda de actualizaciones",
   "toast.boot.failedToSave.calendarSync": () => "Error al guardar la preferencia de sincronización del calendario",
+  "toast.boot.failedToSave.calendarAutoAdd": () => "Error al guardar la preferencia de añadir reuniones automáticamente",
+  "toast.boot.failedToSave.minutesName": () => "Error al guardar la preferencia de nombre en actas",
   "toast.boot.failedToSave.fontSize": () => "Error al guardar la preferencia de tamaño de fuente",
   "toast.boot.failedToSave.lineHeight": () => "Error al guardar la preferencia de interlineado",
   "toast.boot.failedToSave.pureBlack": () => "Error al guardar la preferencia de negro puro",

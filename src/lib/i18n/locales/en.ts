@@ -58,6 +58,8 @@ export const en = {
   "settings.editor.lineSpacing.ariaLabel": () => "Editor line spacing",
   "settings.calendar.sectionLabel": () => "Calendar",
   "settings.calendar.showButtonToggle": () => 'Show "Sync calendar for this day"',
+  "settings.calendar.autoAddToggle": () => "Add new meetings automatically",
+  "settings.calendar.autoAddHint": () => "New meetings appear in the note by themselves. Changes that move or remove what you wrote still ask first.",
   "settings.calendar.agendaHint.before": () => "Reads meetings from a ",
   "settings.calendar.agendaHint.after": () =>
     " file in your notes folder — kept up to date by whatever process you use to sync it, not by ChronoNote itself. Meetings are matched to sections by title — keep section titles matching your calendar if you want re-syncing to find them. Two meetings with the exact same title on the same day can't be told apart.",
@@ -65,6 +67,8 @@ export const en = {
   "settings.calendar.agendaMissing.after": () =>
     " file found in this notes folder yet — the sync button stays grayed out until one exists.",
   "settings.startup.sectionLabel": () => "Startup",
+  "settings.minutesName.label": () => "Your name in minutes",
+  "settings.minutesName.hint": () => "Shown as the owner of your own actions when you copy a meeting as minutes. Empty: no owner.",
   "settings.startup.label": () => "When the app starts",
   "settings.startup.today": () => "Today",
   "settings.startup.smart": () => "Last note",
@@ -793,6 +797,8 @@ export const en = {
   "toast.boot.failedToSave.readingWidth": () => "Failed to save reading-width preference",
   "toast.boot.failedToSave.updateCheck": () => "Failed to save update-check preference",
   "toast.boot.failedToSave.calendarSync": () => "Failed to save calendar-sync preference",
+  "toast.boot.failedToSave.calendarAutoAdd": () => "Failed to save auto-add meetings preference",
+  "toast.boot.failedToSave.minutesName": () => "Failed to save minutes name preference",
   "toast.boot.failedToSave.fontSize": () => "Failed to save font size preference",
   "toast.boot.failedToSave.lineHeight": () => "Failed to save line height preference",
   "toast.boot.failedToSave.pureBlack": () => "Failed to save pure black preference",

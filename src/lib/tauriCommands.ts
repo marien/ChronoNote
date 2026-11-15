@@ -75,7 +75,12 @@ export interface TauriCommands {
   write_phone_ledger: { args: { content: string }; returns: void };
   read_tab_session: { args: NoArgs; returns: TabSession | null };
   write_tab_session: {
-    args: { openTabs: string[]; activeTab: string | null; lastOpenedDate: string | null };
+    args: {
+      openTabs: string[];
+      activeTab: string | null;
+      lastOpenedDate: string | null;
+      autoAddedMeetings?: Record<string, string[]> | null;
+    };
     returns: void;
   };
   path_exists: { args: { path: string }; returns: boolean };

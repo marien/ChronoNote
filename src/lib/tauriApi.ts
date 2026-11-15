@@ -90,6 +90,14 @@ export function setCalendarSyncEnabled(enabled: boolean): Promise<AppConfig> {
   return updateConfig({ calendarSyncEnabled: enabled });
 }
 
+export function setCalendarAutoAdd(enabled: boolean): Promise<AppConfig> {
+  return updateConfig({ calendarAutoAdd: enabled });
+}
+
+export function setMinutesName(name: string): Promise<AppConfig> {
+  return updateConfig({ minutesName: name });
+}
+
 export function setFontSize(fontSize: number): Promise<AppConfig> {
   return updateConfig({ fontSize });
 }
@@ -246,8 +254,14 @@ export function writeTabSession(
   openTabs: string[],
   activeTab: string | null,
   lastOpenedDate: string | null,
+  autoAddedMeetings?: Record<string, string[]> | null,
 ): Promise<void> {
-  return invoke("write_tab_session", { openTabs, activeTab, lastOpenedDate });
+  return invoke("write_tab_session", {
+    openTabs,
+    activeTab,
+    lastOpenedDate,
+    ...(autoAddedMeetings !== undefined ? { autoAddedMeetings } : {}),
+  });
 }
 
 export function pathExists(path: string): Promise<boolean> {

@@ -7,12 +7,14 @@
   import {
     agendaFileExists,
     backendKind,
+    calendarAutoAdd,
     calendarSyncEnabled,
     colorMode,
     fontSize,
     isMobile,
     languageMode,
     lineHeight,
+    minutesName,
     notesDir,
     oneDriveAccount,
     oneDriveSignInExpired,
@@ -68,7 +70,47 @@
   }
   let { page = false }: Props = $props();
 
+  let minutesNameTimer: ReturnType<typeof setTimeout> | null = null;
+  let minutesNameFocused = false;
+  let minutesNameDraft = $state($minutesName);
+
+  $effect(() => {
+    const storeValue = $minutesName;
+    if (!minutesNameFocused && minutesNameTimer === null) {
+      minutesNameDraft = storeValue;
+    }
+  });
+
+  function clearMinutesNameTimer() {
+    if (minutesNameTimer !== null) {
+      clearTimeout(minutesNameTimer);
+      minutesNameTimer = null;
+    }
+  }
+
+  function onMinutesNameInput(e: Event) {
+    minutesNameDraft = (e.currentTarget as HTMLInputElement).value;
+    clearMinutesNameTimer();
+    minutesNameTimer = setTimeout(() => {
+      minutesNameTimer = null;
+      void controller.setMinutesName(minutesNameDraft);
+    }, 400);
+  }
+
+  function flushMinutesName() {
+    const hadPending = minutesNameTimer !== null;
+    clearMinutesNameTimer();
+    const clamped = Array.from(minutesNameDraft.trim()).slice(0, 60).join("");
+    minutesNameDraft = clamped;
+    if (hadPending || clamped !== $minutesName) {
+      void controller.setMinutesName(clamped);
+    }
+  }
+
   onDestroy(() => {
+    if (minutesNameTimer !== null) {
+      flushMinutesName();
+    }
     if (page) {
       void tick().then(() => {
         controller.editorApi?.focus();
@@ -838,6 +880,26 @@
           </SettingRow>
         </section>
 
+        <section class="s-group">
+          <SettingRow label={$t("settings.minutesName.label")}>
+            {#snippet description()}
+              {$t("settings.minutesName.hint")}
+            {/snippet}
+            <input
+              type="text"
+              class="s-input minutes-name-input"
+              aria-label={$t("settings.minutesName.label")}
+              value={minutesNameDraft}
+              onfocus={() => (minutesNameFocused = true)}
+              oninput={onMinutesNameInput}
+              onblur={() => {
+                minutesNameFocused = false;
+                flushMinutesName();
+              }}
+            />
+          </SettingRow>
+        </section>
+
         {#if $backendKind !== "web" || $oneDriveAccount}
           <section class="s-group">
             <div class="settings-section-label">{$t("settings.calendar.sectionLabel")}</div>
@@ -850,6 +912,17 @@
                 {$t("settings.calendar.agendaHint.before")}<code>.agenda.json</code>{$t("settings.calendar.agendaHint.after")}
               {/snippet}
             </SettingToggle>
+            {#if $calendarSyncEnabled}
+              <SettingToggle
+                label={$t("settings.calendar.autoAddToggle")}
+                checked={$calendarAutoAdd}
+                onChange={(v) => controller.setCalendarAutoAdd(v)}
+              >
+                {#snippet description()}
+                  {$t("settings.calendar.autoAddHint")}
+                {/snippet}
+              </SettingToggle>
+            {/if}
             {#if $calendarSyncEnabled && !$agendaFileExists}
               <div class="s-note error">
                 {$t("settings.calendar.agendaMissing.before")}<code>.agenda.json</code>{$t("settings.calendar.agendaMissing.after")}
@@ -1402,5 +1475,12 @@
   color: var(--muted);
   font-size: var(--type-caption);
   font-family: var(--font-mono, monospace);
+}
+
+.minutes-name-input {
+  width: 220px;
+  max-width: 100%;
+  height: 32px;
+  box-sizing: border-box;
 }
 </style>
