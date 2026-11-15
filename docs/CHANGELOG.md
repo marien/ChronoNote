@@ -11579,6 +11579,8 @@ The after-release items confirmed by Marien (2026-11-06) on 0.36.0 (they were st
 
 Confirmed by Marien 2026-11-15: the 0.37.0 phone and installed web app checks.
 
+Confirmed by Marien 2026-11-15: the 0.38.0 phone and installed web app checks.
+
 ## 442. Website: the header shows the real app icon in dark mode too
 
 **Status: live on the website (website only, no app release).**
@@ -12307,6 +12309,8 @@ Step 6: the Windows layout CI job (`E2E_WINDOWS_LAYOUT=1`) also runs five pill a
 forward-link pill, find bar alignment, due flag, action tree lines) at 100/125/150 % with Windows fonts; they are not
 added to the reduced-motion, scale and contrast projects, where they add nothing. Native tests stay on main (the
 review's recommendation).
+
+Confirmed by Marien 2026-11-15: on a real phone, tapping the lower half of a checkbox or topic circle toggles its own line.
 
 ## 474. Editing review, test plan step 5: no fixed sleeps, key tests folded into the tables
 
