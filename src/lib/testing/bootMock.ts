@@ -22,12 +22,12 @@ export function bootMockBackend(params: URLSearchParams): MockBackend {
 
   if (!seed) {
     const name = params.get("scenario");
-    if (name && (SCENARIO_NAMES as string[]).includes(name)) {
-      seed = scenario(name as ScenarioName);
-    } else {
-      if (name) console.warn(`[mock] unknown scenario "${name}" — falling back to "empty"`);
-      seed = scenario("empty");
-    }
+    const known = !!name && (SCENARIO_NAMES as string[]).includes(name);
+    if (name && !known) console.warn(`[mock] unknown scenario "${name}" — falling back to "empty"`);
+    const chosen = known ? (name as ScenarioName) : "empty";
+    // §479: the id makes the mock drop state this browser tab saved under another scenario (or none). Without it a
+    // tab that once opened the app bare kept that empty state, whatever `?scenario=` said afterwards.
+    seed = { ...scenario(chosen), seedId: `scenario:${chosen}` };
   }
 
   // ?theme=light|dark: the website's demo opens in the site's theme (§440).

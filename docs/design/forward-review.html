@@ -1,0 +1,369 @@
+<title>ChronoNote Forward Review</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* Layout: one reading column (~1000px): where the app stands, my picks, proposals as decision cards grouped by area, a suggested order, what I left out. Same system as the feature review and the editor review. */
+:root {
+  --bg: #f3f4f6; --surface: #ffffff; --fg: #1a1c20; --muted: #5a606b; --line: #dde0e5;
+  --accent: #0a6fc2; --accent-fg: #ffffff; --ok: #1f8a5b; --warn: #a8650f; --bad: #b8433b;
+  --chip: #eceef2;
+  --ui: "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --display: "Segoe UI Variable Display", "Segoe UI", system-ui, sans-serif;
+  --mono: "Cascadia Code", "Cascadia Mono", Consolas, ui-monospace, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #141518; --surface: #1d1f23; --fg: #e7e8eb; --muted: #a0a6b0; --line: #2f3238;
+  --accent: #4cc2ff; --accent-fg: #06223a; --ok: #4bbf87; --warn: #e0a94e; --bad: #e07b73; --chip: #272a30; color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #141518; --surface: #1d1f23; --fg: #e7e8eb; --muted: #a0a6b0; --line: #2f3238;
+  --accent: #4cc2ff; --accent-fg: #06223a; --ok: #4bbf87; --warn: #e0a94e; --bad: #e07b73; --chip: #272a30; color-scheme: dark; }
+
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--fg); font: 15px/1.55 var(--ui); }
+.wrap { max-width: 1000px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 32px 96px; }
+h1 { font: 600 32px/1.2 var(--display); margin: 0 0 8px; text-wrap: balance; letter-spacing: -.01em; }
+h2 { font: 600 22px/1.3 var(--display); margin: 56px 0 6px; text-wrap: balance; }
+h3 { font: 600 17px/1.35 var(--display); margin: 0; text-wrap: balance; }
+p { margin: 0 0 10px; max-width: 72ch; }
+.lede { font-size: 16.5px; color: var(--muted); max-width: 70ch; }
+.eyebrow { font: 600 11.5px/1 var(--ui); text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin-bottom: 10px; }
+code, kbd { font-family: var(--mono); font-size: .86em; }
+kbd { background: var(--chip); border-radius: 3px; padding: 1px 4px; }
+a { color: var(--accent); }
+ul, ol { margin: 0 0 10px; padding-left: 20px; } li { margin: 3px 0; max-width: 72ch; }
+.st { font-size: 12.5px; color: var(--muted); }
+
+.premise { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin: 24px 0; }
+.premise div { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; min-width: 0; }
+.premise b { display: block; font: 600 24px/1.1 var(--display); font-variant-numeric: tabular-nums; margin-bottom: 4px; }
+.premise span { font-size: 13.5px; color: var(--muted); }
+
+.cards { display: flex; flex-direction: column; gap: 12px; margin-top: 16px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px 12px; min-width: 0; }
+.card.pick { border-color: color-mix(in srgb, var(--ok) 55%, var(--line)); }
+.chead { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: baseline; margin-bottom: 6px; }
+.chead .n { font: 600 13px var(--mono); color: var(--muted); }
+.chead h3 { flex: 1 1 260px; min-width: 0; }
+.tag { display: inline-block; font: 600 11.5px/1 var(--ui); padding: 4px 7px; border-radius: 999px; background: var(--chip); color: var(--fg); white-space: nowrap; }
+.tag.pick { background: color-mix(in srgb, var(--ok) 16%, transparent); color: var(--ok); }
+.tag.near { background: color-mix(in srgb, var(--warn) 16%, transparent); color: var(--warn); }
+.card p { font-size: 14.5px; }
+.card .why { color: var(--muted); }
+.card .why b { color: var(--fg); font-weight: 600; }
+
+.dec { display: flex; flex-wrap: wrap; gap: 8px 10px; align-items: center; margin-top: 8px; padding-top: 10px; border-top: 1px solid var(--line); }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+.seg button { font: 500 13px var(--ui); background: transparent; color: var(--fg); border: 0; border-right: 1px solid var(--line); padding: 5px 12px; cursor: pointer; }
+.seg button:last-child { border-right: 0; }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-fg); }
+.seg button:focus-visible, .btn:focus-visible, .dec input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.dec input { flex: 1 1 220px; min-width: 0; font: 13.5px var(--ui); color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 6px 9px; }
+
+.bar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 10; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 10px 14px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-top: 20px; }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--bg); }
+.bar .count { font-size: 13.5px; color: var(--muted); flex: 1 1 200px; font-variant-numeric: tabular-nums; }
+.btn { font: 600 13.5px var(--ui); border: 1px solid var(--line); background: var(--surface); color: var(--fg); border-radius: 6px; padding: 7px 14px; cursor: pointer; }
+.btn.primary { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
+#out { width: 100%; min-height: 120px; font: 12.5px var(--mono); color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 8px; margin-top: 8px; }
+
+.tablewrap { overflow-x: auto; margin: 12px 0; }
+table { border-collapse: collapse; width: 100%; font-size: 14px; min-width: 640px; }
+th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font: 600 11.5px var(--ui); text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+td:first-child { white-space: nowrap; font-weight: 600; }
+</style>
+
+<div class="wrap">
+  <div class="eyebrow">ChronoNote · 15 November 2026 · after v0.38.0</div>
+  <h1>Forward review</h1>
+  <p class="lede">Thirty-two proposals for where ChronoNote goes next: features that take work off your day, design, architecture, testing and the pipeline. Each has a size and a reason taken from the code or from how you said you work. Mark each one, copy the decisions back to me, and I write the briefs for the ones you accept.</p>
+
+  <div class="premise">
+    <div><b>0</b><span>open issues, PRs, alerts and open checks. Nothing is broken, so everything here is a choice.</span></div>
+    <div><b>3,946 + 1,475</b><span>Vitest and Playwright tests. Coverage is wide; whether the tests assert enough is not measured.</span></div>
+    <div><b>12–15 min</b><span>per push for the Test run on GitHub (three latest runs). No build cache, no sharding.</span></div>
+    <div><b>1.08 MB</b><span>CHANGELOG.md in one file. No model can load it, cheap or otherwise.</span></div>
+  </div>
+
+  <h2>What I looked at, and what I could not</h2>
+  <p>I read the whole spec, the design index, the earlier reviews (feature, readiness, refactoring, editor) and your recorded decisions, then measured the code, the tests, the bundles and the CI runs. Nothing you rejected is proposed again. Two proposals sit close to a rejected one and say so.</p>
+  <p>One gap: I wanted to judge the design on a filled app, but <code>?mock&amp;scenario=demo</code> and <code>busy-week</code> both came up with zero notes in my browser pane. I did not find out why (see P6). So the design section is thinner than the rest and U5 proposes the proper pass.</p>
+
+  <div class="bar">
+    <span class="count" id="count">0 of 32 decided</span>
+    <button class="btn" id="picks" type="button">Accept my picks</button>
+    <button class="btn primary" id="copy" type="button">Copy decisions</button>
+  </div>
+  <p class="st">Your choices and notes are kept in this browser. When you are done, use "Copy decisions" and paste the result into the chat. Size: S is one brief, M is two or three, L needs a short design first.</p>
+  <textarea id="out" hidden readonly aria-label="Decisions as text"></textarea>
+
+  <h2>Features: time back in your day</h2>
+  <p>Ordered by how much of your day I expect each to touch. The first two remove steps you repeat every working day.</p>
+  <div class="cards">
+
+    <div class="card pick" data-id="F1" data-pick="1">
+      <div class="chead"><span class="n">F1</span><h3>Calendar sync adds new meetings by itself</h3><span class="tag pick">My pick</span><span class="tag">S–M</span></div>
+      <p>When <code>.agenda.json</code> gains a meeting for the open day, its section appears in time order without the review dialog. The review stays for anything that removes or moves a section with content.</p>
+      <p class="why"><b>Why:</b> today only an empty note fills itself. Any later change lights the dot and costs <kbd>Ctrl+Shift+C</kbd>, a dialog and a confirm, several times a day, for a change that cannot lose anything. A setting keeps the current behaviour available.</p>
+    </div>
+
+    <div class="card pick" data-id="F2" data-pick="1">
+      <div class="chead"><span class="n">F2</span><h3>Copy a meeting as minutes</h3><span class="tag pick">My pick</span><span class="tag near">Was C2, "maybe later"</span><span class="tag">M</span></div>
+      <p>One command on a section puts ready-to-paste minutes on the clipboard, as rich text for Outlook and Teams and as plain text: title and date, decisions (the <code>=&gt;</code> lines), actions with owner and due date, topics left open. In the UI language.</p>
+      <p class="why"><b>Why:</b> writing the follow-up mail is retyping what the note already holds. It was parked in October as too early; since then the tokenizer, the export formats and the list clipboard were built, so this is now mostly composition of existing parts.</p>
+    </div>
+
+    <div class="card pick" data-id="F3" data-pick="1">
+      <div class="chead"><span class="n">F3</span><h3>Suggestions while typing @names, (topics) and section titles</h3><span class="tag pick">My pick</span><span class="tag">M</span></div>
+      <p>After <code>@</code>, after <code>(</code> behind an action symbol, and on a line being made a section title, a small list offers what your notes already use, most recent first. <kbd>Tab</kbd> or <kbd>Enter</kbd> takes one; typing on ignores it.</p>
+      <p class="why"><b>Why:</b> the app has no completion at all. Everything downstream matches exact text: <code>has:@dana</code>, <code>tag:</code>, and Section History, which loses an occurrence when a title differs by one character. Suggestions prevent the variants instead of repairing them.</p>
+    </div>
+
+    <div class="card pick" data-id="F4" data-pick="1">
+      <div class="chead"><span class="n">F4</span><h3>Automatic backup outside the notes folder</h3><span class="tag pick">My pick</span><span class="tag">S–M</span></div>
+      <p>Once a week (and on demand) ChronoNote writes one bundle of all notes to a folder of your choice that OneDrive does not sync, and keeps the last eight.</p>
+      <p class="why"><b>Why:</b> earlier versions, the trash and conflict copies all live inside the notes folder. A sync fault, a mass delete or a lost folder takes the safety net along with the notes. The export bundle exists; only the schedule and the retention are new.</p>
+    </div>
+
+    <div class="card" data-id="F5">
+      <div class="chead"><span class="n">F5</span><h3>Person view</h3><span class="tag near">Near rejected B1</span><span class="tag">M</span></div>
+      <p><kbd>Ctrl</kbd>+click on an <code>@name</code> (or <code>@dana</code> in the palette) opens a pane with everything about that person: your open actions that mention them, what is delegated to them, and the last mentions grouped by meeting. Read-only; <kbd>Enter</kbd> jumps.</p>
+      <p class="why"><b>Why:</b> you said you review people by searching their names before you meet them. This is that search, already sorted. It differs from B1: no states, nothing to keep up to date, no tracking of other people's tasks.</p>
+    </div>
+
+    <div class="card" data-id="F6">
+      <div class="chead"><span class="n">F6</span><h3>Rename across all notes</h3><span class="tag">M</span></div>
+      <p>Rename a section title, an <code>@name</code> or a <code>(topic)</code> in every note at once, after a preview of each line that changes. Every changed note gets an earlier version first.</p>
+      <p class="why"><b>Why:</b> a meeting series that gets a new title in the calendar splits its history in two, and there is no way to join it except editing each note by hand. Same for a misspelled name used for weeks.</p>
+    </div>
+
+    <div class="card" data-id="F7">
+      <div class="chead"><span class="n">F7</span><h3>Search finds decisions and sections</h3><span class="tag">S–M</span></div>
+      <p>New operators in Search and Actions: <code>section:"Design review"</code>, <code>is:decision</code> (lines with <code>=&gt;</code>), <code>is:topic</code>, <code>is:emphasis</code>. Plus saved searches that appear in the palette.</p>
+      <p class="why"><b>Why:</b> "what did we decide about X in that meeting" is the question notes exist for, and today it is a substring search across everything. The week review dropped decisions at your request, so search is their only way back.</p>
+    </div>
+
+    <div class="card" data-id="F8">
+      <div class="chead"><span class="n">F8</span><h3>Copy the Actions list as shown</h3><span class="tag">S</span></div>
+      <p>A Copy button in the Actions pane and the week review puts the rows on screen, with the filter applied, on the clipboard as a tidy list (rich and plain).</p>
+      <p class="why"><b>Why:</b> the filter already answers "what did I finish since 1 October on (budget)" or "what is open for Friday". The answer cannot leave the pane today. Useful for status mails and appraisals.</p>
+    </div>
+
+    <div class="card" data-id="F9">
+      <div class="chead"><span class="n">F9</span><h3>Richer agenda file: join link, attendees, series</h3><span class="tag">M + your exporter</span></div>
+      <p>Three optional fields in <code>.agenda.json</code>. <code>joinUrl</code>: a Join button in Peek and in the on-now list. <code>attendees</code>: they lead the <code>@</code> suggestions of F3 in that section. <code>seriesId</code>: Section History follows a series through a title change (kept in a side file, never in a note).</p>
+      <p class="why"><b>Why:</b> <kbd>Ctrl+Alt+J</kbd> already knows which meeting is on now; joining it is the next thing you do. It opens a link you supplied and watches nothing. It depends on your export being able to supply the fields, so decide on that basis.</p>
+    </div>
+
+    <div class="card" data-id="F10">
+      <div class="chead"><span class="n">F10</span><h3>Tables that keep their columns</h3><span class="tag">S–M</span></div>
+      <p>On a line with <code>|</code> separators, <kbd>Tab</kbd> moves to the next cell and pads every column of the block to equal width. Plain text, nothing drawn.</p>
+      <p class="why"><b>Why:</b> the monospace grid is one of the app's tenets and "Full" width exists for aligned columns, yet aligning them is manual. Lowest priority here unless you type tables often.</p>
+    </div>
+  </div>
+
+  <h2>Design</h2>
+  <div class="cards">
+    <div class="card pick" data-id="U1" data-pick="1">
+      <div class="chead"><span class="n">U1</span><h3>Actions pane header: one calm row</h3><span class="tag pick">My pick</span><span class="tag">S–M</span></div>
+      <p>Filter on its own full-width row; scope (open tabs, other notes, all files) and the two switches as one row of chips; the key hints move behind a <code>?</code>.</p>
+      <p class="why"><b>Why:</b> seen in the Dutch UI. At 1320 px the filter placeholder is cut off after "typ @ om ge"; at 800 px "Op deadline" runs off the pane and the count wraps to two lines. Four rows of controls and a two-line footer surround the list the pane is for.</p>
+    </div>
+    <div class="card pick" data-id="U2" data-pick="1">
+      <div class="chead"><span class="n">U2</span><h3>No clipped text in any language</h3><span class="tag pick">My pick</span><span class="tag">S</span></div>
+      <p>A Playwright check that opens every pane, dialog and menu in each of the seven languages at three widths and fails when a label is cut off or overflows its control.</p>
+      <p class="why"><b>Why:</b> U1 is the kind of fault only a Dutch or German user sees, and the suite runs in English. One test catches the whole class from now on.</p>
+    </div>
+    <div class="card" data-id="U3">
+      <div class="chead"><span class="n">U3</span><h3>A hint in an empty note</h3><span class="tag">S</span></div>
+      <p>An empty note shows one muted line that is not in the file, for example "No meetings today. Type, or press Ctrl+K." It disappears at the first character.</p>
+      <p class="why"><b>Why:</b> an empty day is a blank dark rectangle. For you that is fine; for anyone opening the app or the demo cold, nothing says what to do. Not a template: nothing is written.</p>
+    </div>
+    <div class="card" data-id="U4">
+      <div class="chead"><span class="n">U4</span><h3>A token reference, and a check that keeps to it</h3><span class="tag">S–M</span></div>
+      <p>A generated page of the design tokens (colours, type ramp, radii, durations) from <code>01-tokens.css</code>, and a check that fails on a raw colour or a new font size outside the token file.</p>
+      <p class="why"><b>Why:</b> 5,261 lines of CSS in 14 files, written by many model runs. A cheap model reaches for a literal unless shown what exists. This keeps the look consistent without my review catching each one.</p>
+    </div>
+    <div class="card pick" data-id="U5" data-pick="1">
+      <div class="chead"><span class="n">U5</span><h3>A design pass on the screenshot gallery</h3><span class="tag pick">My pick</span><span class="tag">My work</span></div>
+      <p>I run the existing gallery (about 60 screens), look at every one myself at 100 % and 125 %, light and dark, Dutch and English, and come back with a page of findings like the editor review.</p>
+      <p class="why"><b>Why:</b> the last full look was 10 October, before due dates, action groups, the week review and the editor work. I could not do it for this review (see above), and design claims without seeing the screens would be guesses.</p>
+    </div>
+  </div>
+
+  <h2>Architecture</h2>
+  <div class="cards">
+    <div class="card pick" data-id="R1" data-pick="1">
+      <div class="chead"><span class="n">R1</span><h3>One index of all notes</h3><span class="tag pick">My pick</span><span class="tag">L</span></div>
+      <p>Today every view gets a map of file name to whole text and splits and reads it again itself: Actions, Search, the due count, the week review, the palette, the phone companion. Replace that with one index, updated per changed note: its sections, actions, names, topics and due dates, read once through the tokenizer.</p>
+      <p class="why"><b>Why:</b> it is the "one line, one meaning" rule of §468 one level up. F3, F5, F6 and F7 each become a query instead of a new scan, and typing stays fast as the folder grows past the 2,600 notes the performance test uses.</p>
+    </div>
+    <div class="card" data-id="R2">
+      <div class="chead"><span class="n">R2</span><h3>Split the six largest files</h3><span class="tag">M, mechanical</span></div>
+      <p>Moves only, no behaviour change: <code>storage.rs</code> (4,351 lines) into notes, config, session, versions, trash and import; <code>TopBar.svelte</code> (1,764); <code>mockBackend.ts</code> (1,627); <code>SettingsModal</code> (1,406); <code>HistoryModal</code> (1,256); <code>boot.ts</code> and <code>App.svelte</code> (about 1,045 each).</p>
+      <p class="why"><b>Why:</b> the implementers are cheap models. Measured on earlier runs, one re-read <code>mockBackend.ts</code> 22 times and <code>storage.rs</code> 16 times. Smaller files make every later brief faster, cheaper and less likely to touch what it should not.</p>
+    </div>
+    <div class="card" data-id="R3">
+      <div class="chead"><span class="n">R3</span><h3>Load dialogs when they open</h3><span class="tag">S–M</span></div>
+      <p>The app is one 1.4 MB script on the desktop and on the phone. Settings, Section History, the week review, export, the conflict dialogs and the licence text load on first use instead.</p>
+      <p class="why"><b>Why:</b> the phone web app parses all of it before the first note shows. Measure start time first; build only if the gain is visible.</p>
+    </div>
+    <div class="card" data-id="R4">
+      <div class="chead"><span class="n">R4</span><h3>A ceiling on type escapes</h3><span class="tag">S</span></div>
+      <p>102 places use <code>any</code>, <code>@ts-ignore</code> or <code>@ts-expect-error</code>. Record the number; CI fails when it rises. Bring it down when a file is touched anyway.</p>
+      <p class="why"><b>Why:</b> an escape is the quickest way for a model to make the type check pass. Before TypeScript 7 is the right time to stop the count growing.</p>
+    </div>
+  </div>
+
+  <h2>Testing</h2>
+  <div class="cards">
+    <div class="card pick" data-id="T1" data-pick="1">
+      <div class="chead"><span class="n">T1</span><h3>The spec as tables that run</h3><span class="tag pick">My pick</span><span class="tag">L, in steps</span></div>
+      <p>Rewrite the behaviour rules of the spec, area by area, as tables of <i>before · key · after</i> that a test reads and runs. The list rules first: they are now one paragraph of about nine thousand characters, and an 882-case table already exists in the tests to start from.</p>
+      <p class="why"><b>Why:</b> spec, brief and test become the same text. During the editor review three rules I wrote were wrong and only the tests showed it. A cheap model given exact examples does not have to interpret prose, and neither do you when you check a rule.</p>
+    </div>
+    <div class="card pick" data-id="T2" data-pick="1">
+      <div class="chead"><span class="n">T2</span><h3>Random typing against the real editor</h3><span class="tag pick">My pick</span><span class="tag">M</span></div>
+      <p>A test that feeds thousands of random key sequences (typing, Enter, Tab, Backspace, state keys, paste, undo) to the editor and checks what must always hold: no error, undoing everything gives back the original bytes, the caret is inside the text, renumbering twice changes nothing.</p>
+      <p class="why"><b>Why:</b> you asked for editing that is rock solid. The fixed tables test the cases someone thought of. §477 was found by the one random test there is, on a release commit; this points the same method at the keys themselves.</p>
+    </div>
+    <div class="card pick" data-id="T3" data-pick="1">
+      <div class="chead"><span class="n">T3</span><h3>A guard against deleted tests</h3><span class="tag pick">My pick</span><span class="tag">S</span></div>
+      <p>CI compares the tests in a pull request with main and fails when one was removed or switched off, unless the description names it and says why.</p>
+      <p class="why"><b>Why:</b> in October a coder model deleted eight tests to get a green run and I caught it by reading the diff. With more work going to cheaper models, that check should not depend on my attention.</p>
+    </div>
+    <div class="card pick" data-id="T4" data-pick="1">
+      <div class="chead"><span class="n">T4</span><h3>Browser tests that can run side by side</h3><span class="tag pick">My pick</span><span class="tag">S</span></div>
+      <p>Each checkout gets its own port and its own fresh server by default (the <code>E2E_PORT</code> switch exists; make it the rule).</p>
+      <p class="why"><b>Why:</b> the suite reuses whatever holds port 1420, so two runs at once test each other's code. That is why agents may not run Playwright and why I run it serially for them. Removing it lets a coder prove its own work.</p>
+    </div>
+    <div class="card" data-id="T5">
+      <div class="chead"><span class="n">T5</span><h3>Do the tests notice a broken rule?</h3><span class="tag">S–M</span></div>
+      <p>Once a month, locally: a tool changes the core modules one small fault at a time (tokenizer, lists, paste, phone inbox, calendar matching) and reports which faults no test caught.</p>
+      <p class="why"><b>Why:</b> 3,946 tests say how much is exercised, not how much is checked. The report is a work list of real gaps instead of more tests of the same thing.</p>
+    </div>
+    <div class="card" data-id="T6">
+      <div class="chead"><span class="n">T6</span><h3>The one untested data-loss rule</h3><span class="tag">S</span></div>
+      <p>Rule 4.2 of the editor review (typing while a phone save fails) is still a placeholder. The mock gets a way to hold a save open and fail it; the test gets written.</p>
+      <p class="why"><b>Why:</b> the only rule of batch 1 without a test. From my first answer today.</p>
+    </div>
+    <div class="card" data-id="T7">
+      <div class="chead"><span class="n">T7</span><h3>The update path, tested by a machine</h3><span class="tag">M–L</span></div>
+      <p>On the Windows runner: install the previous release, offer it a new build through a local update file signed with a test key, let it update, check the version and that settings survived.</p>
+      <p class="why"><b>Why:</b> the updater is the one part that, once broken in a release, cannot fix itself. Today it is tested by you installing two betas. Later, not now: the cost is real and the manual test works.</p>
+    </div>
+    <div class="card" data-id="T8">
+      <div class="chead"><span class="n">T8</span><h3>OneDrive sync against a stand-in server</h3><span class="tag">M</span></div>
+      <p>A small fake of the OneDrive interface the web app talks to, so merges, held conflicts, deletes both ways and the expired-link restart run in the test suite.</p>
+      <p class="why"><b>Why:</b> the spec says the sync was verified by hand against a live OneDrive. I would first check how far the existing unit tests already reach, and size this on what is missing.</p>
+    </div>
+  </div>
+
+  <h2>Pipeline and working method</h2>
+  <div class="cards">
+    <div class="card pick" data-id="P1" data-pick="1">
+      <div class="chead"><span class="n">P1</span><h3>Halve the wait on GitHub</h3><span class="tag pick">My pick</span><span class="tag">S</span></div>
+      <p>Cache the Rust build in the Rust and Native jobs (neither has one), cache the Playwright browser, split the browser suite over three machines. Target: under seven minutes.</p>
+      <p class="why"><b>Why:</b> every push and every pull request waits 12 to 15 minutes, and a beta release now leans on that run. One caution for the brief: the five required check names must stay the same, or pull requests wait forever.</p>
+    </div>
+    <div class="card pick" data-id="P2" data-pick="1">
+      <div class="chead"><span class="n">P2</span><h3>A changelog a model can open</h3><span class="tag pick">My pick</span><span class="tag">S–M</span></div>
+      <p>Split <code>CHANGELOG.md</code> (12,407 lines, 478 entries) into one file per hundred entries plus a short index of number, title and status. The release script's status step follows.</p>
+      <p class="why"><b>Why:</b> it is the decision log, the place that says why something is the way it is, and at 1.08 MB neither I nor a cheaper model can read it. A brief that could say "read §468 first" is a better brief.</p>
+    </div>
+    <div class="card pick" data-id="P3" data-pick="1">
+      <div class="chead"><span class="n">P3</span><h3>A brief kit in the repository</h3><span class="tag pick">My pick</span><span class="tag">S</span></div>
+      <p>A brief template, the standing rules in one file a brief links to, and one command every coder runs at the end that prints the same short report: checks passed, files changed, tests added or removed.</p>
+      <p class="why"><b>Why:</b> this is the second step you asked for, built once instead of per brief. Briefs get shorter, reports get comparable, and another model or person can pick one up cold.</p>
+    </div>
+    <div class="card" data-id="P4">
+      <div class="chead"><span class="n">P4</span><h3>"Not yet seen by you" kept by the tooling</h3><span class="tag">S</span></div>
+      <p>A changelog entry gets a "seen by Marien" line; a script lists released entries without one into <code>open-checks.md</code>. Seven are in that state now (§448–§450, §452, §460, §462, §463) and are tracked only in my notes.</p>
+      <p class="why"><b>Why:</b> the list of open checks is empty while seven changes wait for your eyes. Either they count or they do not; the tooling should say which.</p>
+    </div>
+    <div class="card" data-id="P5">
+      <div class="chead"><span class="n">P5</span><h3>Small upkeep</h3><span class="tag">S</span></div>
+      <p>The three patch updates waiting (Playwright, the opener plugin, jsdom), and a first look at whether the Svelte tooling runs on TypeScript 7.</p>
+      <p class="why"><b>Why:</b> routine. Listed so it is decided and not forgotten.</p>
+    </div>
+    <div class="card" data-id="P6">
+      <div class="chead"><span class="n">P6</span><h3>The mock scenarios came up empty for me</h3><span class="tag">S, find out</span></div>
+      <p><code>localhost:1420/?mock&amp;scenario=demo</code> started with "0 note file(s)" three times in my browser pane, although the scenario name is valid. Either the documented way to drive the app by hand is broken or my pane did something odd.</p>
+      <p class="why"><b>Why:</b> the Playwright suite seeds differently, so it would not notice. Ten minutes to find out which.</p>
+    </div>
+  </div>
+
+  <h2>Suggested order</h2>
+  <p>Foundations first, because they make everything after them cheaper to build and safer to hand out.</p>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Wave</th><th>What</th><th>Result</th></tr></thead>
+    <tbody>
+      <tr><td>1 · Groundwork</td><td>P1, T4, T3, P3, P2, T6, P5, P6</td><td>Faster checks, coders that can test their own work, a guard on what they delete, briefs that stand on their own.</td></tr>
+      <tr><td>2 · Daily gains</td><td>F1, F2, F4, F8, U1, U2</td><td>Fewer steps around every meeting, a real backup, a calmer Actions pane. One release.</td></tr>
+      <tr><td>3 · Index and what it unlocks</td><td>R1, then F3, F7, F5, F6</td><td>Suggestions, sharper search, the person view and rename, each a query on the index.</td></tr>
+      <tr><td>4 · Depth</td><td>T1, T2, U5, R2, T5, U4, R4</td><td>A spec that runs, an editor tested by random typing, a design pass on real screens.</td></tr>
+      <tr><td>Later</td><td>F9, F10, R3, T7, T8, U3, P4</td><td>Each waits on a measurement, on your exporter, or on your interest.</td></tr>
+    </tbody>
+  </table></div>
+
+  <h2>Left out on purpose</h2>
+  <ul>
+    <li><b>Parked by you, not reopened:</b> Authenticode signing, the web-app beta, scheduled GitHub triage, the phone's More menu, faster reads in the phone companion. One remark, once: signing is the largest remaining distance between ChronoNote and a professional Windows application, because Smart App Control blocks updates on one of your laptops until it is done. It stays parked unless you say otherwise.</li>
+    <li><b>Rejected by you, not proposed again:</b> bringing open actions forward, a daily template, waiting-on states, carrying topics through calendar sync, global quick add, the Android share target, anything that watches other applications.</li>
+    <li><b>Reminders and notifications, recurring actions, AI summaries, attachments, sharing:</b> each would pull the app away from plain text you act on yourself. Say so if you see one differently.</li>
+    <li><b>macOS and Linux builds, releases built on GitHub:</b> decided earlier, and nothing has changed since.</li>
+  </ul>
+</div>
+
+<script>
+(function () {
+  var KEY = "chrononote-forward-review-v1", state = {};
+  try { state = JSON.parse(localStorage.getItem(KEY) || "{}") || {}; } catch (e) { state = {}; }
+  function save() { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {} }
+  var cards = Array.prototype.slice.call(document.querySelectorAll(".card[data-id]"));
+  var opts = ["Yes", "Later", "No"];
+  function paint(card) {
+    var s = state[card.dataset.id] || {};
+    card.querySelectorAll(".seg button").forEach(function (b) { b.setAttribute("aria-pressed", String(b.textContent === s.d)); });
+  }
+  function count() {
+    var n = cards.filter(function (c) { return (state[c.dataset.id] || {}).d; }).length;
+    document.getElementById("count").textContent = n + " of " + cards.length + " decided";
+  }
+  cards.forEach(function (card) {
+    var id = card.dataset.id, dec = document.createElement("div"), seg = document.createElement("div"), note = document.createElement("input");
+    dec.className = "dec"; seg.className = "seg"; seg.setAttribute("role", "group"); seg.setAttribute("aria-label", "Decision for " + id);
+    opts.forEach(function (o) {
+      var b = document.createElement("button"); b.type = "button"; b.textContent = o; b.id = "d-" + id + "-" + o;
+      b.addEventListener("click", function () {
+        var s = state[id] || (state[id] = {}); s.d = s.d === o ? "" : o; save(); paint(card); count();
+      });
+      seg.appendChild(b);
+    });
+    note.type = "text"; note.id = "n-" + id; note.placeholder = "Note (optional)"; note.setAttribute("aria-label", "Note for " + id);
+    note.value = (state[id] || {}).n || "";
+    note.addEventListener("input", function () { (state[id] || (state[id] = {})).n = note.value; save(); });
+    dec.appendChild(seg); dec.appendChild(note); card.appendChild(dec); paint(card);
+  });
+  count();
+  document.getElementById("picks").addEventListener("click", function () {
+    cards.forEach(function (c) {
+      var s = state[c.dataset.id] || (state[c.dataset.id] = {});
+      if (!s.d && c.dataset.pick) s.d = "Yes";
+      paint(c);
+    });
+    save(); count();
+  });
+  document.getElementById("copy").addEventListener("click", function () {
+    var lines = ["Forward review decisions (2026-11-15):"];
+    cards.forEach(function (c) {
+      var s = state[c.dataset.id] || {};
+      lines.push(c.dataset.id + " " + c.querySelector("h3").textContent + ": " + (s.d || "undecided") + (s.n ? " | " + s.n : ""));
+    });
+    var text = lines.join("\n"), out = document.getElementById("out"), btn = this;
+    function fallback() { out.hidden = false; out.value = text; out.focus(); out.select(); }
+    try {
+      navigator.clipboard.writeText(text).then(function () { btn.textContent = "Copied"; setTimeout(function () { btn.textContent = "Copy decisions"; }, 1500); }, fallback);
+    } catch (e) { fallback(); }
+  });
+})();
+</script>

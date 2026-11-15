@@ -1,0 +1,298 @@
+<title>ChronoNote Wave 2 Designs</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* Layout: one reading column (~1000px): four designs (F1, F2, F8, U1), each with examples in note text, then its questions as decision rows with my recommendation first. Same system as the forward review. */
+:root {
+  --bg: #f3f4f6; --surface: #ffffff; --fg: #1a1c20; --muted: #5a606b; --line: #dde0e5;
+  --accent: #0a6fc2; --accent-fg: #ffffff; --ok: #1f8a5b; --warn: #a8650f; --bad: #b8433b;
+  --chip: #eceef2; --pane: #f8f9fb;
+  --ui: "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --display: "Segoe UI Variable Display", "Segoe UI", system-ui, sans-serif;
+  --mono: "Cascadia Code", "Cascadia Mono", Consolas, ui-monospace, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #141518; --surface: #1d1f23; --fg: #e7e8eb; --muted: #a0a6b0; --line: #2f3238;
+  --accent: #4cc2ff; --accent-fg: #06223a; --ok: #4bbf87; --warn: #e0a94e; --bad: #e07b73; --chip: #272a30; --pane: #23262b; color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #141518; --surface: #1d1f23; --fg: #e7e8eb; --muted: #a0a6b0; --line: #2f3238;
+  --accent: #4cc2ff; --accent-fg: #06223a; --ok: #4bbf87; --warn: #e0a94e; --bad: #e07b73; --chip: #272a30; --pane: #23262b; color-scheme: dark; }
+
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--fg); font: 15px/1.55 var(--ui); }
+.wrap { max-width: 1000px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 32px 96px; }
+h1 { font: 600 32px/1.2 var(--display); margin: 0 0 8px; text-wrap: balance; letter-spacing: -.01em; }
+h2 { font: 600 22px/1.3 var(--display); margin: 56px 0 6px; text-wrap: balance; }
+h3 { font: 600 16px/1.35 var(--display); margin: 22px 0 6px; }
+p { margin: 0 0 10px; max-width: 72ch; }
+.lede { font-size: 16.5px; color: var(--muted); max-width: 70ch; }
+.eyebrow { font: 600 11.5px/1 var(--ui); text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin-bottom: 10px; }
+code, kbd, pre { font-family: var(--mono); font-size: .86em; }
+kbd { background: var(--chip); border-radius: 3px; padding: 1px 4px; }
+ul { margin: 0 0 10px; padding-left: 20px; } li { margin: 3px 0; max-width: 72ch; }
+.st { font-size: 12.5px; color: var(--muted); }
+pre { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; overflow-x: auto; margin: 8px 0 12px; line-height: 1.5; font-size: 13px; }
+.two { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 12px; }
+.two > div { min-width: 0; }
+.cap { font: 600 11.5px/1 var(--ui); text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 10px 0 4px; }
+.rich { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 12px 16px; font: 14px/1.5 var(--ui); margin: 8px 0 12px; }
+.rich b.t { font-size: 15.5px; } .rich ul { margin: 2px 0 8px; } .rich .h { font-weight: 600; margin-top: 6px; }
+
+.tablewrap { overflow-x: auto; margin: 10px 0; }
+table { border-collapse: collapse; width: 100%; font-size: 14px; min-width: 640px; }
+th, td { text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font: 600 11.5px var(--ui); text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+.yes { color: var(--ok); font-weight: 600; } .no { color: var(--warn); font-weight: 600; }
+
+.q { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px 12px; margin: 10px 0; }
+.q .qh { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
+.q .n { font: 600 13px var(--mono); color: var(--muted); }
+.q .qt { font-weight: 600; flex: 1 1 260px; min-width: 0; }
+.q p { font-size: 14px; color: var(--muted); margin: 4px 0 0; }
+.dec { display: flex; flex-wrap: wrap; gap: 8px 10px; align-items: center; margin-top: 10px; }
+.seg { display: inline-flex; flex-wrap: wrap; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+.seg button { font: 500 13px var(--ui); background: transparent; color: var(--fg); border: 0; border-right: 1px solid var(--line); padding: 5px 11px; cursor: pointer; }
+.seg button:last-child { border-right: 0; }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-fg); }
+.seg button .r { font-size: 11px; opacity: .75; margin-left: 4px; }
+button:focus-visible, .dec input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.dec input { flex: 1 1 200px; min-width: 0; font: 13.5px var(--ui); color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 6px 9px; }
+
+.bar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 10; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 10px 14px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-top: 20px; }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--bg); }
+.bar .count { font-size: 13.5px; color: var(--muted); flex: 1 1 200px; font-variant-numeric: tabular-nums; }
+.btn { font: 600 13.5px var(--ui); border: 1px solid var(--line); background: var(--surface); color: var(--fg); border-radius: 6px; padding: 7px 14px; cursor: pointer; }
+.btn.primary { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
+#out { width: 100%; min-height: 120px; font: 12.5px var(--mono); color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 8px; margin-top: 8px; }
+
+/* U1 mockups: the pane header drawn at the pane's real widths */
+.mocks { display: flex; flex-wrap: wrap; gap: 18px; align-items: flex-start; margin: 10px 0 14px; }
+.mock { background: var(--pane); border: 1px solid var(--line); border-radius: 8px; font: 13px/1.3 var(--ui); overflow: hidden; max-width: 100%; }
+.mock .row { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-bottom: 1px solid var(--line); min-width: 0; }
+.mock .inp { flex: 1 1 0; min-width: 0; color: var(--muted); white-space: nowrap; overflow: hidden; }
+.mock .cnt { color: var(--muted); font-size: 12px; white-space: nowrap; }
+.mock .sg { display: inline-flex; border: 1px solid var(--line); border-radius: 5px; overflow: hidden; flex: none; }
+.mock .sg span { padding: 4px 8px; white-space: nowrap; border-right: 1px solid var(--line); }
+.mock .sg span:last-child { border-right: 0; }
+.mock .sg .on, .mock .pill.on { background: var(--accent); color: var(--accent-fg); }
+.mock .tg { white-space: nowrap; flex: none; }
+.mock .tg i { display: inline-block; width: 26px; height: 13px; border-radius: 7px; background: var(--accent); vertical-align: -2px; margin-right: 5px; }
+.mock .tg i.off { background: var(--line); }
+.mock .pill { border: 1px solid var(--line); border-radius: 999px; padding: 3px 9px; white-space: nowrap; flex: none; }
+.mock .list { padding: 8px 10px; color: var(--muted); min-height: 74px; }
+.mock .list div { font: 12.5px/1.7 var(--mono); color: var(--fg); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mock .list .band { font: 600 12px var(--ui); color: var(--muted); }
+.mock .foot { padding: 7px 10px; border-top: 1px solid var(--line); color: var(--muted); font-size: 12px; }
+.mock .ib { flex: none; width: 22px; height: 22px; border: 1px solid var(--line); border-radius: 5px; display: inline-flex; align-items: center; justify-content: center; font-size: 12px; color: var(--muted); }
+.mock.clip .row { overflow: hidden; }
+.wrapok { flex-wrap: wrap; }
+</style>
+
+<div class="wrap">
+  <div class="eyebrow">ChronoNote · 15 November 2026 · forward review, wave 2</div>
+  <h1>Wave 2 designs</h1>
+  <p class="lede">Four designs to confirm before I write their briefs: calendar sync that adds meetings by itself, a meeting copied as minutes, the Actions list copied as shown, and the Actions pane header. Each question has my recommendation first. U2 (the clipped-text test) needs no design.</p>
+
+  <div class="bar">
+    <span class="count" id="count">0 of 17 answered</span>
+    <button class="btn" id="recs" type="button">Take all recommendations</button>
+    <button class="btn primary" id="copy" type="button">Copy decisions</button>
+  </div>
+  <p class="st">Choices and notes are kept in this browser. "Copy decisions" gives text to paste into the chat.</p>
+  <textarea id="out" hidden readonly aria-label="Decisions as text"></textarea>
+
+  <h2>F1 · Calendar sync adds new meetings by itself</h2>
+  <p>Today a note that already has text is never changed without the review dialog. The proposal: changes that cannot lose or move anything you wrote happen on their own; everything else keeps the dot and the review.</p>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Change in the calendar</th><th>Today</th><th>Proposed</th></tr></thead>
+    <tbody>
+      <tr><td>A new meeting for the day</td><td>dot, review</td><td class="yes">section added in time order, no dialog</td></tr>
+      <tr><td>A meeting removed, its section is empty</td><td>dot, review</td><td class="yes">section removed, no dialog (question 1.2)</td></tr>
+      <tr><td>A meeting removed, its section has text</td><td>dot, review</td><td class="no">dot, review (unchanged)</td></tr>
+      <tr><td>A meeting moved to another time</td><td>dot, review</td><td class="no">dot, review (question 1.3)</td></tr>
+      <tr><td>A note dated before today</td><td>never</td><td>never (unchanged)</td></tr>
+    </tbody>
+  </table></div>
+  <div class="two">
+    <div><div class="cap">Note at 13:40, you are typing in Standup</div>
+<pre>Standup
+=======
+# ask Sam for numbers|
+
+
+1:1 Dana
+========
+</pre></div>
+    <div><div class="cap">At 13:41 the calendar gains "Design review 14:00"</div>
+<pre>Standup
+=======
+# ask Sam for numbers|
+
+
+Design review
+=============
+
+
+1:1 Dana
+========
+</pre></div>
+  </div>
+  <p>The caret stays on its text and the view does not jump (the rule for outside changes, §469 and §477). The status bar says <i>Added from calendar: Design review</i>; a click goes to the section. It happens at the moments the dot is checked today: on a tab switch, when the window gets focus, and a short pause after typing. Never in the middle of a keystroke.</p>
+
+  <div class="q" data-id="1.1" data-opts="On|Off"><div class="qh"><span class="n">1.1</span><span class="qt">The setting "Add new meetings automatically" (under Calendar): on or off by default?</span></div><p>It only exists while calendar sync itself is switched on. Off gives exactly today's behaviour.</p></div>
+  <div class="q" data-id="1.2" data-opts="Remove silently|Keep in review"><div class="qh"><span class="n">1.2</span><span class="qt">A cancelled meeting whose section is still empty</span></div><p>Nothing can be lost: the section holds only its title. Removing it keeps the day in step with the calendar without a dialog.</p></div>
+  <div class="q" data-id="1.3" data-opts="Keep in review|Move silently"><div class="qh"><span class="n">1.3</span><span class="qt">A meeting that moved to another time</span></div><p>Moving a section moves text you may be reading or typing in. I would leave that to you, as now.</p></div>
+  <div class="q" data-id="1.4" data-opts="Stay removed that day|Come back"><div class="qh"><span class="n">1.4</span><span class="qt">You delete a section that was added automatically. The meeting is still in the calendar.</span></div><p>Without a rule the next check adds it again. Recommended: the app remembers, for that day, the titles you removed (in the folder's session file, never in the note) and leaves them out. "Sync calendar for this day" by hand still offers them.</p></div>
+  <div class="q" data-id="1.5" data-opts="Not an undo step|Undo step"><div class="qh"><span class="n">1.5</span><span class="qt">Is the added section something Ctrl+Z takes back?</span></div><p>Recommended: no, like every other change from outside (decision D1 of the editor review). Otherwise a Ctrl+Z meant for your last word could remove a meeting instead.</p></div>
+
+  <h2>F2 · Copy a meeting as minutes</h2>
+  <p>One command on the section the caret is in. It puts rich text (for Outlook and Teams) and plain text on the clipboard. The note is not changed.</p>
+  <div class="two">
+    <div><div class="cap">The section in the note (16 November)</div>
+<pre>Design review
+=============
+. Vendor choice =&gt; we go with Acme =&gt; # (contract) send draft by:2026-11-20
+o Budget 2027
+, Hiring plan
+# ask Sam for numbers =&gt; @sam
+=&gt; @dana prepares the demo by:2026-11-24
+! No meeting next week
+v book room
+Sam was late, started 14:10
+</pre></div>
+    <div><div class="cap">Pasted into a mail</div>
+      <div class="rich">
+        <b class="t">Design review</b>, Monday 16 November 2026
+        <div class="h">Decisions</div>
+        <ul><li>Vendor choice: we go with Acme</li></ul>
+        <div class="h">Actions</div>
+        <ul><li>Send draft (contract): Marien, by Fri 20 Nov</li><li>Ask Sam for numbers: Sam</li><li>Prepares the demo: Dana, by Tue 24 Nov</li></ul>
+        <div class="h">Still open</div>
+        <ul><li>Budget 2027</li><li>Hiring plan (not discussed)</li></ul>
+        <div class="h">Remember</div>
+        <ul><li>No meeting next week</li></ul>
+      </div>
+    </div>
+  </div>
+  <p>How each line kind is read:</p>
+  <ul>
+    <li><b>Decisions:</b> a plain <code>=&gt; text</code> with the line it follows as its subject. A <code>=&gt;</code> that starts an action or names a person is an action.</li>
+    <li><b>Actions:</b> every open action. The owner is the <code>@name</code> the line is delegated to, otherwise you. Due dates in words. The topic tag stays in brackets.</li>
+    <li><b>Still open:</b> topics left to discuss (<code>o</code>) and postponed (<code>,</code>). Discussed topics appear only through their decisions.</li>
+    <li><b>Remember:</b> the <code>!</code> lines.</li>
+    <li><b>Left out:</b> plain text lines, done and cancelled actions, forward links. A heading with nothing under it is left out too.</li>
+  </ul>
+  <p>Headings and dates are in the UI language. The plain-text version is the same with <code>- </code> bullets and the headings on their own lines.</p>
+
+  <div class="q" data-id="2.1" data-opts="As shown|Change (say how)"><div class="qh"><span class="n">2.1</span><span class="qt">The layout: four headings, in this order</span></div></div>
+  <div class="q" data-id="2.2" data-opts="Name from a setting|No owner|&quot;me&quot;"><div class="qh"><span class="n">2.2</span><span class="qt">Your own actions: who is the owner in the minutes?</span></div><p>Recommended: a field "Your name in minutes" in Settings. While it is empty, your own actions are listed without an owner.</p></div>
+  <div class="q" data-id="2.3" data-opts="Leave out|Include under &quot;Done&quot;"><div class="qh"><span class="n">2.3</span><span class="qt">Actions already done in the meeting (<code>v</code>)</span></div></div>
+  <div class="q" data-id="2.4" data-opts="Leave out|Include under &quot;Notes&quot;"><div class="qh"><span class="n">2.4</span><span class="qt">Plain text lines</span></div><p>They are often for yourself ("Sam was late"). Left out, nothing private leaves the note by accident.</p></div>
+  <div class="q" data-id="2.5" data-opts="Palette + title menu|Also a shortcut"><div class="qh"><span class="n">2.5</span><span class="qt">Where the command lives</span></div><p>Recommended: the command palette ("Copy as minutes") and the right-click menu of a section title, also in Peek. A shortcut later if you find yourself using it daily; with AltGr and the keys already taken, good ones are scarce.</p></div>
+
+  <h2>F8 · Copy the Actions list as shown</h2>
+  <p>A Copy button in the Actions pane and the week review. It copies the rows on screen, with the filter and the switches as they are, as rich and plain text.</p>
+<pre>Actions · tag:budget since:2026-11-01 · only open · 15 Nov 2026
+
+Mon 9 Nov · Design review
+☐ (budget) send draft, by Fri 20 Nov
+  ☐ 1. numbers from Sam
+  ☑ 2. template
+Tue 10 Nov · 1:1 Dana
+☐ (budget) check forecast  @dana
+</pre>
+  <div class="q" data-id="8.1" data-opts="Day and meeting|Day only|No headings"><div class="qh"><span class="n">8.1</span><span class="qt">Headings in the copied list</span></div><p>The pane itself shows day bands without the meeting; a list that leaves the app reads better with the meeting named.</p></div>
+  <div class="q" data-id="8.2" data-opts="☐ ☑ boxes|[ ] and [x]"><div class="qh"><span class="n">8.2</span><span class="qt">How a state is written in the plain-text version</span></div><p>The boxes read well in mail and Teams. <code>[ ]</code> is safer for old plain-text systems. The rich version is a nested list either way.</p></div>
+  <div class="q" data-id="8.3" data-opts="As shown|Always unfolded"><div class="qh"><span class="n">8.3</span><span class="qt">A group you folded in the pane</span></div><p>"As shown" copies the parent with its count (<code>1/3</code>) and not the children.</p></div>
+  <div class="q" data-id="8.4" data-opts="Include|Leave out"><div class="qh"><span class="n">8.4</span><span class="qt">The first line that names the filter and today's date</span></div></div>
+
+  <h2>U1 · The Actions pane header</h2>
+  <p>The pane is about 240 px wide on a narrow window and about 400 px on a wide one. Drawn here in Dutch at both widths: first as it is, then as proposed.</p>
+  <div class="cap">Now</div>
+  <div class="mocks">
+    <div class="mock clip" style="width:240px">
+      <div class="row"><span class="ib">☰</span><span class="inp">Filter mijn acties (typ @ om gedelegeerde op te nemen)...</span><span class="cnt" style="white-space:normal;width:64px">3 open / 12 weergegeven</span><span class="ib">✕</span></div>
+      <div class="row"><span class="sg"><span class="on">Open tabs</span><span>Overige notities</span><span>Alle bestanden</span></span></div>
+      <div class="row"><span class="tg"><i></i>Alleen open</span><span class="tg"><i class="off"></i>Op deadline</span></div>
+      <div class="list"><div class="band">Ma 9 nov</div><div>☐ (budget) send draft</div><div>☐ check forecast</div></div>
+      <div class="foot">Enter Naar regel · Shift+Enter Doorschuiven naar vandaag · Ctrl+Space Status wijzigen</div>
+    </div>
+    <div class="mock clip" style="width:400px">
+      <div class="row"><span class="ib">☰</span><span class="inp">Filter mijn acties (typ @ om gedelegeerde op te nemen)...</span><span class="cnt">3 open / 12 weergegeven</span><span class="ib">✕</span></div>
+      <div class="row"><span class="sg"><span class="on">Open tabs</span><span>Overige notities</span><span>Alle bestanden</span></span></div>
+      <div class="row"><span class="tg"><i></i>Alleen open</span><span class="tg"><i class="off"></i>Op deadline</span></div>
+      <div class="list"><div class="band">Ma 9 nov</div><div>☐ (budget) send draft, by Fri 20 Nov</div><div>☐ check forecast</div></div>
+      <div class="foot">Enter Naar regel · Shift+Enter Doorschuiven naar vandaag · Ctrl+Space Status wijzigen</div>
+    </div>
+  </div>
+  <div class="cap">Proposed</div>
+  <div class="mocks">
+    <div class="mock" style="width:240px">
+      <div class="row"><span class="inp">Filter…</span><span class="ib" title="Kopieer lijst">⧉</span><span class="ib" title="Toetsen en filters">?</span><span class="ib">✕</span></div>
+      <div class="row wrapok"><span class="pill on">Open tabs ▾</span><span class="pill on">Open</span><span class="pill">Deadline</span><span class="cnt" style="margin-left:auto">3 · 12</span></div>
+      <div class="list"><div class="band">Ma 9 nov</div><div>☐ (budget) send draft</div><div>☐ check forecast</div><div>☐ call the venue</div></div>
+    </div>
+    <div class="mock" style="width:400px">
+      <div class="row"><span class="inp">Filter acties…</span><span class="ib" title="Kopieer lijst">⧉</span><span class="ib" title="Toetsen en filters">?</span><span class="ib">✕</span></div>
+      <div class="row wrapok"><span class="sg"><span class="on">Open tabs</span><span>Overig</span><span>Alles</span></span><span class="pill on">Alleen open</span><span class="pill">Op deadline</span><span class="cnt" style="margin-left:auto">3 open · 12</span></div>
+      <div class="list"><div class="band">Ma 9 nov</div><div>☐ (budget) send draft, by Fri 20 Nov</div><div>☐ check forecast</div><div>☐ call the venue</div></div>
+    </div>
+  </div>
+  <ul>
+    <li>The filter has the whole first row. Its placeholder is one or two words; what you can type there (<code>@</code>, <code>is:</code>, <code>tag:</code>, <code>due:</code>) moves to the <b>?</b> panel together with the three key hints, so the footer goes and the list gains two lines.</li>
+    <li>Scope and the two switches share one row. The switches become chips that are filled when on. Under about 300 px the scope becomes one chip with a menu.</li>
+    <li>The count sits at the right of that row: open, then listed. Its tooltip has the full sentence.</li>
+    <li>The copy button of F8 gets its place next to <b>?</b>.</li>
+    <li>Nothing about the list, the keys or the filter's behaviour changes. The week review gets the same first row (title, copy, <b>?</b>, close).</li>
+  </ul>
+  <div class="q" data-id="U1.1" data-opts="As proposed|Change (say how)"><div class="qh"><span class="n">U1.1</span><span class="qt">The two-row header</span></div></div>
+  <div class="q" data-id="U1.2" data-opts="Behind ?|Keep the footer"><div class="qh"><span class="n">U1.2</span><span class="qt">The key hints at the bottom of the pane</span></div><p>You know the keys. The footer costs two lines of list at every width. Applies to the Actions pane and the week review.</p></div>
+  <div class="q" data-id="U1.3" data-opts="Shorter labels|Keep the long ones"><div class="qh"><span class="n">U1.3</span><span class="qt">Shorter scope labels in every language: "Open tabs · Overig · Alles" (English: "Open tabs · Other · All")</span></div><p>The long form stays as the tooltip.</p></div>
+</div>
+
+<script>
+(function () {
+  var KEY = "chrononote-wave2-designs-v1", state = {};
+  try { state = JSON.parse(localStorage.getItem(KEY) || "{}") || {}; } catch (e) { state = {}; }
+  function save() { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {} }
+  var qs = Array.prototype.slice.call(document.querySelectorAll(".q[data-id]"));
+  function paint(q) {
+    var s = state[q.dataset.id] || {};
+    q.querySelectorAll(".seg button").forEach(function (b) { b.setAttribute("aria-pressed", String(b.dataset.v === s.d)); });
+  }
+  function count() {
+    var n = qs.filter(function (q) { return (state[q.dataset.id] || {}).d; }).length;
+    document.getElementById("count").textContent = n + " of " + qs.length + " answered";
+  }
+  qs.forEach(function (q) {
+    var id = q.dataset.id, opts = q.dataset.opts.split("|"), dec = document.createElement("div"), seg = document.createElement("div"), note = document.createElement("input");
+    dec.className = "dec"; seg.className = "seg"; seg.setAttribute("role", "group"); seg.setAttribute("aria-label", "Answer for " + id);
+    opts.forEach(function (o, i) {
+      var b = document.createElement("button"); b.type = "button"; b.dataset.v = o; b.id = "a-" + id + "-" + i; b.textContent = o;
+      if (i === 0) { var r = document.createElement("span"); r.className = "r"; r.textContent = "recommended"; b.appendChild(r); }
+      b.addEventListener("click", function () { var s = state[id] || (state[id] = {}); s.d = s.d === o ? "" : o; save(); paint(q); count(); });
+      seg.appendChild(b);
+    });
+    note.type = "text"; note.id = "n-" + id; note.placeholder = "Note (optional)"; note.setAttribute("aria-label", "Note for " + id);
+    note.value = (state[id] || {}).n || "";
+    note.addEventListener("input", function () { (state[id] || (state[id] = {})).n = note.value; save(); });
+    dec.appendChild(seg); dec.appendChild(note); q.appendChild(dec); paint(q);
+  });
+  count();
+  document.getElementById("recs").addEventListener("click", function () {
+    qs.forEach(function (q) { var s = state[q.dataset.id] || (state[q.dataset.id] = {}); if (!s.d) s.d = q.dataset.opts.split("|")[0]; paint(q); });
+    save(); count();
+  });
+  document.getElementById("copy").addEventListener("click", function () {
+    var lines = ["Wave 2 design decisions (2026-11-15):"];
+    qs.forEach(function (q) {
+      var s = state[q.dataset.id] || {};
+      lines.push(q.dataset.id + " " + q.querySelector(".qt").textContent.trim() + ": " + (s.d || "undecided") + (s.n ? " | " + s.n : ""));
+    });
+    var text = lines.join("\n"), out = document.getElementById("out"), btn = this;
+    function fallback() { out.hidden = false; out.value = text; out.focus(); out.select(); }
+    try {
+      navigator.clipboard.writeText(text).then(function () { btn.textContent = "Copied"; setTimeout(function () { btn.textContent = "Copy decisions"; }, 1500); }, fallback);
+    } catch (e) { fallback(); }
+  });
+})();
+</script>

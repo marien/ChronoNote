@@ -12405,3 +12405,22 @@ Tests only; the app is unchanged.
   spaces counts at its indent). The failing seed passes, as do 3,000 random cases per property.
 - `lineAgreement.test.ts` (360 fixed cases, about 1.3 s alone) failed once in a push check beside the whole parallel
   suite, most likely on Vitest's 5 s default, and passed in 29 runs after; it now has 20 s.
+
+## 479. Forward review: what comes after 0.38.0, a brief kit, and a mock-scenario fix
+
+**Status: on main (tooling and documents only, nothing to release).**
+
+Marien asked for a wide review of where the app should go next, with the building done by cheaper models from
+written briefs. `docs/design/forward-review.html` holds the 32 proposals; he accepted 27 and put five on "later"
+(automatic backup, tables, a hint in an empty note, the update path tested by a machine, a OneDrive stand-in
+server). `docs/design/wave2-designs.html` holds the designs and his 17 decisions for the first features: calendar
+sync that adds new meetings by itself, a meeting copied as minutes, the Actions list copied as shown, and the
+Actions pane header.
+
+- `docs/briefs/`: `RULES.md` (the standing rules every brief relies on), `TEMPLATE.md`, a `README.md` that lists
+  every accepted item by wave with its order and status, and the briefs of wave 1 (groundwork) and wave 2 (daily
+  gains). A brief is written just before its wave, so the files and lines it names are still true.
+- `?mock&scenario=<name>` in the dev server showed an empty app in a browser tab that had opened the app without a
+  scenario before: the mock restores what the tab saved earlier unless the seed has an id, and a scenario seed had
+  none. `bootMockBackend` now gives it the id `scenario:<name>`, so another scenario (or none) starts fresh and a
+  reload of the same one keeps its state. The Playwright suite seeds its own way and was never affected.
