@@ -13,9 +13,11 @@ keep daily notes, and I maintain it on my own time.
   not a reflection on the quality of the work.
 - There's no formal style guide beyond matching the surrounding code by
   eye — no linter/formatter is configured. Most of the project's
-  non-obvious decisions (and the reasoning behind them) are logged in
-  `docs/CHANGELOG.md`, worth a search before re-proposing something that
-  was already tried and reverted or reworked.
+  non-obvious decisions (and the reasoning behind them) are indexed in
+  `docs/CHANGELOG.md` with entries in `docs/changelog/` (a new entry
+  goes at the end of the last file and the index is regenerated with
+  `node scripts/changelog-index.mjs`), worth a search before re-proposing
+  something that was already tried and reverted or reworked.
 
 ## Translations
 

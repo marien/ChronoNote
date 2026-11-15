@@ -78,7 +78,7 @@ npx playwright test tests/e2e/<area>.spec.ts
 npm run build
 ```
 
-Also: a change gets a numbered section in `docs/CHANGELOG.md` with a `**Status: on main, not released yet.**` line
+Also: a change gets a numbered section at the end of the last file in `docs/changelog/` with a `**Status: on main, not released yet.**` line, and `docs/CHANGELOG.md` is regenerated with `node scripts/changelog-index.mjs`
 (the release script fills in the release); user-facing behaviour goes into `website/guide.html` (its shortcut table is
 checked against `src/lib/shortcuts.ts`) and `docs/spec.md`; anything that only a person can confirm (real hardware, a
 real account) goes into `docs/open-checks.md`.

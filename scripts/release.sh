@@ -194,8 +194,8 @@ if [[ $BUMPED == 0 ]]; then
   # The CHANGELOG statuses for this release, in a commit of their own before
   # the bump (which touches the version files only).
   run changelog-status node scripts/changelog-status.mjs "$VERSION" $BETA_FLAG
-  if [[ -n "$(git status --porcelain docs/CHANGELOG.md)" ]]; then
-    git add docs/CHANGELOG.md
+  if [[ -n "$(git status --porcelain docs/changelog docs/CHANGELOG.md)" ]]; then
+    git add docs/changelog docs/CHANGELOG.md
     git commit -q -m "CHANGELOG: statuses for $TAG$TRAILER"
     ok "CHANGELOG statuses filled in"
   fi
