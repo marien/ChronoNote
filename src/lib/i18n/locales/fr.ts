@@ -612,7 +612,7 @@ export const fr = {
   "searchModal.footer.select": () => "Sélectionner",
 
   "datePicker.ariaLabel": () => "Aller à la date",
-  "datePicker.jumpPlaceholder": () => "Aller à la date — aujourd'hui, -2, 2026-09-05…",
+  "datePicker.jumpPlaceholder": () => "Aller à : aujourd'hui, -2, 2026-09-05",
   "datePicker.jumpAriaLabel": () => "Aller à une date par saisie",
   "datePicker.previousMonth": () => "Mois précédent",
   "datePicker.nextMonth": () => "Mois suivant",

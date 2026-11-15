@@ -35,16 +35,6 @@ const ONE_LINE = [
 ];
 
 const KNOWN: KnownFault[] = [
-  { locale: "en", size: "1100x720", surface: "DatePicker", selector: "input.datepicker-jump", reason: "found by U2, to fix" },
-  { locale: "nl", size: "1100x720", surface: "DatePicker", selector: "input.datepicker-jump", reason: "found by U2, to fix" },
-  { locale: "de", size: "1100x720", surface: "DatePicker", selector: "input.datepicker-jump", reason: "found by U2, to fix" },
-  { locale: "en", size: "1000x720", surface: "Week Review (docked)", selector: "div.week-review-title-group", reason: "found by U2, to fix" },
-  { locale: "nl", size: "1000x720", surface: "Week Review (docked)", selector: "div.week-review-title-group", reason: "found by U2, to fix" },
-  { locale: "de", size: "1000x720", surface: "Week Review (docked)", selector: "div.week-review-title-group", reason: "found by U2, to fix" },
-  { locale: "de", size: "375x667", surface: "Mobile Settings", selector: "button.segmented-option.active", reason: "found by U2, to fix" },
-  { locale: "de", size: "375x667", surface: "Mobile Settings", selector: "button.segmented-option", reason: "found by U2, to fix" },
-  { locale: "de", size: "390x844", surface: "Phone Settings (Appearance)", selector: "button.segmented-option.active", reason: "found by U2, to fix" },
-  { locale: "de", size: "390x844", surface: "Phone Settings (Appearance)", selector: "button.segmented-option", reason: "found by U2, to fix" },
 ];
 
 function formatIssue(issue: OverflowIssue): string {

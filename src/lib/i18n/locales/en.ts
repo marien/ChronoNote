@@ -594,7 +594,7 @@ export const en = {
   "searchModal.footer.select": () => "Select",
 
   "datePicker.ariaLabel": () => "Jump to date",
-  "datePicker.jumpPlaceholder": () => "Jump to date — today, -2, 2026-09-05…",
+  "datePicker.jumpPlaceholder": () => "Go to: today, -2, 2026-09-05",
   "datePicker.jumpAriaLabel": () => "Jump to a date by typing",
   "datePicker.previousMonth": () => "Previous month",
   "datePicker.nextMonth": () => "Next month",
