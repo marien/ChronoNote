@@ -93,12 +93,18 @@ export function editorChanges(oldText: string, newText: string): TextChange[] {
     return out;
   }
 
-  // LCS over the changed middle (the same table as `lineDiff.ts`), then one change per run of unmatched lines.
+  // LCS over the changed middle, then one change per run of unmatched lines. A matched line with text counts 2, a
+  // blank line 1: otherwise two kept blank lines can win a tie against two kept text lines, and the caret's own line
+  // is then replaced and the caret lands elsewhere (a property test found it, 2026-11-15). Taking an equal pair at
+  // once in the walk below stays optimal, because both lines of a pair have the same weight.
   const w = m + 1;
   const t = new Uint32Array((n + 1) * w);
   for (let i = n - 1; i >= 0; i--) {
     for (let j = m - 1; j >= 0; j--) {
-      t[i * w + j] = x[p + i] === y[p + j] ? t[(i + 1) * w + j + 1] + 1 : Math.max(t[(i + 1) * w + j], t[i * w + j + 1]);
+      t[i * w + j] =
+        x[p + i] === y[p + j]
+          ? t[(i + 1) * w + j + 1] + (x[p + i].trim() === "" ? 1 : 2)
+          : Math.max(t[(i + 1) * w + j], t[i * w + j + 1]);
     }
   }
   let i = 0;
