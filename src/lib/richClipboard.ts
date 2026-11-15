@@ -14,6 +14,8 @@ interface ListLineInfo {
   indent: number;
   text: string;
   startNum: number;
+  parts: number;
+  delimiter?: "." | ")";
 }
 
 function parseListLine(line: string): ListLineInfo | null {
@@ -27,6 +29,7 @@ function parseListLine(line: string): ListLineInfo | null {
       indent: indentLen(indent),
       text: itemText,
       startNum: 1,
+      parts: 1,
     };
   }
 
@@ -38,6 +41,8 @@ function parseListLine(line: string): ListLineInfo | null {
       indent: indentLen(numItem.indent),
       text: numItem.text,
       startNum,
+      parts: numItem.numbers.length,
+      delimiter: numItem.delimiter,
     };
   }
 
@@ -61,12 +66,28 @@ export function noteTextToHtml(text: string): string | null {
   if (!hasAnyList) return null;
 
   let output = "";
-  const stack: { type: "ul" | "ol"; indent: number }[] = [];
+  const stack: { type: "ul" | "ol"; indent: number; parts: number; delimiter?: "." | ")" }[] = [];
 
-  function closeDownTo(targetIndent: number) {
-    while (stack.length > 0 && stack[stack.length - 1].indent > targetIndent) {
-      const top = stack.pop()!;
-      output += `</li></${top.type}>`;
+  function closeDownTo(item: ListLineInfo) {
+    while (stack.length > 0) {
+      const top = stack[stack.length - 1];
+      if (top.indent > item.indent) {
+        stack.pop();
+        output += `</li></${top.type}>`;
+        continue;
+      }
+      if (
+        top.indent === item.indent &&
+        top.type === "ol" &&
+        item.type === "ol" &&
+        top.delimiter === item.delimiter &&
+        top.parts > item.parts
+      ) {
+        stack.pop();
+        output += `</li></${top.type}>`;
+        continue;
+      }
+      break;
     }
   }
 
@@ -101,24 +122,28 @@ export function noteTextToHtml(text: string): string | null {
       }
     } else {
       // List line
-      closeDownTo(item.indent);
+      closeDownTo(item);
 
-      if (stack.length > 0 && stack[stack.length - 1].indent === item.indent) {
-        if (stack[stack.length - 1].type === item.type) {
-          output += "</li>";
-        } else {
-          const top = stack.pop()!;
-          output += `</li></${top.type}>`;
-        }
+      while (
+        stack.length > 0 &&
+        stack[stack.length - 1].indent === item.indent &&
+        (stack[stack.length - 1].type !== item.type ||
+          (item.type === "ol" && stack[stack.length - 1].delimiter !== item.delimiter))
+      ) {
+        const top = stack.pop()!;
+        output += `</li></${top.type}>`;
       }
 
-      if (stack.length === 0 || stack[stack.length - 1].indent < item.indent) {
+      const top = stack[stack.length - 1];
+      if (top && top.indent === item.indent && top.type === item.type && top.parts === item.parts) {
+        output += "</li>";
+      } else {
         if (item.type === "ol" && item.startNum !== 1) {
           output += `<ol start="${item.startNum}">`;
         } else {
           output += `<${item.type}>`;
         }
-        stack.push({ type: item.type, indent: item.indent });
+        stack.push({ type: item.type, indent: item.indent, parts: item.parts, delimiter: item.delimiter });
       }
 
       output += `<li>${escapeHtml(item.text)}`;
