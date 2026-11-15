@@ -63,12 +63,16 @@ function parseValidISO(iso: string | null): [number, number, number] | null {
 function formatLongDate(iso: string, locale: string): string | null {
   const parts = parseValidISO(iso);
   if (!parts) return null;
-  return new Intl.DateTimeFormat(locale, {
+  const fmt = new Intl.DateTimeFormat(locale, {
     weekday: "long",
     day: "numeric",
     month: "long",
     year: "numeric",
-  }).format(new Date(parts[0], parts[1] - 1, parts[2], 12));
+  }).formatToParts(new Date(parts[0], parts[1] - 1, parts[2], 12));
+  // The title already has a comma before the date ("Design review, Monday 16 November 2026"): drop the one some
+  // locales put right after the weekday (en-GB "Monday, 16 November 2026"), keep any later ones (en-US "…16, 2026").
+  if (fmt[0]?.type === "weekday" && fmt[1]?.type === "literal") fmt[1] = { ...fmt[1], value: fmt[1].value.replace(",", "") };
+  return fmt.map((p) => p.value).join("");
 }
 
 function formatShortDate(iso: string, locale: string): string | null {

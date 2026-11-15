@@ -417,7 +417,7 @@ describe("buildMinutes", () => {
   it("cleans up forward links, list markers, and preserves @name inside entry text", () => {
     const noteText = section(
       "Sync",
-      "- # ping @alex about rollout (>2026-11-23#Sync)",
+      "# - ping @alex about rollout (>2026-11-23#Sync)",
       ". Scope (<2026-11-10#Sync) => keep v1",
     );
     const res = buildMinutes({

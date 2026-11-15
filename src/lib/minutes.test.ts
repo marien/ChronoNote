@@ -35,15 +35,6 @@ const REFERENCE_NOTE = [
   "Sam was late, started 14:10",
 ].join("\n");
 
-function expectedTitleDate(locale: string, year: number, month: number, day: number): string {
-  return new Intl.DateTimeFormat(locale, {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  }).format(new Date(year, month - 1, day, 12));
-}
-
 describe("buildMinutes", () => {
   it("formats the reference example exactly in plain text", () => {
     const res = buildMinutes({
@@ -55,7 +46,7 @@ describe("buildMinutes", () => {
       labels: EN_LABELS,
     });
 
-    const titleDate = expectedTitleDate("en-GB", 2026, 11, 16);
+    const titleDate = "Monday 16 November 2026"; // the brief's reference: no comma after the weekday
     expect(res).not.toBeNull();
     expect(res!.empty).toBe(false);
     expect(res!.plain).toBe(
@@ -108,7 +99,7 @@ describe("buildMinutes", () => {
       labels: EN_LABELS,
     });
 
-    const titleDate = expectedTitleDate("en-GB", 2026, 11, 16);
+    const titleDate = "Monday 16 November 2026"; // the brief's reference: no comma after the weekday
     expect(res!.html).toContain(`<p><b>Design review</b>, ${titleDate}</p>`);
     expect(res!.html).toContain("<li>Vendor choice: we go with Acme</li>");
 
