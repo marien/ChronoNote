@@ -12316,7 +12316,7 @@ here. Tests only; no app code changed.
 
 ## 475. Flat numbered outlines: `1.`, `1.1.`, `2.` at the start of the line again
 
-**Status: on main, not released yet.**
+**Status: released in beta 0.38.0-2 (early channel only).**
 
 Marien (2026-11-15, on the 0.38.0-1 beta): an outline written by hand at the start of each line (`1. a`, `1.1. b`,
 `2. c`) no longer worked; `1.1. b` became `2. b` on the next Enter. Found here: that changed in v0.37.2 (§457), not in
