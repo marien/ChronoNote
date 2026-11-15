@@ -20,13 +20,13 @@ merges. A brief is written just before its wave, so its file and line references
 
 | ID | What | Brief | Order | Who |
 | :--- | :--- | :--- | :--- | :--- |
-| T3 | A guard against deleted tests | [wave-1/T3-test-guard.md](wave-1/T3-test-guard.md) | first | coder |
-| T4 | Browser tests that can run side by side | [wave-1/T4-e2e-ports.md](wave-1/T4-e2e-ports.md) | any time | coder |
-| T6 | Test for the last data-loss rule (4.2) | [wave-1/T6-hold-command.md](wave-1/T6-hold-command.md) | any time | coder |
-| P2 | Split the changelog | [wave-1/P2-changelog-split.md](wave-1/P2-changelog-split.md) | any time; no changelog entries may be added on other branches while it is open | coder |
-| P1 | Faster checks on GitHub | [wave-1/P1-ci-speed.md](wave-1/P1-ci-speed.md) | after T3 | coder |
-| P3 | `npm run agent:report` | [wave-1/P3-agent-report.md](wave-1/P3-agent-report.md) | after T3 | coder |
-| P6 | Mock scenarios came up empty | none needed | any time | Claude (3 lines) |
+| T3 | A guard against deleted tests | [wave-1/T3-test-guard.md](wave-1/T3-test-guard.md) | first | coder · merged #231 |
+| T4 | Browser tests that can run side by side | [wave-1/T4-e2e-ports.md](wave-1/T4-e2e-ports.md) | any time | coder · merged #232 |
+| T6 | Test for the last data-loss rule (4.2) | [wave-1/T6-hold-command.md](wave-1/T6-hold-command.md) | any time | coder · merged #230 |
+| P2 | Split the changelog | [wave-1/P2-changelog-split.md](wave-1/P2-changelog-split.md) | any time; no changelog entries may be added on other branches while it is open | coder · merged #233 |
+| P1 | Faster checks on GitHub | [wave-1/P1-ci-speed.md](wave-1/P1-ci-speed.md) | after T3 | coder · merged #234 |
+| P3 | `npm run agent:report` | [wave-1/P3-agent-report.md](wave-1/P3-agent-report.md) | after T3 | coder · merged #235 |
+| P6 | Mock scenarios came up empty | none needed | any time | Claude (3 lines) · done in §479 |
 | P5 | Three patch updates; first look at TypeScript 7 | none | any time | Claude (needs the full local suite and judgement) |
 
 P6, found: `installMockTauri` restores whatever state the browser tab saved earlier when the seed has no `seedId`
@@ -56,9 +56,12 @@ handles everything together, as today.
 
 ## Wave 3 · the index and what it unlocks
 
+Opus designs and briefs waves 3 and 4 (Marien, 2026-11-15), each brief just before its wave. F3, F5, F6 and F9
+change behaviour Marien has not seen: each gets a short design page with examples and his decisions before its brief.
+
 | ID | What | Note |
 | :--- | :--- | :--- |
-| R1 | One index of all notes | Design document first (shape of the index, how it is kept up to date, how the three backends feed it). Data safety: Google-Sonnet. |
+| R1 | One index of all notes | Design: [`docs/design/notes-index-design.md`](../design/notes-index-design.md) (started by Fable, finished by Opus); briefs S1-S6 in `wave-3/`, S1 Google-Sonnet. Design document first (shape of the index, how it is kept up to date, how the three backends feed it). Data safety: Google-Sonnet. |
 | F3 | Suggestions for @names, (topics), section titles | After R1 |
 | F7 | Search: `section:`, `is:decision`, `is:topic`, `is:emphasis`, saved searches | After R1 |
 | F5 | Person view | After R1; short design |
@@ -71,7 +74,7 @@ handles everything together, as today.
 | :--- | :--- | :--- |
 | T1 | The spec as tables that run | Lists and editing keys first, from `src/lib/editor/editing.*.table.test.ts` |
 | T2 | Random typing against the real editor | Uses `src/lib/testing/testEditor.ts` and fast-check |
-| U5 | Design pass on the screenshot gallery | Claude's own work; needs P6 fixed |
+| U5 | Design pass on the screenshot gallery | Parked 2026-11-15 (Marien) |
 | R2 | Split the six largest files | One brief per file, moves only; after waves 2 and 3 so open branches do not conflict |
 | R3 | Load dialogs when they open | Measure start time on the phone first |
 | T5 | Do the tests notice a broken rule? | Local, monthly; needs a tool as a dev dependency (Marien's OK on the package) |

@@ -499,3 +499,4 @@ line, and this index is regenerated with `node scripts/changelog-index.mjs`.
 - §477 An outside change keeps the caret on its line when blank lines move
 - §478 Two test fixes after 0.38.0
 - §479 Forward review: what comes after 0.38.0, a brief kit, and a mock-scenario fix
+- §480 Forward review wave 1: groundwork for coder runs

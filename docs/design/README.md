@@ -1,5 +1,12 @@
 # Design notes
 
+## One index of all notes (R1)
+
+**[`notes-index-design.md`](notes-index-design.md)** — in progress (started 2026-11-15 by Fable, finished by Opus):
+one store of per-note entries (`NoteEntry`, derived facets remembered per entry) with a single rule for laying open
+tabs over the disk text, loaded lazily, replacing the views that each read and split every note themselves. Six
+migration slices S1-S6 that change no behaviour; the open points are in its section 8.
+
 ## Mobile companion through OneDrive (outbox and inbox)
 
 **[`mobile-companion-design.md`](mobile-companion-design.md)** — decided 2026-10-29 (Marien's answers in §13):
