@@ -431,6 +431,30 @@ export class MockBackend {
   /** Commands seeded to artificially delay (`MockSeed.delayCommands`). */
   delayCommands: Map<string, number>;
 
+  private heldCommands = new Map<
+    string,
+    { waiting: boolean; resolve?: (outcome?: { reject?: string }) => void }
+  >();
+
+  /** Arm a one-shot hold: the next `invoke(cmd)` waits until `releaseHeld(cmd)` is called. */
+  holdCommand(cmd: string): void {
+    this.heldCommands.set(cmd, { waiting: false });
+  }
+
+  /** Release a waiting `invoke(cmd)` call (or disarm a pending hold). Returns false if nothing was waiting. */
+  releaseHeld(cmd: string, outcome?: { reject?: string }): boolean {
+    const entry = this.heldCommands.get(cmd);
+    this.heldCommands.delete(cmd);
+    if (!entry || !entry.waiting || !entry.resolve) return false;
+    entry.resolve(outcome);
+    return true;
+  }
+
+  /** True while an `invoke(cmd)` call is waiting on `releaseHeld(cmd)`. */
+  isHeld(cmd: string): boolean {
+    return this.heldCommands.get(cmd)?.waiting ?? false;
+  }
+
   /** `MockSeed.seedId` this state came from, saved with it. */
   seedId: string | undefined;
 
@@ -896,6 +920,16 @@ export class MockBackend {
 
   async invoke(cmd: string, args: Record<string, unknown> = {}): Promise<unknown> {
     this.invokeLog.push({ cmd, args, at: Date.now() });
+    const held = this.heldCommands.get(cmd);
+    if (held && !held.waiting) {
+      held.waiting = true;
+      const outcome = await new Promise<{ reject?: string } | undefined>((resolve) => {
+        held.resolve = resolve;
+      });
+      if (outcome?.reject !== undefined) {
+        throw new Error(outcome.reject);
+      }
+    }
     if (this.throwOnCommands.has(cmd)) {
       throw new Error(`mock: ${cmd} failed (seeded via throwOnCommands)`);
     }

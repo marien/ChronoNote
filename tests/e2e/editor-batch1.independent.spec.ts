@@ -669,22 +669,65 @@ test.describe("Editor batch 1 — independent tests", () => {
       expect(await mockNote(page, file)).toBe(initial);
     });
 
-    // Cannot drive with existing mock hooks: `MockBackend.invoke` checks `this.throwOnCommands.has(cmd)`
-    // *before* `this.delayCommands.get(cmd)`, so `write_note` either fails immediately (0 ms, no window for
-    // the user to type `USER ` while the save runs) or delays and resolves successfully.
-    // Needed hook: a way on `window.__CHRONO_MOCK__` to hold an in-flight `write_note` call open until the
-    // test explicitly rejects it (e.g. `holdCommand("write_note")` returning a reject handle).
-    // Steps it should take:
-    // 1. Seed `phoneCompanion: true`, a note `"Planning\n========\noriginal\n"`, and `phoneInbox` appending `"phone line"` to `"Planning"`.
-    // 2. Arm the mock hook to hold the next `write_note` invocation pending.
-    // 3. Trigger `"Apply phone changes"` via the Command Palette so `"phone line"` is applied and `write_note` is in flight.
-    // 4. Click the editor, move the caret to the start of the `"original"` line, and type `"USER "`.
-    // 5. Reject the held `write_note` promise with a non-conflict error.
-    // 6. Assert `activeTabContent(page)` contains `"USER original\n"` and does not contain `"phone line"`.
-    test.fixme(
-      "4.2: while phone companion save is in flight, typing USER at start of line keeps USER when save fails",
-      async () => {},
-    );
+    test("4.2: while phone companion save is in flight, typing USER at start of line keeps USER when save fails", async ({
+      page,
+    }) => {
+      // 1. Seed `phoneCompanion: true`, a note `"Planning\n========\noriginal\n"`, and `phoneInbox` appending `"phone line"` to `"Planning"`.
+      const file = todayFilename();
+      const initial = "Planning\n========\noriginal\n";
+      const inbox = JSON.stringify({
+        format: 1,
+        writer: "test",
+        requests: [
+          {
+            id: "r1",
+            type: "addLine",
+            date: REFERENCE_TODAY,
+            section: "Planning",
+            text: "phone line",
+          },
+        ],
+      });
+
+      await seedApp(page, {
+        seed: {
+          phoneCompanion: true,
+          notes: { [file]: initial },
+          session: { openTabs: [file], activeTab: file },
+          phoneInbox: inbox,
+        },
+      });
+
+      // 2. Arm the mock hook to hold the next `write_note` invocation pending.
+      await page.evaluate(() => window.__CHRONO_MOCK__!.holdCommand("write_note"));
+
+      // 3. Trigger `"Apply phone changes"` via the Command Palette so `"phone line"` is applied and `write_note` is in flight.
+      await triggerApplyPhoneChanges(page);
+      await expect
+        .poll(() => page.evaluate(() => window.__CHRONO_MOCK__!.isHeld("write_note")))
+        .toBe(true);
+      await expect.poll(() => activeTabContent(page)).toContain("phone line");
+
+      // 4. Click the editor, move the caret to the start of the `"original"` line, and type `"USER "`.
+      await editor(page).click();
+      await page.keyboard.press("ControlOrMeta+Home");
+      await page.keyboard.press("ArrowDown");
+      await page.keyboard.press("ArrowDown");
+      await page.keyboard.press("Home");
+      await page.keyboard.press("Home");
+      await page.keyboard.type("USER ");
+      await expect.poll(() => activeTabContent(page)).toContain("USER original");
+
+      // 5. Reject the held `write_note` promise with a non-conflict error.
+      const released = await page.evaluate(() =>
+        window.__CHRONO_MOCK__!.releaseHeld("write_note", { reject: "disk full" }),
+      );
+      expect(released).toBe(true);
+
+      // 6. Assert `activeTabContent(page)` is `"Planning\n========\nUSER original\n"` and does not contain `"phone line"`.
+      await expect.poll(() => activeTabContent(page)).toBe("Planning\n========\nUSER original\n");
+      expect(await activeTabContent(page)).not.toContain("phone line");
+    });
   });
 
   test.describe("Rule 5: Spell check never applies results for text that has changed", () => {
