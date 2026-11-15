@@ -12339,3 +12339,22 @@ Indented lists behave as before. Built by Gemini 4 Hydrogen; independent tests w
 by a second Hydrogen run (`src/lib/editor/flatLists.independent.test.ts`, 57 tests, and
 `tests/e2e/flat-lists.independent.spec.ts`); 56 passed on the coder's branch at once, the 57th read rule 12 against
 its words (the text lines up under the item right above, `1.1. b`) and was corrected. Reviewed here.
+
+## 476. Faster releases: no second local run of a suite GitHub already passed, no waiting on the release commit
+
+**Status: on main, not released yet.**
+
+Marien (2026-11-15) counted the full test suite running several times for one beta. It ran five times: locally before
+the PR, on the PR, on main after the merge, in `release.sh`'s gates, and on the release commit. The last two added
+about 30 minutes without testing anything new: the gates ran the same commit GitHub's Test run had just passed
+(`release.sh` already refuses to start unless it is green), and the release commit only adds the version bump and the
+CHANGELOG statuses. Marien's choice:
+
+- **Betas** skip the local gates when GitHub's latest Test run on main is green on exactly the commit being released
+  (`--local-gates` runs them anyway). The pre-push checks on the bump commit are skipped then too. Stable releases keep
+  the local gates as the last check on Windows before a version reaches everyone and the web app.
+- **The release commit's Test run** is no longer waited for: `release.sh` prints its id, and it is checked afterwards,
+  as after every release.
+
+A beta goes from about 35 to about 6 minutes, a stable from about 35 to about 20. The runs before the PR, on the PR
+(the required checks) and on main after the merge (which also runs Native smoke) stay.
