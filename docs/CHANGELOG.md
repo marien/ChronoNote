@@ -10854,6 +10854,8 @@ Confirmed by Marien (2026-10-26) on 0.34.0-4.
 - **Security Audit workflow:** on pushes and pull requests only when `package.json`, `package-lock.json`, `Cargo.toml` or `Cargo.lock` change, plus **daily** (was weekly) and by hand. A new advisory now shows up as one red scheduled run within a day instead of on every unrelated push.
 - **Working rules for the orchestrator** (memory): check the GitHub Test run after every push before reporting; run new timing-sensitive tests 10 times locally before pushing.
 
+Confirmed 2026-11-15: the Security Audit ran every day (GitHub starts the 04:00 UTC schedule around 11:00-12:00 UTC).
+
 ## 411. Workflow: clippy and flaky tests in CI, pinned actions, docs checks, CHANGELOG statuses, open checks, leaner notes
 
 **Status: on main (tooling and docs only, not in the app).**
@@ -10869,6 +10871,8 @@ Confirmed by Marien (2026-10-26) on 0.34.0-4.
 - **Leaner working notes:** the local, untracked `CLAUDE.local.md` (loaded into every Claude session) went from 2,918 to about 110 lines (setup, commands, gotchas that still apply, where things go, releases, current state; the full old version kept as `CLAUDE.local-archive.md`, also untracked); Claude's memory went from 101 files to 34 (per-release diaries removed, their lasting lessons collected in one file). `docs/AGENT_GUIDELINES.md`'s quality gate now uses `npm run verify`.
 - **Coverage, measured once** (`@vitest/coverage-v8`, installed without saving and removed again): the logic modules (`.ts`) are 68 % covered by Vitest (the screens are covered by Playwright, not Vitest). Largest untested parts: `webapp/webBackend.ts` (256 untested lines; partly covered by the storage conformance cases), `peek.ts` (237; window glue, covered by the Peek browser and native tests), `boot.ts` (160), `editor/spellcheck.ts` (144), `exportNotes.ts` (97, 1 %; covered by `export.spec.ts` only), `occurrences.ts` (51, 19 %). Not acted on yet.
 - **Combined coverage, measured once** (Marien: step 1 before writing tests). In a throwaway worktree the browser suite ran against an istanbul-instrumented build (1,022 tests passed, 1 hour), Vitest with the same instrumentation, combined per source line (translation tables left out: a string only runs in its own language); Rust with `cargo llvm-cov`. Nothing committed but this note; the tools were installed without saving and removed. **Frontend: 84 % of lines run by some test** (logic 79 %, screens 88 %); only the demo and web-app entry points are never loaded. **Rust: 61 % of lines**, but `storage.rs` 89 % and `agenda.rs` 88 % (the misses are mostly error branches and thin wrappers that fetch a path from the running app); low only in Windows window and system code (Peek docking, Snap overlay, Zen, spell check through the Windows API, the updater's install), which the native tests run without measuring. Untested code that matters, most risk first: the web app's storage and OneDrive sync (`webBackend.ts` 256 lines and `webOneDriveSync.ts` 124: deleted-note tombstones, version history list/read/restore, import, trash, sync now/health; the browser tests use the mock backend, so only Vitest reaches it), conflict resolution (`drift.ts`: keep mine / keep disk / save a copy, write conflicts), the notes-folder migration dialog (`MigrateNotesModal.svelte`, 107 of 115 lines), startup OneDrive sync in `boot.ts`, saving an export of a date range (`exportNotes.ts`), search query parsing (`parseSearchQuery`), occurrence stepping.
+
+Confirmed 2026-11-15: a test that only passed on the retry showed up as a warning on the run (Test runs 42561447948 and 42819821373).
 
 ## 412. Tests for the three riskiest untested areas (from the coverage measurement)
 
@@ -10893,6 +10897,8 @@ Confirmed by Marien (2026-10-26) on 0.34.0-4.
 - **5. Web app: the "Move notes to OneDrive?" prompt could be dismissed while notes were moving.** Escape and a click outside now do nothing while moving. Escape also closed the folder picker underneath (the app's own Escape handling saw the picker as the top overlay); it now closes only the prompt, like Cancel.
 - **6. Tab did not move between the prompt's buttons.** The folder picker's focus trap underneath pulled focus back. Open focus traps now form a stack and only the top one handles Tab (`focusTrap.ts`; applies to every dialog opened over another).
 - **Tests:** `npm run verify --rust` green (Vitest, cargo test, clippy), full browser suite and native tests run before merging.
+
+Confirmed by Marien 2026-11-15: both OneDrive conflict checks (desktop "Keep my version" and the web app).
 
 ## 414. Release script: ask GitHub again when its run list comes back empty
 
@@ -11571,6 +11577,8 @@ fonts, right-click, long-press and focus in the window) is still done on the las
 
 The after-release items confirmed by Marien (2026-11-06) on 0.36.0 (they were still open from 0.35.0).
 
+Confirmed by Marien 2026-11-15: the 0.37.0 phone and installed web app checks.
+
 ## 442. Website: the header shows the real app icon in dark mode too
 
 **Status: live on the website (website only, no app release).**
@@ -11789,6 +11797,8 @@ re-read.)
   full listing (the existing full-listing rules: unchanged files skipped by eTag, files gone from OneDrive removed
   only when unchanged locally).
 - Tests: `syncNotesCache.test.ts`, new cases in `webOneDriveSync.test.ts` and `oneDriveClient.test.ts`.
+
+Confirmed by Marien 2026-11-15: a OneDrive sync's notes reach the due item in the live web app.
 
 ## 452. Release script: no pre-release environment checklist for minor releases
 
