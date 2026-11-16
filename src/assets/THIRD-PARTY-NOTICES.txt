@@ -341,7 +341,7 @@ PackageDownloadLocation: git+ssh://github.com/tauri-apps/tauri.git
 Creator: Person: Daniel Thompson-Yvetot
 
 ================================================================================
-@tauri-apps/plugin-opener 2.7.2
+@tauri-apps/plugin-opener 2.7.3
 MIT OR Apache-2.0
 
 SPDXVersion: SPDX-2.1
@@ -4877,7 +4877,7 @@ SOFTWARE.
 ================================================================================
 MIT License
 
-chrononote 0.38.0
+chrononote 0.39.0-1
 brotli-decompressor 6.0.1
 chrono-tz 0.10.4
 chrono 0.4.45
@@ -4887,7 +4887,7 @@ siphasher 1.0.3
 tauri-plugin-dialog 2.8.4
 tauri-plugin-fs 2.7.1
 tauri-plugin-global-shortcut 2.4.1
-tauri-plugin-opener 2.7.2
+tauri-plugin-opener 2.7.3
 tauri-plugin-process 2.4.0
 tauri-plugin-single-instance 2.5.5
 tauri-plugin-updater 2.14.1
