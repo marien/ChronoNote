@@ -1,7 +1,7 @@
 # Brief F6: Rename a section title, @name or (topic) in every note
 
 Run name `f6-rename-everywhere` · worktree `C:\Users\marie\Dev\Gemini\agy-worktrees\f6-rename-everywhere` · branch
-`gemini/f6-rename-everywhere` · base `main` after F5 is merged · browser-test port `1466` · model Google-Sonnet 5.5
+`gemini/f6-rename-everywhere` · base `main` after F5 is merged · browser-test port `1466` · model Gemini 4 Hydrogen (Google-Sonnet quota used up until 2026-11-22)
 
 Read `docs/briefs/RULES.md` in your worktree first. It applies in full. This brief writes many notes at once: data
 safety comes before everything else. When in doubt, skip a note and say so; never write a note whose text you did

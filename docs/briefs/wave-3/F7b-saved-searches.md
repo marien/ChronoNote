@@ -1,7 +1,7 @@
 # Brief F7b: Saved searches
 
 Run name `f7b-saved-searches` · worktree `C:\Users\marie\Dev\Gemini\agy-worktrees\f7b-saved-searches` · branch
-`gemini/f7b-saved-searches` · base `main` after F7a is merged · browser-test port `1462` · model Google-Sonnet 5.5
+`gemini/f7b-saved-searches` · base `main` after F7a is merged · browser-test port `1462` · model Gemini 4 Hydrogen (Google-Sonnet quota used up until 2026-11-22)
 
 Read `docs/briefs/RULES.md` in your worktree first. It applies in full; rule 4 (storage commands in all three
 backends) matters most here.

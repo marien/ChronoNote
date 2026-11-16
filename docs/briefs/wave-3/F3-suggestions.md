@@ -1,7 +1,7 @@
 # Brief F3: Suggestions for @names, (topics) and section titles
 
 Run name `f3-suggestions` · worktree `C:\Users\marie\Dev\Gemini\agy-worktrees\f3-suggestions` · branch
-`gemini/f3-suggestions` · base `main` · browser-test port `1463` · model Google-Sonnet 5.5
+`gemini/f3-suggestions` · base `main` · browser-test port `1463` · model Gemini 4 Hydrogen (Google-Sonnet quota used up until 2026-11-22)
 
 Read `docs/briefs/RULES.md` in your worktree first. It applies in full; rules 2, 3 and 5 matter most here.
 
