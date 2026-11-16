@@ -1,6 +1,17 @@
 import { describe, expect, it, beforeEach } from "vitest";
-import { escapeRegExp, parseSearchQuery, removeChipFromQuery, runSearch } from "./search";
+import { get } from "svelte/store";
+import {
+  escapeRegExp,
+  isDecisionLine,
+  isEmphasisLine,
+  isTopicLine,
+  parseSearchQuery,
+  removeChipFromQuery,
+  runSearch,
+  splitQuery,
+} from "./search";
 import { clearDiskLayer, seedDiskNotesForTest } from "./notesIndex/diskLayer";
+import { _facetRuns } from "./notesIndex/facets";
 import { searchResultsStore, tabs } from "./stores";
 import type { NoteTab } from "./types";
 
@@ -276,5 +287,190 @@ describe("regex-safe operators and chip removal", () => {
     const q = "due:2026-10-25 deploy";
     const chip = parseSearchQuery(q).chips.find((c) => c.kind === "due")!;
     expect(removeChipFromQuery(q, chip)).toBe("deploy");
+  });
+
+  it("removing a quoted section: chip drops it whole", () => {
+    const q = 'section:"design review" budget';
+    const chip = parseSearchQuery(q).chips.find((c) => c.kind === "section")!;
+    expect(removeChipFromQuery(q, chip)).toBe("budget");
+  });
+});
+
+describe("splitQuery and new search words (F7a)", () => {
+  it("splitQuery handles quoted section: values and tracks start/end", () => {
+    expect(splitQuery('section:"design review" is:open budget')).toEqual([
+      { token: 'section:"design review"', start: 0, end: 23 },
+      { token: "is:open", start: 24, end: 31 },
+      { token: "budget", start: 32, end: 38 },
+    ]);
+    expect(splitQuery('section:"design review')).toEqual([
+      { token: 'section:"design review', start: 0, end: 22 },
+    ]);
+  });
+
+  it("parseSearchQuery parses is:decision, is:topic, is:emphasis, section:, and empty section:", () => {
+    const dec = parseSearchQuery("IS:DECISION");
+    expect(dec.operators.isDecision).toBe(true);
+    expect(dec.chips[0]).toMatchObject({ kind: "is", label: "is:decision", value: "decision" });
+
+    const top = parseSearchQuery("is:topic");
+    expect(top.operators.isTopic).toBe(true);
+    expect(top.chips[0]).toMatchObject({ kind: "is", label: "is:topic", value: "topic" });
+
+    const emp = parseSearchQuery("is:emphasis");
+    expect(emp.operators.isEmphasis).toBe(true);
+    expect(emp.chips[0]).toMatchObject({ kind: "is", label: "is:emphasis", value: "emphasis" });
+
+    const sec = parseSearchQuery("section:review");
+    expect(sec.operators.section).toBe("review");
+    expect(sec.chips[0]).toMatchObject({ kind: "section", label: "section:review", value: "review" });
+
+    const quoted = parseSearchQuery('SECTION:"design review"');
+    expect(quoted.operators.section).toBe("design review");
+    expect(quoted.chips[0]).toMatchObject({
+      kind: "section",
+      label: 'section:"design review"',
+      value: "design review",
+    });
+
+    const empty1 = parseSearchQuery("section:");
+    expect(empty1.operators).toEqual({});
+    expect(empty1.chips).toEqual([]);
+    expect(empty1.term).toBe("section:");
+
+    const empty2 = parseSearchQuery('section:""');
+    expect(empty2.operators).toEqual({});
+    expect(empty2.chips).toEqual([]);
+    expect(empty2.term).toBe('section:""');
+  });
+
+  it("is: words share one slot and replace earlier ones", () => {
+    const r1 = parseSearchQuery("is:open is:decision");
+    expect(r1.operators).toEqual({ isDecision: true });
+    expect(r1.chips).toHaveLength(1);
+    expect(r1.chips[0].label).toBe("is:decision");
+
+    const r2 = parseSearchQuery("is:decision is:done");
+    expect(r2.operators).toEqual({ isDone: true });
+    expect(r2.chips).toHaveLength(1);
+    expect(r2.chips[0].label).toBe("is:done");
+
+    const r3 = parseSearchQuery("is:topic is:emphasis");
+    expect(r3.operators).toEqual({ isEmphasis: true });
+    expect(r3.chips).toHaveLength(1);
+    expect(r3.chips[0].label).toBe("is:emphasis");
+
+    const secReplace = parseSearchQuery('section:board section:"design review"');
+    expect(secReplace.operators.section).toBe("design review");
+    expect(secReplace.chips).toHaveLength(1);
+    expect(secReplace.chips[0].label).toBe('section:"design review"');
+  });
+
+  it("isDecisionLine classifies lines from tokenizeLine", () => {
+    expect(isDecisionLine(". budget => we keep the Q1 numbers")).toBe(true);
+    expect(isDecisionLine("=> moved to March")).toBe(true);
+    expect(isDecisionLine("# ask Sam => yes, approved")).toBe(true);
+
+    expect(isDecisionLine("=> # call Sam")).toBe(false);
+    expect(isDecisionLine("=> o next week")).toBe(false);
+    expect(isDecisionLine("=> @dana prepare")).toBe(false);
+    expect(isDecisionLine("# ask Sam")).toBe(false);
+    expect(isDecisionLine("=> ")).toBe(false);
+  });
+
+  it("isTopicLine classifies lines via innermostTopicSymbol", () => {
+    expect(isTopicLine("o coffee rota (@Ruth, @Ben)")).toBe(true);
+    expect(isTopicLine(". budget")).toBe(true);
+    expect(isTopicLine(", parked item")).toBe(true);
+    expect(isTopicLine("# call => o follow-up topic")).toBe(true);
+
+    expect(isTopicLine("# call Sam")).toBe(false);
+    expect(isTopicLine("- bullet")).toBe(false);
+    expect(isTopicLine("plain text")).toBe(false);
+  });
+
+  it("isEmphasisLine classifies lines via emphasis token", () => {
+    expect(isEmphasisLine("! the hall is booked until 22:00")).toBe(true);
+    expect(isEmphasisLine("  ! - indented emphasis")).toBe(true);
+
+    expect(isEmphasisLine("a ! in the middle")).toBe(false);
+    expect(isEmphasisLine("# call!")).toBe(false);
+  });
+
+  it("runSearch filters by section:, is:decision, is:topic, is:emphasis and skips blank lines", () => {
+    const note = [
+      "above the first section => not in a section",
+      "Board meeting",
+      "===",
+      ". budget => we keep the Q1 numbers",
+      "# call Sam => yes",
+      "=> # follow up",
+      "! the hall is booked",
+      "",
+      "Design review",
+      "===",
+      "=> moved to March",
+    ].join("\n");
+
+    tabs.set([
+      {
+        id: "tab-f7a",
+        filename: "2026-11-16.txt",
+        content: note,
+        isScratchpad: false,
+        isDirty: false,
+      } as NoteTab,
+    ]);
+    clearDiskLayer();
+    seedDiskNotesForTest({ "2026-11-16.txt": note });
+
+    const lineIdxs = (q: string, scope: "open" | "all" = "open") => {
+      runSearch(q, scope);
+      return get(searchResultsStore).map((r) => r.lineIdx);
+    };
+
+    for (const scope of ["open", "all"] as const) {
+      expect(lineIdxs("section:board is:decision", scope)).toEqual([3, 4]);
+      expect(lineIdxs("section:board is:decision budget", scope)).toEqual([3]);
+      expect(lineIdxs("is:decision", scope)).toEqual([0, 3, 4, 10]);
+      expect(lineIdxs("section:review", scope)).toEqual([10]);
+      expect(lineIdxs("section:board", scope)).toEqual([3, 4, 5, 6]);
+      expect(lineIdxs("is:topic", scope)).toEqual([3]);
+      expect(lineIdxs("is:emphasis", scope)).toEqual([6]);
+    }
+  });
+
+  it("section: normalizes titles, strips dates, and avoids computing sections when unused", () => {
+    const note = [
+      "[10:00 - 10:30] Design review",
+      "===",
+      "line in design review",
+      "Board meeting - 2026-11-03",
+      "===",
+      "line in board 2026",
+      "[CANCELED] Board meeting",
+      "===",
+      "line in canceled board",
+      "Weekly sync",
+      "===",
+      "line in weekly sync",
+    ].join("\n");
+
+    clearDiskLayer();
+    tabs.set([]);
+    seedDiskNotesForTest({ "2026-11-16.txt": note });
+
+    const beforeSections = _facetRuns.sections;
+    runSearch("is:decision", "all");
+    expect(_facetRuns.sections).toBe(beforeSections);
+
+    const linesFor = (q: string) => {
+      runSearch(q, "all");
+      return get(searchResultsStore).map((r) => r.line);
+    };
+    expect(linesFor("section:review")).toEqual(["line in design review"]);
+    expect(linesFor('section:"design review"')).toEqual(["line in design review"]);
+    expect(linesFor("section:2026")).toEqual([]);
+    expect(linesFor("section:board")).toEqual(["line in board 2026", "line in canceled board"]);
   });
 });

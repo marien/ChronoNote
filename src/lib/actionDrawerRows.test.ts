@@ -433,6 +433,34 @@ describe("nodeMatchesQuery", () => {
     // item 3: resolved ('v') with by:2026-10-25 does NOT match
     expect(nodeMatchesQuery(dueItems[3], parseSearchQuery("due:2026-10-25"))).toBe(false);
   });
+
+  it("matches section:, is:decision, is:topic, and is:emphasis", () => {
+    const reviewItem: ActionSnapshotItem = {
+      id: "s1",
+      filename: "2026-11-16.txt",
+      lineIdx: 2,
+      line: "# review budget => approved",
+      header: "Design review",
+      whole: true,
+    };
+    const syncItem: ActionSnapshotItem = {
+      ...reviewItem,
+      id: "s2",
+      header: "Weekly sync",
+    };
+
+    expect(nodeMatchesQuery(reviewItem, parseSearchQuery("section:review"))).toBe(true);
+    expect(nodeMatchesQuery(syncItem, parseSearchQuery("section:review"))).toBe(false);
+
+    expect(nodeMatchesQuery(reviewItem, parseSearchQuery("is:decision"))).toBe(true);
+    expect(nodeMatchesQuery({ ...reviewItem, line: "# follow up => @dana" }, parseSearchQuery("is:decision"))).toBe(false);
+
+    expect(nodeMatchesQuery({ ...reviewItem, line: "# call => o next item" }, parseSearchQuery("is:topic"))).toBe(true);
+    expect(nodeMatchesQuery(reviewItem, parseSearchQuery("is:topic"))).toBe(false);
+
+    expect(nodeMatchesQuery({ ...reviewItem, line: "# ! urgent task" }, parseSearchQuery("is:emphasis"))).toBe(true);
+    expect(nodeMatchesQuery(reviewItem, parseSearchQuery("is:emphasis"))).toBe(false);
+  });
 });
 
 describe("hasActiveFilter", () => {
@@ -446,6 +474,13 @@ describe("hasActiveFilter", () => {
     expect(hasActiveFilter(parseSearchQuery("since:2026-10-01"))).toBe(true);
     expect(hasActiveFilter(parseSearchQuery("before:2026-10-31"))).toBe(true);
     expect(hasActiveFilter(parseSearchQuery("due:2026-10-25"))).toBe(true);
+  });
+
+  it("recognises section:, is:decision, is:topic, and is:emphasis", () => {
+    expect(hasActiveFilter(parseSearchQuery("is:decision"))).toBe(true);
+    expect(hasActiveFilter(parseSearchQuery("is:topic"))).toBe(true);
+    expect(hasActiveFilter(parseSearchQuery("is:emphasis"))).toBe(true);
+    expect(hasActiveFilter(parseSearchQuery("section:review"))).toBe(true);
   });
 });
 

@@ -175,6 +175,40 @@ test.describe("cross-tab search (Ctrl/Cmd+Shift+F)", () => {
     await expect(pulsedLine).toBeVisible();
     await expect(pulsedLine).toContainText("Target pulse action");
   });
+
+  test("section:board is:decision finds decisions inside that section and renders both chips", async ({ page }) => {
+    const note = [
+      "above the first section => not in a section",
+      "Board meeting",
+      "===",
+      ". budget => we keep the Q1 numbers",
+      "# call Sam => yes",
+      "=> # follow up",
+      "! the hall is booked",
+      "",
+      "Design review",
+      "===",
+      "=> moved to March",
+    ].join("\n");
+    await seedApp(page, {
+      seed: {
+        notes: { [todayFilename()]: note },
+      },
+    });
+    await editor(page).click();
+    await page.keyboard.press("ControlOrMeta+Shift+F");
+    await expect(search(page)).toBeVisible();
+
+    await search(page).locator(".modal-input").fill("section:board is:decision");
+    const chips = search(page).locator(".search-chip");
+    await expect(chips).toHaveCount(2);
+    await expect(chips.nth(0)).toContainText("section:board");
+    await expect(chips.nth(1)).toContainText("is:decision");
+
+    await expect(rows(search(page))).toHaveCount(2);
+    await expect(search(page)).toContainText("we keep the Q1 numbers");
+    await expect(search(page)).toContainText("call Sam");
+  });
 });
 
 // 2026-09-24 redesign (docs/design/section-history-browse-and-carry-forward-
