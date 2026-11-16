@@ -137,6 +137,11 @@ const SAMPLE_PARAMS: Partial<Record<TranslationKey, unknown>> = {
   "personView.ariaLabel": { name: "Dana" },
   "lineMenu.showPerson": { name: "Dana" },
   "peek.joinLabel": { title: "Design review" },
+  "rename.modal.summary": { lines: 3, notes: 2 },
+  "rename.modal.confirm": { count: 2 },
+  "rename.toast.renamed": { count: 2 },
+  "rename.toast.undone": { count: 2 },
+  "rename.toast.skipped": { count: 1, dates: "2026-11-16" },
 };
 
 /** Defense in depth beyond the `satisfies Dictionary` compile-time check

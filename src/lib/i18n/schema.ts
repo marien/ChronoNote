@@ -1092,6 +1092,24 @@ export type TranslationParams = {
   "personView.ariaLabel": { name: string };
   "lineMenu.showPerson": { name: string };
   "commandPalette.group.people": undefined;
+  // Rename everywhere (F6)
+  "lineMenu.renameEverywhere": undefined;
+  "rename.command.section": undefined;
+  "rename.command.name": undefined;
+  "rename.command.topic": undefined;
+  "rename.modal.ariaLabel": undefined;
+  "rename.modal.title": undefined;
+  "rename.modal.from": undefined;
+  "rename.modal.to": undefined;
+  "rename.modal.summary": { lines: number; notes: number };
+  "rename.modal.confirm": { count: number };
+  "rename.invalid.name": undefined;
+  "rename.invalid.topic": undefined;
+  "rename.invalid.title": undefined;
+  "rename.invalid.same": undefined;
+  "rename.toast.renamed": { count: number };
+  "rename.toast.undone": { count: number };
+  "rename.toast.skipped": { count: number; dates: string };
 };
 
 export type TranslationKey = keyof TranslationParams;

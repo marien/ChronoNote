@@ -55,6 +55,7 @@ import { openDueDatePicker } from "./dueDateCommands";
 import { openMeetingHistory } from "./history";
 import { openWeekReview } from "./weekReview";
 import { knownPeople, openPersonView } from "./personView";
+import { openRenameModal, renameTargetsForCursor } from "./renameEverywhere";
 import { peekSettings, togglePeek } from "./peek";
 import { newCall, noteCall } from "./callNote";
 import { openCrossTabSearch } from "./search";
@@ -100,6 +101,8 @@ export interface PaletteItem {
   group: string;
   /** Matched character indices within `label` for highlight rendering. */
   matchedIndices?: number[];
+  /** True when the command currently has nothing to act on. */
+  disabled?: boolean;
   /** Run it. The palette closes first. */
   run: () => void | Promise<void>;
 }
@@ -187,6 +190,11 @@ function commandItems(): PaletteItem[] {
   const readable = get(readableLineLength);
   const color = get(colorMode);
   const translate = get(t);
+  const activeContent = editorApi?.getContent
+    ? editorApi.getContent()
+    : (get(tabs).find((tab) => tab.id === get(activeTabId))?.content ?? "");
+  const caretOffset = (paletteSelectionSnapshot ?? editorApi?.getSelectionRange?.())?.head ?? 0;
+  const renameTargets = renameTargetsForCursor(activeContent, caretOffset);
   return [
     {
       id: "cmd-set-due-date",
@@ -472,6 +480,33 @@ function commandItems(): PaletteItem[] {
       hint: formatCombo(shortcutById("jumpAction").combos[1]),
       group: "Current line",
       run: () => runPaletteLineAction((api) => api.jumpAdjacentOpenAction?.(-1)),
+    },
+    {
+      id: "cmd-rename-section",
+      label: translate("rename.command.section", undefined),
+      group: "Current line",
+      disabled: !renameTargets.section,
+      run: () => {
+        if (renameTargets.section) openRenameModal(renameTargets.section);
+      },
+    },
+    {
+      id: "cmd-rename-name",
+      label: translate("rename.command.name", undefined),
+      group: "Current line",
+      disabled: !renameTargets.name,
+      run: () => {
+        if (renameTargets.name) openRenameModal(renameTargets.name);
+      },
+    },
+    {
+      id: "cmd-rename-topic",
+      label: translate("rename.command.topic", undefined),
+      group: "Current line",
+      disabled: !renameTargets.topic,
+      run: () => {
+        if (renameTargets.topic) openRenameModal(renameTargets.topic);
+      },
     },
     {
       id: "cmd-wrap",

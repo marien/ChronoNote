@@ -11,6 +11,7 @@
   import { recheckAll } from "../editor/spellcheck";
   import { lineMenuStateAt } from "../tokens";
   import { personForLineMenu } from "../personView";
+  import { renameTargetAt } from "../renameEverywhere";
   import { buildPasteDataTransfer } from "../editor/clipboardPaste";
   import { copyPlain } from "../clipboardWrite";
 
@@ -82,15 +83,17 @@
 
   const line = $derived($editorContextMenu?.line ?? "");
   const col = $derived($editorContextMenu?.col);
+  const isSectionTitle = $derived($editorContextMenu?.isSectionTitle ?? false);
   const menuState = $derived(lineMenuStateAt(line, col, { title: onTitle }));
   const isAction = $derived(menuState.kind === "action");
   const isTopic = $derived(menuState.kind === "topic");
   const hasActionPart = $derived(menuState.hasActionPart);
   const personName = $derived(personForLineMenu(line, col, { title: onTitle }));
+  const renameTarget = $derived(renameTargetAt(line, col, { title: onTitle, isSectionTitle }));
 
   const lineItemCount = $derived(onTitle ? 0 : isAction ? 4 : isTopic ? 3 : 2);
   const otherItemCount = $derived(
-    (onTitle ? 1 : 3 + (hasActionPart ? 1 : 0)) + (inSection ? 1 : 0) + (personName ? 1 : 0) + ($backendKind === "desktop" ? 1 : 0) + (!isSelectionEmpty ? 1 : 0),
+    (onTitle ? 1 : 3 + (hasActionPart ? 1 : 0)) + (inSection ? 1 : 0) + (personName ? 1 : 0) + (renameTarget ? 1 : 0) + ($backendKind === "desktop" ? 1 : 0) + (!isSelectionEmpty ? 1 : 0),
   );
   const spellItemCount = $derived(misspelled ? (suggestions ? Math.max(1, suggestions.length) : 1) + 2 : 0);
   const itemCount = $derived(1 + lineItemCount + otherItemCount + spellItemCount);
@@ -422,6 +425,21 @@
       >
         <Icon name="person" size={14} />
         <span class="editor-context-label">{$t("lineMenu.showPerson", { name: personName })}</span>
+      </button>
+    {/if}
+    {#if renameTarget}
+      <button
+        type="button"
+        class="editor-context-item"
+        role="menuitem"
+        onclick={() => {
+          const target = renameTarget;
+          close();
+          if (target) controller.openRenameModal(target);
+        }}
+      >
+        <Icon name="edit" size={14} />
+        <span class="editor-context-label">{$t("lineMenu.renameEverywhere")}</span>
       </button>
     {/if}
     {#if inSection}

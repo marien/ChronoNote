@@ -150,8 +150,9 @@ test.describe("right-click menus", () => {
       return list;
     };
     const title = await items("Weekly Sync");
-    expect(title).toEqual(["+Section history", "+Copy as minutes", "+Peek at this section"]);
-    expect(await items("=====")).toEqual(title);
+    expect(title).toEqual(["+Section history", "+Rename everywhere…", "+Copy as minutes", "+Peek at this section"]);
+    // F6: "Rename everywhere…" is offered on the title line itself, not on its underline.
+    expect(await items("=====")).toEqual(title.filter((item) => item !== "+Rename everywhere…"));
     const body = await items("task");
     expect(body.length).toBeGreaterThan(4);
     expect(body).toContain("+Peek at this section");

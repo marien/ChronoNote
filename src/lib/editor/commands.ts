@@ -755,3 +755,28 @@ export const selectWordLeft = (view: EditorView): boolean => moveWordBy(view, !l
 export const selectWordRight = (view: EditorView): boolean => moveWordBy(view, ltrAtCursor(view), true);
 export const deleteWordBackward = (view: EditorView): boolean => deleteWordBy(view, false);
 export const deleteWordForward = (view: EditorView): boolean => deleteWordBy(view, true);
+
+/** Replace the text of each given 0-based line in one CodeMirror transaction (one isolated undo step). */
+export function applyLineEdits(v: EditorView, edits: readonly { lineIdx: number; text: string }[]): void {
+  if (edits.length === 0) return;
+  const lineCount = v.state.doc.lines;
+  const sorted = [...edits]
+    .filter((e) => e.lineIdx >= 0 && e.lineIdx < lineCount)
+    .sort((a, b) => a.lineIdx - b.lineIdx);
+  const changes: ChangeSpec[] = [];
+  let lastLineIdx = -1;
+  for (const e of sorted) {
+    if (e.lineIdx === lastLineIdx) continue;
+    lastLineIdx = e.lineIdx;
+    const line = v.state.doc.line(e.lineIdx + 1);
+    if (line.text !== e.text) {
+      changes.push({ from: line.from, to: line.to, insert: e.text });
+    }
+  }
+  if (changes.length > 0) {
+    v.dispatch({
+      changes,
+      annotations: isolateHistory.of("full"),
+    });
+  }
+}

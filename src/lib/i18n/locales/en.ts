@@ -1082,4 +1082,27 @@ export const en = {
   "personView.ariaLabel": ({ name }) => `Person: ${name}`,
   "lineMenu.showPerson": ({ name }) => `Show @${name}`,
   "commandPalette.group.people": () => "People",
+  // Rename everywhere (F6)
+  "lineMenu.renameEverywhere": () => "Rename everywhere…",
+  "rename.command.section": () => "Rename section everywhere…",
+  "rename.command.name": () => "Rename name everywhere…",
+  "rename.command.topic": () => "Rename topic everywhere…",
+  "rename.modal.ariaLabel": () => "Rename everywhere",
+  "rename.modal.title": () => "Rename everywhere",
+  "rename.modal.from": () => "From",
+  "rename.modal.to": () => "To",
+  "rename.modal.summary": ({ lines, notes }) =>
+    `${lines === 1 ? "1 line" : `${lines} lines`} in ${notes === 1 ? "1 note" : `${notes} notes`}`,
+  "rename.modal.confirm": ({ count }) => (count === 1 ? "Rename in 1 note" : `Rename in ${count} notes`),
+  "rename.invalid.name": () => "Enter a name using letters, digits, _ or -.",
+  "rename.invalid.topic": () => "Enter a topic with no spaces or parentheses.",
+  "rename.invalid.title": () => "Enter a one-line title that doesn't start with [ or a date.",
+  "rename.invalid.same": () => "Enter something different from the original.",
+  "rename.toast.renamed": ({ count }) =>
+    count === 1 ? "Renamed in 1 note. Click to undo." : `Renamed in ${count} notes. Click to undo.`,
+  "rename.toast.undone": ({ count }) => (count === 1 ? "Undone in 1 note." : `Undone in ${count} notes.`),
+  "rename.toast.skipped": ({ count, dates }) =>
+    count === 1
+      ? `Skipped 1 note that changed meanwhile: ${dates}`
+      : `Skipped ${count} notes that changed meanwhile: ${dates}`,
 } satisfies Dictionary;

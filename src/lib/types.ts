@@ -103,3 +103,11 @@ export interface SearchResultItem {
   /** One line of context after the matched line, if within document bounds. */
   contextAfter?: string;
 }
+
+export type RenameKind = "title" | "name" | "topic";
+
+export type RenameTarget = {
+  kind: RenameKind;
+  from: string;
+  to: string;
+};

@@ -1096,4 +1096,27 @@ export const de = {
   "personView.ariaLabel": ({ name }) => `Person: ${name}`,
   "lineMenu.showPerson": ({ name }) => `@${name} anzeigen`,
   "commandPalette.group.people": () => "Personen",
+  // Rename everywhere (F6)
+  "lineMenu.renameEverywhere": () => "Überall umbenennen…",
+  "rename.command.section": () => "Abschnitt überall umbenennen…",
+  "rename.command.name": () => "Name überall umbenennen…",
+  "rename.command.topic": () => "Thema überall umbenennen…",
+  "rename.modal.ariaLabel": () => "Überall umbenennen",
+  "rename.modal.title": () => "Überall umbenennen",
+  "rename.modal.from": () => "Von",
+  "rename.modal.to": () => "Nach",
+  "rename.modal.summary": ({ lines, notes }) =>
+    `${lines === 1 ? "1 Zeile" : `${lines} Zeilen`} in ${notes === 1 ? "1 Notiz" : `${notes} Notizen`}`,
+  "rename.modal.confirm": ({ count }) => (count === 1 ? "In 1 Notiz umbenennen" : `In ${count} Notizen umbenennen`),
+  "rename.invalid.name": () => "Name darf nur Buchstaben, Ziffern, _ oder - enthalten.",
+  "rename.invalid.topic": () => "Thema darf nicht leer sein und keine Leerzeichen oder Klammern enthalten.",
+  "rename.invalid.title": () => "Titel muss einzeilig sein und darf nicht mit [ oder einem Datum beginnen.",
+  "rename.invalid.same": () => "Gib etwas anderes als den bisherigen Text ein.",
+  "rename.toast.renamed": ({ count }) =>
+    count === 1 ? "In 1 Notiz umbenannt. Klicken zum Rückgängigmachen." : `In ${count} Notizen umbenannt. Klicken zum Rückgängigmachen.`,
+  "rename.toast.undone": ({ count }) => (count === 1 ? "In 1 Notiz rückgängig gemacht." : `In ${count} Notizen rückgängig gemacht.`),
+  "rename.toast.skipped": ({ count, dates }) =>
+    count === 1
+      ? `1 Notiz übersprungen, die inzwischen geändert wurde: ${dates}`
+      : `${count} Notizen übersprungen, die inzwischen geändert wurden: ${dates}`,
 } satisfies Dictionary;

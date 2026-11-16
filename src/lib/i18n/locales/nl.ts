@@ -1091,4 +1091,27 @@ export const nl = {
   "personView.ariaLabel": ({ name }) => `Persoon: ${name}`,
   "lineMenu.showPerson": ({ name }) => `@${name} tonen`,
   "commandPalette.group.people": () => "Personen",
+  // Rename everywhere (F6)
+  "lineMenu.renameEverywhere": () => "Overal hernoemen…",
+  "rename.command.section": () => "Sectie overal hernoemen…",
+  "rename.command.name": () => "Naam overal hernoemen…",
+  "rename.command.topic": () => "Onderwerp overal hernoemen…",
+  "rename.modal.ariaLabel": () => "Overal hernoemen",
+  "rename.modal.title": () => "Overal hernoemen",
+  "rename.modal.from": () => "Van",
+  "rename.modal.to": () => "Naar",
+  "rename.modal.summary": ({ lines, notes }) =>
+    `${lines === 1 ? "1 regel" : `${lines} regels`} in ${notes === 1 ? "1 notitie" : `${notes} notities`}`,
+  "rename.modal.confirm": ({ count }) => (count === 1 ? "Hernoemen in 1 notitie" : `Hernoemen in ${count} notities`),
+  "rename.invalid.name": () => "Gebruik alleen letters, cijfers, _ of - voor een naam.",
+  "rename.invalid.topic": () => "Een onderwerp mag geen spaties of haakjes bevatten.",
+  "rename.invalid.title": () => "Een titel moet op één regel staan en mag niet beginnen met [ of een datum.",
+  "rename.invalid.same": () => "Vul iets anders in dan de huidige tekst.",
+  "rename.toast.renamed": ({ count }) =>
+    count === 1 ? "Hernoemd in 1 notitie. Klik om terug te draaien." : `Hernoemd in ${count} notities. Klik om terug te draaien.`,
+  "rename.toast.undone": ({ count }) => (count === 1 ? "Teruggedraaid in 1 notitie." : `Teruggedraaid in ${count} notities.`),
+  "rename.toast.skipped": ({ count, dates }) =>
+    count === 1
+      ? `1 notitie overgeslagen die intussen veranderd is: ${dates}`
+      : `${count} notities overgeslagen die intussen veranderd zijn: ${dates}`,
 } satisfies Dictionary;

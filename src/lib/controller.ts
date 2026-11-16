@@ -57,4 +57,5 @@ export * from "./dateLinks";
 export * from "./weekReview";
 export * from "./personView";
 export * from "./minutesActions";
+export * from "./renameEverywhere";
 
