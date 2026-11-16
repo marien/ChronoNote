@@ -1083,4 +1083,8 @@ export const es = {
   "listCopy.byDue": () => "por fecha límite",
   "listCopy.toast.copied": ({ count }) => `Lista copiada (${count} acciones).`,
   "listCopy.toast.failed": () => "No se pudo copiar.",
+  "suggestions.today": () => "hoy",
+  "suggestions.yesterday": () => "ayer",
+  "suggestions.meetingToday": () => "reunión de hoy",
+  "suggestions.listLabel": () => "Sugerencias",
 } satisfies Dictionary;

@@ -1068,6 +1068,11 @@ export type TranslationParams = {
   "listCopy.byDue": undefined;
   "listCopy.toast.copied": { count: number };
   "listCopy.toast.failed": undefined;
+  // Suggestions (F3)
+  "suggestions.today": undefined;
+  "suggestions.yesterday": undefined;
+  "suggestions.meetingToday": undefined;
+  "suggestions.listLabel": undefined;
 };
 
 export type TranslationKey = keyof TranslationParams;

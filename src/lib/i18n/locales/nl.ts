@@ -1069,4 +1069,8 @@ export const nl = {
   "listCopy.byDue": () => "op deadline",
   "listCopy.toast.copied": ({ count }) => `Lijst gekopieerd (${count} acties).`,
   "listCopy.toast.failed": () => "Kopiëren is niet gelukt.",
+  "suggestions.today": () => "vandaag",
+  "suggestions.yesterday": () => "gisteren",
+  "suggestions.meetingToday": () => "vergadering vandaag",
+  "suggestions.listLabel": () => "Suggesties",
 } satisfies Dictionary;
