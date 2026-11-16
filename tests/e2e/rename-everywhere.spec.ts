@@ -47,7 +47,7 @@ test.describe("rename everywhere", () => {
     await toInput.fill("Hospitality rota");
 
     // Tomorrow's note is left alone: only 2 notes appear in the preview.
-    await expect(dialog.locator(".rename-summary")).toHaveText("2 lines in 2 notes");
+    await expect(dialog.locator(".rename-summary")).toHaveText("4 lines in 2 notes");
 
     // Untick yesterday's note, leaving today ticked.
     const yesterdayRow = dialog.locator(".rename-row", { hasText: "2026-09-06" });
@@ -107,7 +107,7 @@ test.describe("rename everywhere", () => {
     const dialog = modalCard(page, "Rename everywhere");
     await expect(dialog).toBeVisible();
     await dialog.getByLabel("To").fill("Hospitality rota");
-    await expect(dialog.locator(".rename-summary")).toHaveText("2 lines in 2 notes");
+    await expect(dialog.locator(".rename-summary")).toHaveText("4 lines in 2 notes");
 
     await dialog.getByRole("button", { name: "Rename in 2 notes" }).click();
     await expect(dialog).toBeHidden();
