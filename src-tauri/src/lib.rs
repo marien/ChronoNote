@@ -192,6 +192,20 @@ async fn read_phone_inbox(app: AppHandle) -> Result<Option<String>, String> {
 }
 
 #[tauri::command]
+async fn read_saved_searches(app: AppHandle) -> Result<Option<String>, String> {
+    tauri::async_runtime::spawn_blocking(move || storage::read_saved_searches(&app))
+        .await
+        .map_err(|e| e.to_string())?
+}
+
+#[tauri::command]
+async fn write_saved_searches(app: AppHandle, content: String) -> Result<(), String> {
+    tauri::async_runtime::spawn_blocking(move || storage::write_saved_searches(&app, &content))
+        .await
+        .map_err(|e| e.to_string())?
+}
+
+#[tauri::command]
 async fn read_phone_ledger(app: AppHandle) -> Result<Option<String>, String> {
     tauri::async_runtime::spawn_blocking(move || storage::read_phone_ledger(&app))
         .await
@@ -480,6 +494,8 @@ pub fn run() {
             write_phone_meetings,
             write_phone_outbox,
             read_phone_inbox,
+            read_saved_searches,
+            write_saved_searches,
             read_phone_ledger,
             write_phone_ledger,
             read_all_notes,

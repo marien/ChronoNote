@@ -74,7 +74,20 @@ function otherError(detail: string): AppError {
 }
 
 export function isSyncableFile(name: string): boolean {
-  return isValidNoteFilename(name) || name === ".agenda.json";
+  return isValidNoteFilename(name) || name === ".agenda.json" || name === ".chrononote-searches.txt";
+}
+
+function unionSavedSearchLines(localText: string, remoteText: string): string {
+  const localLines = localText.split(/\r?\n/).filter((l) => l.trim().length > 0);
+  const seen = new Set(localLines);
+  const merged = [...localLines];
+  for (const line of remoteText.split(/\r?\n/)) {
+    if (line.trim().length > 0 && !seen.has(line)) {
+      seen.add(line);
+      merged.push(line);
+    }
+  }
+  return merged.length > 0 ? merged.join("\n") + "\n" : "";
 }
 
 export async function computeSha256Hex(text: string): Promise<string> {
@@ -796,9 +809,11 @@ export class WebOneDriveSyncEngine {
           } else {
             const baseContent = bases[filename];
             const mergeResult =
-              cached && baseContent !== undefined
-                ? merge3(baseContent, localText, remoteContent)
-                : { type: "conflict" as const };
+              filename === ".chrononote-searches.txt"
+                ? { type: "clean" as const, content: unionSavedSearchLines(localText, remoteContent) }
+                : cached && baseContent !== undefined
+                  ? merge3(baseContent, localText, remoteContent)
+                  : { type: "conflict" as const };
 
             if (mergeResult.type === "clean") {
               const mergedHash = await computeSha256Hex(mergeResult.content);

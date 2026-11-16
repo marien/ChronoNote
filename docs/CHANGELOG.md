@@ -514,3 +514,4 @@ line, and this index is regenerated with `node scripts/changelog-index.mjs`.
 - §492 The old map of all notes is gone (R1, slice S6)
 - §493 Search finds decisions, topics, emphasis and sections (F7a)
 - §494 Suggestions while typing @names, (topics) and section titles (F3)
+- §495 Saved searches (F7b)

@@ -57,6 +57,7 @@ import { openWeekReview } from "./weekReview";
 import { peekSettings, togglePeek } from "./peek";
 import { newCall, noteCall } from "./callNote";
 import { openCrossTabSearch } from "./search";
+import { savedSearches } from "./savedSearches";
 import { canSyncCalendarForActiveTab, syncCalendarFromFile } from "./calendarSyncActions";
 import { openAbout, openGlyphLegend, openSettings, openShortcutsHelp } from "./menu";
 import { setColorMode, setReadableLineLength, setSpellCheck, setStatusBarVisible, setWordWrap } from "./boot";
@@ -80,6 +81,7 @@ export const COMMAND_PALETTE_GROUP_KEYS: Record<string, TranslationKey> = {
   Settings: "settings.modal.title",
   Help: "commandPalette.group.help",
   "Open tabs": "commandPalette.group.openTabs",
+  "Saved searches": "commandPalette.group.savedSearches",
   "Open actions": "commandPalette.group.openActions",
   Dates: "commandPalette.group.dates",
   Sections: "commandPalette.sectionsGroup",
@@ -552,6 +554,18 @@ function openTabItems(): PaletteItem[] {
   }));
 }
 
+function savedSearchItems(): PaletteItem[] {
+  const translate = get(t);
+  const hint = translate("commandPalette.savedSearchHint", undefined);
+  return get(savedSearches).map((query, idx) => ({
+    id: `saved-search-${idx}-${query}`,
+    label: query,
+    hint,
+    group: "Saved searches",
+    run: () => openCrossTabSearch({ query, scope: "all" }),
+  }));
+}
+
 export function fuzzyMatch(haystack: string, needle: string): boolean {
   return fuzzyMatchWithIndices(haystack, needle) !== null;
 }
@@ -694,7 +708,7 @@ export async function buildPaletteResults(query: string): Promise<PaletteItem[]>
 
   const commandsOnly = q.startsWith(">");
   const term = commandsOnly ? q.slice(1).trim() : q;
-  const pool = commandsOnly ? commandItems() : [...commandItems(), ...openTabItems()];
+  const pool = commandsOnly ? commandItems() : [...commandItems(), ...openTabItems(), ...savedSearchItems()];
   // Order (stable within each group): labels that contain the query as typed, then other label matches, then matches
   // through the hint. "new call" also matched "New scratchpad Ctrl+N, Ctrl+T" and the call shortcut's longer label,
   // which both came first, so Enter did the wrong thing.

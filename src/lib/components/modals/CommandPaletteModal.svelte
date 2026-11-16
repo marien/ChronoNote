@@ -26,12 +26,13 @@
   let seq = 0;
   let debounce: ReturnType<typeof setTimeout> | undefined;
 
-  onMount(async () => {
+  onMount(() => {
     inputEl?.focus();
     if (query) {
       inputEl?.setSelectionRange(query.length, query.length);
     }
     controller.setPaletteInitialQuery("");
+    void controller.loadSavedSearches().then(() => runRefresh(query));
     void runRefresh(query);
   });
 

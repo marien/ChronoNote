@@ -343,7 +343,21 @@ export function removeChipFromQuery(query: string, chip: SearchFilterChip, ctx?:
   return kept.join(" ");
 }
 
-export function openCrossTabSearch() {
+export interface InitialSearchParams {
+  query: string;
+  scope: "open" | "all";
+}
+
+let pendingInitialSearch: InitialSearchParams | null = null;
+
+export function consumeInitialSearch(): InitialSearchParams | null {
+  const initial = pendingInitialSearch;
+  pendingInitialSearch = null;
+  return initial;
+}
+
+export function openCrossTabSearch(initial?: InitialSearchParams) {
+  pendingInitialSearch = initial ?? null;
   searchResultsStore.set([]);
   modal.set("search");
 }

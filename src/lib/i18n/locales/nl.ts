@@ -396,6 +396,7 @@ export const nl = {
   "commandPalette.group.currentLine": () => "Huidige regel",
   "commandPalette.group.help": () => "Help",
   "commandPalette.group.openTabs": () => "Open tabs",
+  "commandPalette.group.savedSearches": () => "Bewaarde zoekopdrachten",
   "commandPalette.group.openActions": () => "Open acties",
   "commandPalette.group.dates": () => "Datums",
 
@@ -437,6 +438,7 @@ export const nl = {
   "commandPalette.jumpToDate": ({ date }) => `Naar ${date} springen`,
   "commandPalette.dateHint": () => "datum",
   "commandPalette.existingNoteHint": () => "bestaande notitie",
+  "commandPalette.savedSearchHint": () => "Bewaarde zoekopdracht",
 
   "topBar.openTabsList.title": () => "Tabbladlijst openen",
   "topBar.openTabsList.ariaLabel": ({ count }) => `Tabbladlijst openen (${count} open)`,
@@ -596,6 +598,10 @@ export const nl = {
     "Controleer de spelling of gebruik zoekoperators zoals is:open, due: of #tag.",
   "searchModal.footer.open": () => "Openen",
   "searchModal.footer.select": () => "Selecteren",
+  "searchModal.saveSearch": () => "Deze zoekopdracht bewaren",
+  "searchModal.unsaveSearch": () => "Uit bewaarde zoekopdrachten halen",
+  "searchModal.savedSearchChip": ({ query }) => `Bewaarde zoekopdracht: ${query}`,
+  "searchModal.savedSearchesRow": () => "Bewaarde zoekopdrachten",
 
   "datePicker.ariaLabel": () => "Naar datum springen",
   "datePicker.jumpPlaceholder": () => "Ga naar: vandaag, -2, 2026-09-05",

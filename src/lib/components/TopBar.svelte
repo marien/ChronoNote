@@ -969,7 +969,7 @@
         class="icon-btn"
         data-keytip="S"
         title={$t("topBar.search.title", { combo: formatShortcut('crossTabSearch') })}
-        onclick={controller.openCrossTabSearch}
+        onclick={() => controller.openCrossTabSearch()}
       >
         <Icon name="search" />
       </button>

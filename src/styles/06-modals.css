@@ -142,7 +142,8 @@
   color: var(--text);
 }
 .modal-help-btn,
-.modal-copy-btn {
+.modal-copy-btn,
+.modal-star-btn {
   width: 26px;
   height: 26px;
   display: inline-flex;
@@ -158,9 +159,16 @@
   transition: background var(--motion-normal) ease, color var(--motion-normal) ease;
 }
 .modal-help-btn:hover:not(:disabled),
-.modal-copy-btn:hover:not(:disabled) {
+.modal-copy-btn:hover:not(:disabled),
+.modal-star-btn:hover {
   background: var(--surface-hover);
   color: var(--text);
+}
+.modal-star-btn.is-saved {
+  color: var(--glyph-open-color);
+}
+.modal-star-btn .cn-icon {
+  color: inherit;
 }
 .modal-copy-btn:disabled {
   opacity: 0.4;
@@ -173,12 +181,14 @@
 @media (pointer: coarse) {
   .modal-close-btn,
   .modal-help-btn,
-  .modal-copy-btn {
+  .modal-copy-btn,
+  .modal-star-btn {
     position: relative;
   }
   .modal-close-btn::after,
   .modal-help-btn::after,
-  .modal-copy-btn::after {
+  .modal-copy-btn::after,
+  .modal-star-btn::after {
     content: "";
     position: absolute;
     top: 50%;
@@ -576,6 +586,18 @@ textarea.modal-input.import-textarea {
 }
 .chip-remove-btn:hover {
   color: var(--text);
+}
+.saved-search-chip {
+  cursor: pointer;
+}
+.saved-search-chip:hover {
+  background: var(--surface-hover);
+}
+.saved-search-label {
+  max-width: 24ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* Area 8: 3-line search context */

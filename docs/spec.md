@@ -819,6 +819,14 @@ reachable from the top bar, a shortcut, or the command palette:
   `<name>`), `tag:<topic>`, `has:@<name>`, `since:YYYY-MM-DD`,
   `before:YYYY-MM-DD`, `due:<day>` (a line with an open own action part
   due that day, §449). Opening a result briefly pulses the target line.
+
+  A star button beside the search field saves or removes the normalised
+  query; saved searches appear as clickable chips under the field (cut at
+  24 ch with an ellipsis; right-click or `Delete` removes one) and as a
+  "Saved searches" group in the command palette that opens Cross-Tab
+  Search on "All files". They are stored as one query per line in
+  `<notes folder>/.chrononote-searches.txt` (up to 30 entries, dropping the
+  oldest; synced and unioned line by line in the web app's OneDrive sync).
 - **Sync Calendar for This Day** (`Ctrl/Cmd+Shift+C`, see tenet 4) — an
   opt-in feature (Settings → Notes & Sync → Calendar, §3.4; hidden entirely until turned
   on) that reads a `.agenda.json` file from the root of the notes folder

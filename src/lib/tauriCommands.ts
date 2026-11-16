@@ -70,6 +70,9 @@ export interface TauriCommands {
   write_phone_outbox: { args: { content: string }; returns: void };
   /** Phone companion: the text of `.chrononote-mobile/inbox.json`, null when missing (`phoneInbox.ts`). */
   read_phone_inbox: { args: NoArgs; returns: string | null };
+  /** Saved searches: the text of `.chrononote-searches.txt`, null when missing (`savedSearches.ts`). */
+  read_saved_searches: { args: NoArgs; returns: string | null };
+  write_saved_searches: { args: { content: string }; returns: void };
   /** Phone companion: the ledger of handled requests, in the app's data dir per notes folder (not in OneDrive). */
   read_phone_ledger: { args: NoArgs; returns: string | null };
   write_phone_ledger: { args: { content: string }; returns: void };

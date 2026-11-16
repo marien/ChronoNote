@@ -400,6 +400,7 @@ export const pl = {
   "commandPalette.group.currentLine": () => "Bieżący wiersz",
   "commandPalette.group.help": () => "Pomoc",
   "commandPalette.group.openTabs": () => "Otwarte karty",
+  "commandPalette.group.savedSearches": () => "Zapisane wyszukiwania",
   "commandPalette.group.openActions": () => "Otwarte zadania",
   "commandPalette.group.dates": () => "Daty",
 
@@ -441,6 +442,7 @@ export const pl = {
   "commandPalette.jumpToDate": ({ date }) => `Przejdź do ${date}`,
   "commandPalette.dateHint": () => "data",
   "commandPalette.existingNoteHint": () => "istniejąca notatka",
+  "commandPalette.savedSearchHint": () => "Zapisane wyszukiwanie",
 
   "topBar.openTabsList.title": () => "Lista otwartych kart",
   "topBar.openTabsList.ariaLabel": ({ count }) =>
@@ -611,6 +613,10 @@ export const pl = {
     "Sprawdź pisownię lub użyj operatorów wyszukiwania, takich jak is:open, due: lub #tag.",
   "searchModal.footer.open": () => "Otwórz",
   "searchModal.footer.select": () => "Wybierz",
+  "searchModal.saveSearch": () => "Zapisz to wyszukiwanie",
+  "searchModal.unsaveSearch": () => "Usuń z zapisanych wyszukiwań",
+  "searchModal.savedSearchChip": ({ query }) => `Zapisane wyszukiwanie: ${query}`,
+  "searchModal.savedSearchesRow": () => "Zapisane wyszukiwania",
 
   "datePicker.ariaLabel": () => "Przejdź do daty",
   "datePicker.jumpPlaceholder": () => "Idź do: dziś, -2, 2026-09-05",
