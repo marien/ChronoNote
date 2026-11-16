@@ -1131,3 +1131,60 @@ body.peek-mode .cm-overview-ruler {
   text-underline-offset: 2px;
 }
 
+/* Inline autocomplete suggestions popup (F3) */
+.cm-tooltip.cn-suggest {
+  z-index: 300;
+  min-width: 180px;
+  max-width: min(380px, calc(100vw - 24px));
+  overflow: hidden;
+  background: var(--surface-overlay);
+  background: color-mix(in srgb, var(--surface-overlay) 88%, transparent);
+  backdrop-filter: blur(20px) saturate(125%);
+  border: 1px solid var(--edge-strong);
+  border-radius: var(--radius-overlay);
+  box-shadow: var(--shadow-flyout);
+  padding: 4px;
+  font-family: var(--font-ui);
+  font-size: var(--editor-font-size, 13px);
+  line-height: 1.4;
+  color: var(--text);
+  box-sizing: border-box;
+}
+
+.cn-suggest-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 4px 8px;
+  border-radius: var(--radius-control);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.cn-suggest-row:hover {
+  background: var(--surface-raised);
+}
+
+.cn-suggest-row[aria-selected="true"] {
+  background: var(--selected-bg);
+  color: var(--selected-fg);
+}
+
+.cn-suggest-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cn-suggest-date {
+  color: var(--muted);
+  font-size: 0.85em;
+  flex-shrink: 0;
+}
+
+.cn-suggest-row[aria-selected="true"] .cn-suggest-date {
+  color: var(--selected-fg);
+  opacity: 0.8;
+}
+
+

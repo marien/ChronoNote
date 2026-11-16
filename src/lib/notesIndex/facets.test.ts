@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { actionTree, flattenActionTree } from "../actionGroups";
 import { dueItems, listSections, normalizeHeaderTitle } from "../tokens";
 import type { NoteEntry } from "./index";
-import { _facetRuns, actionsOf, dueOf, linesOf, sectionsOf } from "./facets";
+import { _facetRuns, actionsOf, dueOf, linesOf, namesOf, sectionsOf, topicTagsOf } from "./facets";
 
 const TEXT = [
   "Weekly Sync",
@@ -101,5 +101,41 @@ describe("facets are remembered per entry", () => {
     expect(_facetRuns.sections).toBe(before.sections);
     expect(_facetRuns.actions).toBe(before.actions);
     expect(_facetRuns.due).toBe(before.due);
+    expect(_facetRuns.names).toBe(before.names);
+    expect(_facetRuns.topicTags).toBe(before.topicTags);
+  });
+});
+
+describe("namesOf and topicTagsOf facets", () => {
+  it("counts assignee and topicTag occurrences by lower-cased key and spelling", () => {
+    const e = entry("# ask @Ruth (@Ben, @ruth) => @Dana x\n# (budget) y\n");
+    const names = namesOf(e);
+    expect(names.get("ruth")).toEqual(
+      new Map([
+        ["Ruth", 1],
+        ["ruth", 1],
+      ]),
+    );
+    expect(names.get("ben")).toEqual(new Map([["Ben", 1]]));
+    expect(names.get("dana")).toEqual(new Map([["Dana", 1]]));
+    expect(names.size).toBe(3);
+
+    const topics = topicTagsOf(e);
+    expect(topics.get("budget")).toEqual(new Map([["budget", 1]]));
+    expect(topics.size).toBe(1);
+  });
+
+  it("memoises namesOf and topicTagsOf per entry", () => {
+    const e = entry("# ask @Ruth (@Ben, @ruth) => @Dana x\n# (budget) y\n");
+    const beforeNames = _facetRuns.names;
+    const beforeTopics = _facetRuns.topicTags;
+    const n1 = namesOf(e);
+    const n2 = namesOf(e);
+    const t1 = topicTagsOf(e);
+    const t2 = topicTagsOf(e);
+    expect(n1).toBe(n2);
+    expect(t1).toBe(t2);
+    expect(_facetRuns.names).toBe(beforeNames + 1);
+    expect(_facetRuns.topicTags).toBe(beforeTopics + 1);
   });
 });

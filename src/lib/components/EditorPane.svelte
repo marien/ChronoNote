@@ -21,9 +21,14 @@
   import { wrapIndentExtension } from "../editor/wrapIndent";
   import { sectionFocus } from "../editor/sectionFocus";
   import { occurrenceHintExtension, setOccurrenceInfo } from "../editor/occurrenceHint";
+  import { refreshSuggestions, suggestionsExtension } from "../editor/suggestions";
   import { spellcheckExtension, misspelledAt } from "../editor/spellcheck";
   import { isMac } from "../platform";
-  import { t } from "../i18n";
+  import { locale, t } from "../i18n";
+  import { ensureLoaded, notesIndex } from "../notesIndex";
+  import { dateISOOfFilename } from "../notesIndex/entries";
+  import { buildSuggestions, type SuggestionKind } from "../suggestions";
+  import * as api from "../tauriApi";
   import {
     closeOpenAction,
     getSectionHeaderForLine,
@@ -36,7 +41,7 @@
   import * as controller from "../controller";
   import { editorContextMenu, findMatch, findOpen, readableLineLength, spellCheck, wordWrap } from "../controller";
   import { isTitleLine } from "../grammar/tokenize";
-import { currentLineKind, editorFocused } from "../stores";
+import { calendarSyncEnabled, currentDateISO, currentLineKind, editorFocused, tabs } from "../stores";
   import { lineKind } from "../lineKind";
   import { htmlToNoteText, noteTextToHtml } from "../richClipboard";
 
@@ -249,7 +254,64 @@ import { currentLineKind, editorFocused } from "../stores";
     recomputeFindMatch();
   }
 
+  const agendaCache = new Map<string, string[]>();
+  const agendaInFlight = new Set<string>();
+  let loadingNotesIndex = false;
+  let unsubscribeSuggestionsNotes: (() => void) | undefined;
+
+  function activeNoteDate(): string | null {
+    const tab = get(tabs).find((x) => x.id === tabId);
+    return tab && !tab.isScratchpad ? dateISOOfFilename(tab.filename) : null;
+  }
+
+  function meetingsForDate(noteDate: string | null): string[] {
+    if (!noteDate || !get(calendarSyncEnabled)) return [];
+    const cached = agendaCache.get(noteDate);
+    if (cached !== undefined) return cached;
+    if (!agendaInFlight.has(noteDate)) {
+      agendaInFlight.add(noteDate);
+      api
+        .readAgendaForDate(noteDate)
+        .then((list) => {
+          const titles = (list ?? []).map((s) => s.trim()).filter((s) => s.length > 0);
+          agendaCache.set(noteDate, titles);
+          if (titles.length > 0 && view) {
+            view.dispatch({ effects: refreshSuggestions.of() });
+          }
+        })
+        .catch(() => {
+          agendaCache.set(noteDate, []);
+        })
+        .finally(() => {
+          agendaInFlight.delete(noteDate);
+        });
+    }
+    return [];
+  }
+
+  function suggestionSource(kind: SuggestionKind, prefix: string) {
+    const index = get(notesIndex);
+    if (!index.loaded && !loadingNotesIndex) {
+      loadingNotesIndex = true;
+      void ensureLoaded()
+        .then(() => {
+          if (view) view.dispatch({ effects: refreshSuggestions.of() });
+        })
+        .catch(() => {})
+        .finally(() => {
+          loadingNotesIndex = false;
+        });
+    }
+    const noteDate = activeNoteDate();
+    const meetingsToday = kind === "title" ? meetingsForDate(noteDate) : [];
+    return buildSuggestions(kind, prefix, { noteDate, entries: index.entries, meetingsToday });
+  }
+
   onMount(() => {
+    const mobile = get(controller.isMobile);
+    if (!mobile) {
+      unsubscribeSuggestionsNotes = notesIndex.subscribe(() => {});
+    }
     let internalDragActive = false;
     const uiShortcuts = keymap.of([
       // §108: Ctrl/Cmd+F opens the floating find bar (not CodeMirror's
@@ -349,6 +411,24 @@ import { currentLineKind, editorFocused } from "../stores";
                 open: (target) => void controller.enterPeek(target),
               },
             ),
+            ...(mobile
+              ? []
+              : [
+                  suggestionsExtension(suggestionSource, {
+                    labels: () => {
+                      const tr = get(t);
+                      return {
+                        today: tr("suggestions.today", undefined),
+                        yesterday: tr("suggestions.yesterday", undefined),
+                        meetingToday: tr("suggestions.meetingToday", undefined),
+                        listLabel: tr("suggestions.listLabel", undefined),
+                      };
+                    },
+                    locale: () => get(locale),
+                    today: () => get(currentDateISO),
+                    noteDate: activeNoteDate,
+                  }),
+                ]),
           ],
           beforeEditingKeymap: [uiShortcuts],
         },
@@ -845,6 +925,7 @@ import { currentLineKind, editorFocused } from "../stores";
     unsubscribePeek?.();
     unsubscribeOccurrence.forEach((u) => u());
     unsubscribeMeasure?.();
+    unsubscribeSuggestionsNotes?.();
     // §108: the find bar belongs to this editor instance — a tab switch
     // (which remounts this component) closes it and drops the query.
     findOpen.set(false);
@@ -862,6 +943,7 @@ import { currentLineKind, editorFocused } from "../stores";
       });
     }
     view?.destroy();
+    view = null;
     controller.registerEditorApi(null);
   });
 </script>

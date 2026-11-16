@@ -1,7 +1,7 @@
 import { EditorSelection, EditorState } from "@codemirror/state";
 import { EditorView, runScopeHandlers } from "@codemirror/view";
 import { redo, undo } from "@codemirror/commands";
-import { editingExtensions, type EditingKeymapDeps } from "../editor/editingExtensions";
+import { editingExtensions, type EditingExtensionSlots, type EditingKeymapDeps } from "../editor/editingExtensions";
 
 export interface TestEditorOptions {
   /** Initial document text. When `anchor` is omitted, `|` (caret) or `[...]` (selection, anchor at `[`) markers are parsed and stripped. */
@@ -9,6 +9,7 @@ export interface TestEditorOptions {
   anchor?: number;
   head?: number;
   deps?: EditingKeymapDeps;
+  ui?: EditingExtensionSlots;
 }
 
 export interface TestEditor {
@@ -137,7 +138,7 @@ export function createTestEditor(opts: TestEditorOptions): TestEditor {
   const state = EditorState.create({
     doc,
     selection,
-    extensions: editingExtensions(deps),
+    extensions: editingExtensions(deps, opts.ui),
   });
   const view = new EditorView({ state });
 
