@@ -61,12 +61,27 @@ change behaviour Marien has not seen: each gets a short design page with example
 
 | ID | What | Note |
 | :--- | :--- | :--- |
-| R1 | One index of all notes | Design: [`docs/design/notes-index-design.md`](../design/notes-index-design.md) (started by Fable, finished by Opus); briefs S1-S6 in `wave-3/`, S1 Google-Sonnet. Design document first (shape of the index, how it is kept up to date, how the three backends feed it). Data safety: Google-Sonnet. |
+| R1 | One index of all notes | Design complete 2026-11-16: [`docs/design/notes-index-design.md`](../design/notes-index-design.md) (started by Fable, finished by Opus; section 8 records how each open point was settled). Six slices below. |
 | F3 | Suggestions for @names, (topics), section titles | After R1 |
 | F7 | Search: `section:`, `is:decision`, `is:topic`, `is:emphasis`, saved searches | After R1 |
 | F5 | Person view | After R1; short design |
 | F6 | Rename across all notes | After R1; writes many notes: Google-Sonnet, earlier versions kept |
 | F9 | Agenda file: join link, attendees, series | Starts with the file format (`docs/agenda-file-guide.md`), which Marien's exporter must be able to fill |
+
+R1 in six slices, each a refactor with no change a user sees (the two allowed differences are in the design's
+section 8). S1 first; S2-S5 side by side once S1 is merged (they touch different files and none of `notesIndex/`);
+S6 last. Each gets the full browser suite and the perf project before and after.
+
+| ID | What | Brief | Order | Model |
+| :--- | :--- | :--- | :--- | :--- |
+| S1 | The index core: disk layer, store, facets, property test | [wave-3/S1-notes-index-core.md](wave-3/S1-notes-index-core.md) | first | Google-Sonnet |
+| S2 | The due item reads the index | [wave-3/S2-due-from-index.md](wave-3/S2-due-from-index.md) | after S1 | Hydrogen |
+| S3 | Actions view, week review, palette read the index | [wave-3/S3-actions-from-index.md](wave-3/S3-actions-from-index.md) | after S1 (beside S2, S4, S5) | Hydrogen |
+| S4 | Search, Section History, occurrences, copy forward | [wave-3/S4-search-history-from-index.md](wave-3/S4-search-history-from-index.md) | after S1 (beside S2, S3, S5) | Hydrogen |
+| S5 | Date picker, phone companion, export, phone tab bar, Peek | [wave-3/S5-views-from-index.md](wave-3/S5-views-from-index.md) | after S1 (beside S2-S4) | Hydrogen |
+| S6 | Remove the old map; a guard against its return | [wave-3/S6-remove-all-notes-cache.md](wave-3/S6-remove-all-notes-cache.md) | after S2-S5 | Hydrogen |
+
+After S6: ask Marien once whether open views (the Actions pane first) should follow edits live (design 8.4).
 
 ## Wave 4 · depth
 

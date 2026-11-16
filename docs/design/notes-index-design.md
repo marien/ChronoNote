@@ -1,9 +1,9 @@
 # One index of all notes (R1)
 
-Status: **started 2026-11-15 by Claude Fable; to be finished by the orchestrating session (Opus 5.5)**, which also
-writes the briefs and runs the implementation. Accepted by Marien as R1 of the forward review
-(`docs/design/forward-review.html`). Sections 1-6 are decided unless a measurement in section 8 contradicts them.
-Section 8 lists what is still open; each item has my lean so the work can go on without me.
+Status: **design complete 2026-11-16** (started 2026-11-15 by Claude Fable, finished by Claude Opus 5.5, which also
+wrote the briefs `docs/briefs/wave-3/S1-S6` and runs the implementation). Accepted by Marien as R1 of the forward
+review (`docs/design/forward-review.html`). Section 8 records how each open point was settled; two of them changed
+section 5 and the S1 row of section 6 (marked "8.1" and "8.5").
 
 ## 1. What is there now
 
@@ -110,9 +110,17 @@ export interface NotesIndex {
 - **Inputs:** (a) the disk layer, which keeps today's loading and invalidation exactly (`diskNotesCacheRaw`, the
   in-flight guard, `updateNotesInCache`, `invalidateDiskNotesCache`, `prefetchNotesForDates`, the write and delete
   hooks at `persistence.ts:338-425`); (b) the `tabs` store.
-- **Update:** on a change of either input, build the next `entries` map reusing every entry whose `text`, `source`
-  and `tabId` are unchanged (compare the text by `===` first, then by value). Only a changed note gets a new entry.
-  Typing in one note therefore replaces one entry and computes nothing else.
+- **The disk layer moves (8.5).** It goes from `persistence.ts` into `notesIndex/diskLayer.ts` with two maps: `raw`,
+  with exactly today's meaning of `diskNotesCacheRaw` (null = must be read again, checked by every hook as now), and
+  `shown`, the disk texts the index uses. Every write to `raw` writes `shown` too; setting `raw` to null leaves
+  `shown` as it is (today `allNotesCache` also keeps the old texts until the next read); a prefetched note goes into
+  `shown` only (today it goes into `allNotesCache` only); a folder switch empties both. Each change of `shown` bumps
+  a version the index listens to. `persistence.ts` keeps its exported functions as thin wrappers, so no caller moves.
+- **Update (8.1):** two paths. A change of `tabs` alone copies the previous map and replaces only the entries of tabs
+  whose text, id or presence changed (a closed tab's entry falls back to `shown`, or disappears). A change of the
+  disk layer rebuilds the map, reusing every entry whose `text`, `source` and `tabId` are unchanged. Typing in one
+  note therefore replaces one entry and computes nothing else. Measured on 2,600 notes (Node, this laptop): a full
+  rebuild costs 0.47 ms per keystroke, the copy-and-patch path 0.16 ms.
 - **Loading stays lazy.** `ensureLoaded()` replaces `refreshAllNotesCache()` for callers: it resolves when the disk
   layer has been read. Before that, `entries` holds the open tabs and whatever the date picker prefetched, as the
   map does today.
@@ -127,7 +135,7 @@ order keeps the app working after every merge.
 
 | Slice | What | Proof |
 | :--- | :--- | :--- |
-| S1 | `notesIndex/` with the store, the overlay rule, `ensureLoaded`, the facets `linesOf`, `sectionsOf`, `actionsOf`, `dueOf`. `allNotesCache` becomes a derived view of it (`key → text`, scratchpads left out, exactly today's content), so no reader changes. | New unit tests; the property test of section 7; every existing test untouched and green; perf budgets |
+| S1 | `notesIndex/` with the disk layer, the store, the overlay rule, `ensureLoaded`, the facets `linesOf`, `sectionsOf`, `actionsOf`, `dueOf`. `allNotesCache` keeps being written by today's code at today's moments (8.1: it must not start changing per keystroke), so no reader changes; a test proves that right after every `refreshAllNotesCache()` it equals the index's non-scratchpad texts. | New unit tests; the property test of section 7; every existing test untouched and green; perf budgets |
 | S2 | `dueOverview.ts` reads `dueOf` through the index. Both memos and both overlay loops go. | `dueOverview*.test.ts`, `due-*.spec.ts` unchanged and green |
 | S3 | Actions view (`actions.ts`), week review, palette `!` and `@` read `actionsOf`. `ActionSnapshotItem` ids stay byte-identical. | Actions, week review and palette specs unchanged |
 | S4 | Search, Section History, occurrences, copy forward read `linesOf` / `sectionsOf`. | Their specs unchanged; search budget |
@@ -150,32 +158,51 @@ stronger coder model (it defines the invariants); S2-S5 are mechanical with exac
   pull request. Typing in the 5,000-line note must stay within its budget and not rise by more than 1 ms.
 - **No behaviour change:** the test guard (`npm run test:guard`) must report no removed test in S1-S5.
 
-## 8. Open, to settle before or during S1
+## 8. Settled (2026-11-16)
 
-1. **Cost per keystroke.** `tabs` is set on every edit (`updateActiveTabContent`, `persistence.ts:516`), so the index
-   updates per keystroke. Building a new map of ~2,600 entries by reference is cheap, but measure it on the perf
-   scenario. *Lean:* if it costs more than 0.5 ms, keep the map and replace one entry in place behind a new
-   `revision`, or coalesce updates to one per animation frame. Do not debounce by time: the status bar's due item
-   must follow typing as it does now.
-2. **A worker.** *Lean:* no. Search over 2,000 notes takes 351 ms on the main thread today and only on demand. Revisit
-   only if a budget fails.
-3. **Memory.** `linesOf` holds a second copy of each read note. *Lean:* acceptable (2,600 notes of a few kB); measure
-   heap before and after S4 on the perf scenario and put the numbers in the pull request. If it matters, `linesOf`
-   can be left unremembered for notes without an open view.
-4. **Should open views follow edits live?** Today the Actions view is a snapshot taken when it opens
-   (`actionSnapshot`), the week review is live. With the index, live would be easy. *Lean:* keep each view's present
-   behaviour through S6, then ask Marien once, with the Actions pane as the example.
-5. **The web app's sync hooks** (`registerSyncHooks` at `persistence.ts:270`) and the phone companion's re-read from
-   disk at focus: they must keep feeding the disk layer exactly as now. Check both against S1 by reading
-   `webOneDriveSync.ts` and `phoneCompanion.ts:302`.
-6. **Scratchpad keys.** The due stores use `scratchpad:<tabId>`; other code uses the tab's display name as
-   `filename`. *Lean:* `key` as in section 4, `filename` unchanged, and no reader may use `filename` as a map key.
-7. **Folder switch.** `directory.ts:133` empties the map. The index must drop every disk entry and keep nothing from
-   the old folder; add that to the property test's events.
+Each point was open in the first draft. How it was settled, and where that shows in the briefs:
+
+1. **Cost per keystroke.** Measured in Node on 2,600 notes of 2 kB with five open tabs, one tab changing: rebuilding
+   the whole entries map with reuse costs 0.47 ms per keystroke, copying the map and replacing only the changed tab's
+   entry costs 0.16 ms. The full rebuild sits at the 0.5 ms limit, so the store takes the two paths of section 5
+   (tabs change: copy and patch; disk change: rebuild). No debounce, no frame coalescing. Reading the code found a
+   second point: `allNotesCache` changes only when a view refreshes it (open, start, sync), never per keystroke.
+   Turning it into a live view of the index would make the date picker, the phone tab list and both due stores
+   re-run on every keystroke against texts they do not see today. So `allNotesCache` stays written by today's code
+   until S6 removes it, and readers move to the index one slice at a time. S1's perf run must show typing within 1 ms
+   of before.
+2. **A worker.** No. Nothing measured needs one; revisit only if a budget fails.
+3. **Memory.** Settled as planned: S4 (the slice that makes `linesOf` hold a copy for every note searched) measures
+   the JS heap on the perf scenario before and after (`performance.memory.usedJSHeapSize` after a search over all
+   notes, three runs, median) and puts it in the pull request. More than 25 MB extra: `linesOf` is then computed
+   without remembering it for entries with `source: "disk"`.
+4. **Open views live or snapshot.** Unchanged through S6: the Actions view stays a snapshot, the week review stays
+   live. After S6 merges, ask Marien once, with the Actions pane as the example.
+5. **The sync hooks and the phone companion.** Read for this: the web app's OneDrive sync calls the two hooks
+   `registerSyncHooks` gives it (`invalidateCache` = `invalidateDiskNotesCache`, `notesChanged` =
+   `updateNotesInCache`, `persistence.ts:270`, used in `oneDriveSync.ts:97-100`). Both act on the disk layer only, so
+   they keep working once the disk layer has moved (section 5) and feeds the index. The phone companion
+   (`phoneCompanion.ts:299-308`) reads a window of dates fresh from disk on focus and lays it over the cache, with
+   open tabs over that. S5 keeps that order exactly: index text, then the fresh window for names without an open tab.
+   One more finding: `prefetchNotesForDates` writes into `allNotesCache` and not into the disk layer, which is why
+   the disk layer gets the `shown` map.
+6. **Scratchpad keys.** As leaned: `key` is the filename for a note and `scratchpad:<tabId>` for a scratchpad (the
+   due stores' key today), `filename` stays the display name, and no reader may use `filename` as a map key.
+7. **Folder switch.** `performDirectorySwitch` (`directory.ts:125-140`) gets one call more, `clearDiskLayer()`, which
+   empties `raw` and `shown`; the index then holds only the open tabs. A folder switch is one of the events of the
+   property test.
+
+Allowed differences (the only ones; each gets a test in its slice):
+- S2: a note closed since the last refresh. Today the due item counts the text `allNotesCache` had at the last
+  refresh, which can be older than what was typed before closing; with the index it counts the text the tab closed
+  with (`noteClosingWithContent` already puts it in the disk layer). That is a fix, named in the changelog.
+- S3-S5: views that read `allNotesCache` reactively (week review, date picker, phone tab list) see disk changes when
+  the disk layer changes rather than at the next refresh. They refresh when they open, so a user sees no difference
+  in practice.
 
 ## 9. What a brief for S1 must contain
 
 The file list of section 1, the interfaces of sections 4 and 5 verbatim, the reuse column of the facet table, the
-rule that `allNotesCache` keeps its exact content (same keys, same texts, same moments of update, checked by a test
-that runs the old `refreshAllNotesCache` logic beside the new store on the property test's event sequences), and the
-budgets. No reader file may change in S1.
+disk-layer move of section 5, the rule that `allNotesCache` keeps its exact content and moments (today's code keeps
+writing it; a test checks that right after every `refreshAllNotesCache()` it equals the index's non-scratchpad
+texts, on the property test's event sequences), and the budgets. No reader file may change in S1.
