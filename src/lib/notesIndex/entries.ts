@@ -163,7 +163,7 @@ export function patchTabs(
   return changed ? next : prev;
 }
 
-/** `key → text` of every non-scratchpad entry: what `allNotesCache` holds right after a refresh. */
+/** `key → text` of every non-scratchpad entry. */
 export function noteTexts(index: NotesIndex): Record<string, string> {
   const out: Record<string, string> = {};
   for (const [key, entry] of index.entries) if (!isScratchpadKey(key)) out[key] = entry.text;

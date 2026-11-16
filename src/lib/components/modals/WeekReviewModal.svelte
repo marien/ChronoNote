@@ -10,7 +10,7 @@
     weekReviewShowDone,
     showToast,
   } from "../../stores";
-  import { notesIndex } from "../../notesIndex";
+  import { ensureLoaded, notesIndex } from "../../notesIndex";
   import { focusTrap } from "../../actions/focusTrap";
   import { sheetSwipe } from "../../actions/sheetSwipe";
   import { closeOnOutsideClick } from "../../actions/closeOnOutsideClick";
@@ -24,7 +24,6 @@
   import { copyRich } from "../../clipboardWrite";
   import { buildListCopy, cleanCopyText, formatListCopyToday, type CopyRow } from "../../listCopy";
   import { addDaysISO, isoWeekToMonday, todayISO, parseISODateLocal } from "../../date";
-  import { refreshAllNotesCache } from "../../persistence";
   import { drawerTreeGuides, type TreeGuide, nodeTextRange } from "../../actionDrawerRows";
   import { glyphForSymbol, parseGlyphLine } from "../../editor/glyphLine";
   import {
@@ -61,7 +60,7 @@
   let viewportHeight = $state(420);
 
   onMount(() => {
-    void refreshAllNotesCache();
+    void ensureLoaded();
     mounted = true;
     if (!$isMobile) {
       // After the list has rendered, and after the keystroke that opened the view (the editor's own Ctrl+Shift+K)

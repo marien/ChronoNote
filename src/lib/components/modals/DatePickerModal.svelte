@@ -4,7 +4,7 @@
   import * as controller from "../../controller";
   import { activeTabId, copyForwardPending, editorApi, isMobile, tabs } from "../../controller";
   import { dayHeatOf } from "../../dayHeat";
-  import { notesIndex } from "../../notesIndex";
+  import { ensureLoaded, notesIndex } from "../../notesIndex";
   import * as api from "../../tauriApi";
   import { agendaFileExists, calendarSyncEnabled } from "../../stores";
   import { focusTrap } from "../../actions/focusTrap";
@@ -165,7 +165,7 @@
         agendaDates = new Set();
       }
     }
-    await controller.refreshAllNotesCache();
+    await ensureLoaded();
     loadingAll = false;
   });
 

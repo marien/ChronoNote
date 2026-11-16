@@ -26,9 +26,9 @@ import {
 import {
   cancelScheduledSave,
   invalidateDiskNotesCache,
-  refreshAllNotesCache,
   scheduleCloudPush,
 } from "./persistence";
+import { ensureLoaded } from "./notesIndex";
 import { EMPTY_CONTENT_HASH, sha256Hex } from "./hash";
 import { t } from "./i18n";
 
@@ -170,7 +170,7 @@ export async function resolveConflictKeepMine(): Promise<void> {
     markTabClean(c.tabId, meta.contentHash);
     invalidateDiskNotesCache();
     scheduleCloudPush();
-    void refreshAllNotesCache();
+    void ensureLoaded();
     showToast(get(t)("toast.drift.keptYourVersion", { filename: c.filename }));
   } catch {
     showToast(get(t)("toast.drift.changedAgain", { filename: c.filename }));
@@ -221,7 +221,7 @@ export async function resolveConflictSaveCopy(): Promise<void> {
     await api.writeConflictCopy(name, tab.content);
     invalidateDiskNotesCache();
     scheduleCloudPush();
-    void refreshAllNotesCache();
+    void ensureLoaded();
     showToast(get(t)("toast.drift.savedAs", { name }));
   } catch {
     showToast(get(t)("toast.drift.couldntSaveCopy", undefined));

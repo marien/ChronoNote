@@ -23,11 +23,10 @@ import {
   showToast,
   tabs,
 } from "./stores";
-import { notesIndex } from "./notesIndex";
+import { ensureLoaded, notesIndex } from "./notesIndex";
 import { isScratchpadKey } from "./notesIndex/entries";
 import { linesOf } from "./notesIndex/facets";
 import { tokenizeLine } from "./grammar/tokenize";
-import { refreshAllNotesCache } from "./persistence";
 import { cursorSection } from "./occurrences";
 import { jumpToFileLine } from "./tabs";
 import { findNextOccurrenceTarget } from "./copyForward";
@@ -37,7 +36,7 @@ import type { HistoryDestination, NoteTab, SectionOccurrence } from "./types";
 const DATED_FILE = /^\d{4}-\d{2}-\d{2}\.txt$/;
 
 async function buildOccurrences(targetHeader: string): Promise<SectionOccurrence[]> {
-  await refreshAllNotesCache();
+  await ensureLoaded();
   const { entries } = get(notesIndex);
   // Chronological, oldest first — the occurrence strip reads left-to-right
   // like a calendar (and like the main tab strip it's modeled on), newest
@@ -111,7 +110,7 @@ async function computeHistoryDestinations(
 
 /** #62: opens the drawer immediately (right after the fast, synchronous
  * "is the cursor on a section" check — no disk read needed for that part
- * at all), rather than blocking on `refreshAllNotesCache()`'s full read
+ * at all), rather than blocking on `ensureLoaded()`'s full read
  * of the notes folder first. That read is usually already warm by now
  * (`boot.ts` kicks it off in the background right after startup), but on
  * a large notes folder — or a very fast keypress right after launch — it

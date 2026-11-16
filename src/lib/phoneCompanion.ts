@@ -9,8 +9,7 @@
 import { get, writable } from "svelte/store";
 import { logWarn } from "./appLog";
 import { addDaysISO } from "./date";
-import { refreshAllNotesCache } from "./persistence";
-import { notesIndex, noteTexts } from "./notesIndex";
+import { ensureLoaded, notesIndex, noteTexts } from "./notesIndex";
 import { appVersion, backendKind, currentDateISO, showToast, tabs } from "./stores";
 import { t } from "./i18n";
 import * as api from "./tauriApi";
@@ -300,7 +299,7 @@ async function readWindowFromDisk(today: string): Promise<void> {
 async function writeIfChanged(readDisk: boolean): Promise<void> {
   try {
     const today = get(currentDateISO);
-    await refreshAllNotesCache();
+    await ensureLoaded();
     if (readDisk) await readWindowFromDisk(today);
     const notes: Record<string, string> = noteTexts(get(notesIndex));
     for (const [name, content] of Object.entries(windowDisk)) {

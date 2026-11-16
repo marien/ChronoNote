@@ -10,7 +10,7 @@ const apiMock = vi.hoisted(() => ({
   setPhoneCompanion: vi.fn(async () => ({})),
 }));
 vi.mock("./tauriApi", () => apiMock);
-vi.mock("./persistence", () => ({ refreshAllNotesCache: vi.fn(async () => {}) }));
+vi.mock("./persistence", () => ({}));
 
 import { clearDiskLayer, seedDiskNotesForTest } from "./notesIndex/diskLayer";
 import {

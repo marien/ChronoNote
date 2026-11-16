@@ -1,15 +1,14 @@
 // @vitest-environment jsdom
 import { beforeEach, describe, expect, it } from "vitest";
 import { get } from "svelte/store";
-import { notesIndex } from "./notesIndex";
+import { ensureLoaded, notesIndex, noteTexts } from "./notesIndex";
 import { clearDiskLayer, seedDiskNotesForTest } from "./notesIndex/diskLayer";
-import { refreshAllNotesCache } from "./persistence";
-import { allNotesCache, tabs } from "./stores";
+import { tabs } from "./stores";
 import { buildWeekReview } from "./weekReview";
 
 function oldNoteList(): { filename: string; content: string }[] {
   const tabList = get(tabs);
-  const cache = get(allNotesCache);
+  const cache = noteTexts(get(notesIndex));
   const tabMap = new Map(tabList.map((t) => [t.filename, t.content]));
   const result: { filename: string; content: string }[] = [];
   for (const [filename, content] of Object.entries(cache)) {
@@ -37,7 +36,6 @@ describe("week review reading notesIndex (S3)", () => {
   beforeEach(() => {
     clearDiskLayer();
     tabs.set([]);
-    allNotesCache.set({});
     get(notesIndex);
   });
 
@@ -61,7 +59,7 @@ describe("week review reading notesIndex (S3)", () => {
         content: "# scratchpad action",
       },
     ]);
-    await refreshAllNotesCache();
+    await ensureLoaded();
 
     const actual = buildWeekReview(newNoteList(), 2026, 44, "2026-10-28");
     const expected = buildWeekReview(oldNoteList(), 2026, 44, "2026-10-28");

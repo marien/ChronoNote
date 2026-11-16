@@ -8,7 +8,7 @@
  *
  * `raw` and `shown` differ in three places (the table in the S1 brief): a note closed or updated while `raw` is
  * null is still `shown`; `invalidateDiskLayer()` empties `raw` but leaves `shown` (the old texts stay until the
- * next read, as `allNotesCache` keeps them); a prefetched note goes into `shown` only. */
+ * next read); a prefetched note goes into `shown` only. */
 import { writable } from "svelte/store";
 import * as api from "../tauriApi";
 
@@ -110,7 +110,7 @@ export function seedDiskNotesForTest(notes: Record<string, string>): void {
   readAllIntoDiskLayer(Object.entries(notes));
 }
 
-/** #62: `boot.ts` fires a background `refreshAllNotesCache()` right at startup, which can race a user opening
+/** #62: `boot.ts` fires a background `ensureLoaded()` right at startup, which can race a user opening
  * History/Actions/Search before it resolves. Without this guard both callers would see `raw` still null and each
  * start their own `api.readAllNotes()`: callers that ask at the same time join the read in flight. A read started
  * under an older `epoch` is not joined (see `ensureLoaded`). */

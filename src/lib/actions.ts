@@ -11,10 +11,10 @@ import {
   showToast,
   tabs,
 } from "./stores";
-import { notesIndex } from "./notesIndex";
+import { ensureLoaded, notesIndex } from "./notesIndex";
 import { isScratchpadKey } from "./notesIndex/entries";
 import { actionsOf, linesOf } from "./notesIndex/facets";
-import { refreshAllNotesCache, updateNoteOnDisk, writeTabContent } from "./persistence";
+import { updateNoteOnDisk, writeTabContent } from "./persistence";
 import { openOrCreateDatedFile } from "./tabs";
 import { compareTabsByRecency, sortFilenamesByRecency } from "./tabSort";
 import { isTitleLine, tokenizeNoteLine } from "./grammar/tokenize";
@@ -82,7 +82,7 @@ export function buildActionSnapshotOpenTabs(): ActionSnapshotItem[] {
 }
 
 export async function buildActionSnapshotAllFiles(): Promise<ActionSnapshotItem[]> {
-  await refreshAllNotesCache();
+  await ensureLoaded();
   const entries = get(notesIndex).entries;
   const filenames = sortFilenamesByRecency(Array.from(entries.keys()).filter((key) => !isScratchpadKey(key)));
   const snapshot: ActionSnapshotItem[] = [];

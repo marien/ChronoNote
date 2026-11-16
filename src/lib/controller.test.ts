@@ -103,6 +103,8 @@ vi.mock("@tauri-apps/plugin-process", () => processMock);
  * fully independent module instance, so those hidden singletons can
  * never leak between tests regardless of import order. */
 let controller: typeof import("./controller");
+let notesIndexMod: typeof import("./notesIndex");
+let diskLayerMod: typeof import("./notesIndex/diskLayer");
 
 function tab(overrides: Partial<NoteTab> = {}): NoteTab {
   return { id: `tab-${Math.random()}`, filename: "2026-09-01.txt", isScratchpad: false, content: "", ...overrides };
@@ -162,6 +164,8 @@ beforeEach(async () => {
   tauriWindowMock.onFocusChanged.mockResolvedValue(() => {});
   tauriWindowMock.destroy.mockResolvedValue(undefined);
   controller = await import("./controller");
+  notesIndexMod = await import("./notesIndex");
+  diskLayerMod = await import("./notesIndex/diskLayer");
 });
 
 describe("sortedTabsForDisplay", () => {
@@ -446,8 +450,8 @@ describe("tab lifecycle", () => {
     apiMock.readAllNotes.mockResolvedValue([["2026-09-11.txt", "# open action"]]);
     controller.tabs.set([tab({ id: "a", filename: "2026-09-11.txt", content: "# open action" })]);
     controller.activeTabId.set("a");
-    await controller.refreshAllNotesCache();
-    expect(get(controller.allNotesCache)["2026-09-11.txt"]).toBe("# open action");
+    await controller.ensureLoaded();
+    expect(notesIndexMod.noteTexts(get(notesIndexMod.notesIndex))["2026-09-11.txt"]).toBe("# open action");
 
     // Resolve it, then close the tab — while it was open,
     // `writeNoteAndInvalidateCache` alone wouldn't touch the cache (the
@@ -460,17 +464,17 @@ describe("tab lifecycle", () => {
     // — the disk-cache entry from the first read, now with no live tab
     // left to override it (a date-picker dot, or an Action-Drawer/Search/
     // Section-History row, that never clears).
-    await controller.refreshAllNotesCache();
-    expect(get(controller.allNotesCache)["2026-09-11.txt"]).toBe("v open action");
+    await controller.ensureLoaded();
+    expect(notesIndexMod.noteTexts(get(notesIndexMod.notesIndex))["2026-09-11.txt"]).toBe("v open action");
   });
 
   it("#46: a closed scratchpad's content never touches the all-notes cache (it was never on disk)", async () => {
     apiMock.readAllNotes.mockResolvedValue([]);
     controller.tabs.set([tab({ id: "a", isScratchpad: true, filename: "Scratchpad 1", content: "# an idea" })]);
-    await controller.refreshAllNotesCache();
+    await controller.ensureLoaded();
     controller.closeTab("a");
-    await controller.refreshAllNotesCache();
-    expect(get(controller.allNotesCache)["Scratchpad 1"]).toBeUndefined();
+    await controller.ensureLoaded();
+    expect(notesIndexMod.noteTexts(get(notesIndexMod.notesIndex))["Scratchpad 1"]).toBeUndefined();
   });
 
   it("#63: closing a dated tab with empty content deletes its file instead of saving it", () => {
@@ -527,20 +531,20 @@ describe("tab lifecycle", () => {
     expect(apiMock.deleteNote).not.toHaveBeenCalled();
   });
 
-  it("#62: two concurrent refreshAllNotesCache() calls on a cold cache only read disk once", async () => {
+  it("#62: two concurrent ensureLoaded() calls on a cold cache only read disk once", async () => {
     let resolveRead!: (v: [string, string][]) => void;
     apiMock.readAllNotes.mockReturnValue(new Promise((resolve) => (resolveRead = resolve)));
 
     // Mirrors boot.ts's background warm racing a fast drawer-open before it
     // resolves — without the in-flight dedup, each sees the cache as still
     // null and fires its own disk read.
-    const first = controller.refreshAllNotesCache();
-    const second = controller.refreshAllNotesCache();
+    const first = controller.ensureLoaded();
+    const second = controller.ensureLoaded();
     resolveRead([["2026-09-11.txt", "hello"]]);
     await Promise.all([first, second]);
 
     expect(apiMock.readAllNotes).toHaveBeenCalledTimes(1);
-    expect(get(controller.allNotesCache)["2026-09-11.txt"]).toBe("hello");
+    expect(notesIndexMod.noteTexts(get(notesIndexMod.notesIndex))["2026-09-11.txt"]).toBe("hello");
   });
 });
 
@@ -550,31 +554,31 @@ describe("prefetchNotesForDates (date-picker perf)", () => {
     await controller.prefetchNotesForDates(["2026-01-05.txt", "2026-01-06.txt"]);
     expect(apiMock.readNote).toHaveBeenCalledWith("2026-01-05.txt");
     expect(apiMock.readNote).toHaveBeenCalledWith("2026-01-06.txt");
-    expect(get(controller.allNotesCache)["2026-01-05.txt"]).toBe("# open");
+    expect(notesIndexMod.noteTexts(get(notesIndexMod.notesIndex))["2026-01-05.txt"]).toBe("# open");
     // A missing file (readNote resolves null) never gets a cache entry.
-    expect(get(controller.allNotesCache)["2026-01-06.txt"]).toBeUndefined();
+    expect(notesIndexMod.noteTexts(get(notesIndexMod.notesIndex))["2026-01-06.txt"]).toBeUndefined();
   });
 
   it("skips a filename already in the cache — nothing left to gain re-reading it", async () => {
-    controller.allNotesCache.set({ "2026-01-05.txt": "already cached" });
+    diskLayerMod.seedDiskNotesForTest({ "2026-01-05.txt": "already cached" });
     await controller.prefetchNotesForDates(["2026-01-05.txt"]);
     expect(apiMock.readNote).not.toHaveBeenCalled();
-    expect(get(controller.allNotesCache)["2026-01-05.txt"]).toBe("already cached");
+    expect(notesIndexMod.noteTexts(get(notesIndexMod.notesIndex))["2026-01-05.txt"]).toBe("already cached");
   });
 
   it("uses an open tab's live content instead of reading it from disk", async () => {
     controller.tabs.set([tab({ id: "a", filename: "2026-01-05.txt", content: "unsaved edit" })]);
     await controller.prefetchNotesForDates(["2026-01-05.txt"]);
     expect(apiMock.readNote).not.toHaveBeenCalledWith("2026-01-05.txt");
-    expect(get(controller.allNotesCache)["2026-01-05.txt"]).toBe("unsaved edit");
+    expect(notesIndexMod.noteTexts(get(notesIndexMod.notesIndex))["2026-01-05.txt"]).toBe("unsaved edit");
   });
 
   it("never uses a scratchpad's content — it isn't a dated filename to begin with", async () => {
     controller.tabs.set([tab({ id: "a", isScratchpad: true, filename: "Scratchpad 1", content: "an idea" })]);
     apiMock.readNote.mockResolvedValue("on-disk content");
     await controller.prefetchNotesForDates(["2026-01-05.txt"]);
-    expect(get(controller.allNotesCache)["2026-01-05.txt"]).toBe("on-disk content");
-    expect(get(controller.allNotesCache)["Scratchpad 1"]).toBeUndefined();
+    expect(notesIndexMod.noteTexts(get(notesIndexMod.notesIndex))["2026-01-05.txt"]).toBe("on-disk content");
+    expect(notesIndexMod.noteTexts(get(notesIndexMod.notesIndex))["Scratchpad 1"]).toBeUndefined();
   });
 });
 
@@ -609,28 +613,27 @@ describe("updateActiveTabContent", () => {
 });
 
 describe("deleteNoteAndInvalidateCache", () => {
-  it("removes the deleted note from allNotesCache once the backend confirms", async () => {
-    controller.allNotesCache.set({
+  it("removes the deleted note from the notes index once the backend confirms", async () => {
+    diskLayerMod.seedDiskNotesForTest({
       "2026-09-01.txt": "content to delete",
       "2026-09-02.txt": "keep this",
     });
-    controller.tabs.set([tab({ id: "a", filename: "2026-09-01.txt", content: "" })]);
 
     await controller.deleteNoteAndInvalidateCache("2026-09-01.txt", "h0");
 
-    const cache = get(controller.allNotesCache);
+    const cache = notesIndexMod.noteTexts(get(notesIndexMod.notesIndex));
     expect(cache["2026-09-01.txt"]).toBeUndefined();
     expect(cache["2026-09-02.txt"]).toBe("keep this");
     expect(apiMock.deleteNote).toHaveBeenCalledWith("2026-09-01.txt", "h0");
   });
 
   it("keeps the cache entry and shows a message when the file changed on disk", async () => {
-    controller.allNotesCache.set({ "2026-09-01.txt": "content" });
+    diskLayerMod.seedDiskNotesForTest({ "2026-09-01.txt": "content" });
     apiMock.deleteNote.mockRejectedValueOnce("conflict: note changed on disk: 2026-09-01.txt");
 
     await controller.deleteNoteAndInvalidateCache("2026-09-01.txt", "h0");
 
-    expect(get(controller.allNotesCache)["2026-09-01.txt"]).toBe("content");
+    expect(notesIndexMod.noteTexts(get(notesIndexMod.notesIndex))["2026-09-01.txt"]).toBe("content");
     expect(get(controller.toastMessage)).toContain("changed on disk");
   });
 });
@@ -1545,7 +1548,7 @@ describe("runSearch", () => {
   it("searches across all files when scope is 'all'", async () => {
     controller.tabs.set([]);
     apiMock.readAllNotes.mockResolvedValue([["2026-08-01.txt", "an old note about Bob"]]);
-    await controller.refreshAllNotesCache();
+    await controller.ensureLoaded();
     controller.runSearch("bob", "all");
     expect(get(controller.searchResultsStore)).toHaveLength(1);
   });

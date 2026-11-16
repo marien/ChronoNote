@@ -2,7 +2,8 @@ import { writable, get } from "svelte/store";
 import type { TrashItem } from "./generated/tauri-types";
 import { listTrash, restoreFromTrash } from "./tauriApi";
 import { showToast } from "./stores";
-import { invalidateDiskNotesCache, refreshAllNotesCache } from "./persistence";
+import { invalidateDiskNotesCache } from "./persistence";
+import { ensureLoaded } from "./notesIndex";
 import { openOrCreateDatedFile } from "./tabs";
 import { t } from "./i18n";
 
@@ -23,7 +24,7 @@ export async function restoreTrashItem(name: string): Promise<void> {
     const filename = await restoreFromTrash(name);
     showToast(get(t)("toast.trash.restored", { filename }));
     invalidateDiskNotesCache();
-    await refreshAllNotesCache();
+    await ensureLoaded();
     const dateStr = filename.replace(/\.txt$/, "");
     await openOrCreateDatedFile(dateStr);
     await loadTrash();
