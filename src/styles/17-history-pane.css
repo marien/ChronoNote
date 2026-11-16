@@ -16,7 +16,8 @@
 
 .history-pane,
 .actions-pane,
-.week-review-pane {
+.week-review-pane,
+.person-pane {
   display: flex;
   flex-direction: column;
   min-width: 180px;
@@ -60,7 +61,8 @@
 
 .history-pane-card,
 .actions-pane-card,
-.week-review-pane-card {
+.week-review-pane-card,
+.person-pane-card {
   display: flex;
   flex-direction: column;
   flex: 1;
@@ -90,14 +92,16 @@
 
 .history-pane-card .history-body,
 .actions-pane-card .modal-list,
-.week-review-pane-card .modal-list {
+.week-review-pane-card .modal-list,
+.person-pane-card .modal-list {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
 }
 
 .actions-pane-card .modal-list,
-.week-review-pane-card .modal-list {
+.week-review-pane-card .modal-list,
+.person-pane-card .modal-list {
   max-height: none;
 }
 

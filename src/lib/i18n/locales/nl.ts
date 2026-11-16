@@ -1079,4 +1079,13 @@ export const nl = {
   "suggestions.yesterday": () => "gisteren",
   "suggestions.meetingToday": () => "vergadering vandaag",
   "suggestions.listLabel": () => "Suggesties",
+  "personView.openActions": ({ name }) => `Je open acties waarin ${name} voorkomt`,
+  "personView.delegated": ({ name }) => `Gedelegeerd aan ${name}`,
+  "personView.mentions": () => "Laatst genoemd · per vergadering",
+  "personView.lines": ({ count }) => (count === 1 ? "1 regel" : `${count} regels`),
+  "personView.none": () => "Geen",
+  "personView.showOlder": () => "Oudere tonen",
+  "personView.ariaLabel": ({ name }) => `Persoon: ${name}`,
+  "lineMenu.showPerson": ({ name }) => `@${name} tonen`,
+  "commandPalette.group.people": () => "Personen",
 } satisfies Dictionary;

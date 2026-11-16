@@ -1070,4 +1070,13 @@ export const en = {
   "suggestions.yesterday": () => "yesterday",
   "suggestions.meetingToday": () => "today's meeting",
   "suggestions.listLabel": () => "Suggestions",
+  "personView.openActions": ({ name }) => `Your open actions that mention ${name}`,
+  "personView.delegated": ({ name }) => `Delegated to ${name}`,
+  "personView.mentions": () => "Last mentions · by meeting",
+  "personView.lines": ({ count }) => (count === 1 ? "1 line" : `${count} lines`),
+  "personView.none": () => "None",
+  "personView.showOlder": () => "Show older",
+  "personView.ariaLabel": ({ name }) => `Person: ${name}`,
+  "lineMenu.showPerson": ({ name }) => `Show @${name}`,
+  "commandPalette.group.people": () => "People",
 } satisfies Dictionary;

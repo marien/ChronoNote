@@ -21,6 +21,7 @@
   import { wrapIndentExtension } from "../editor/wrapIndent";
   import { sectionFocus } from "../editor/sectionFocus";
   import { occurrenceHintExtension, setOccurrenceInfo } from "../editor/occurrenceHint";
+  import { personClickPlugin } from "../editor/personClick";
   import { refreshSuggestions, suggestionsExtension } from "../editor/suggestions";
   import { spellcheckExtension, misspelledAt } from "../editor/spellcheck";
   import { isMac } from "../platform";
@@ -411,6 +412,7 @@ import { calendarSyncEnabled, currentDateISO, currentLineKind, editorFocused, ta
                 open: (target) => void controller.enterPeek(target),
               },
             ),
+            personClickPlugin((name) => void controller.openPersonView(name)),
             ...(mobile
               ? []
               : [

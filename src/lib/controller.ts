@@ -55,5 +55,6 @@ export * from "./callNote";
 export * from "./trash";
 export * from "./dateLinks";
 export * from "./weekReview";
+export * from "./personView";
 export * from "./minutesActions";
 

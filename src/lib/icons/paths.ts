@@ -68,5 +68,6 @@ export const ICONS = {
   "close-clean": `<rect x="4" y="5" width="16" height="14" rx="2"/><path d="M8 12.5l2.5 2.5 5.5-5.5"/>`,
   star: `<polygon points="12 3.5 14.7 9 20.8 9.9 16.4 14.2 17.4 20.2 12 17.4 6.6 20.2 7.6 14.2 3.2 9.9 9.3 9 12 3.5"/>`,
   "star-filled": `<polygon points="12 3.5 14.7 9 20.8 9.9 16.4 14.2 17.4 20.2 12 17.4 6.6 20.2 7.6 14.2 3.2 9.9 9.3 9 12 3.5" fill="currentColor"/>`,
+  person: `<circle cx="12" cy="8" r="4"/><path d="M5 20a7 7 0 0 1 14 0"/>`,
 } as const;
 
