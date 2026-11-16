@@ -5,6 +5,7 @@
   import { focusTrap } from "../../actions/focusTrap";
   import { sheetSwipe } from "../../actions/sheetSwipe";
   import Icon from "../../icons/Icon.svelte";
+  import { isSetextUnderline } from "../../grammar/tokenize";
   import { t } from "../../i18n";
   import { currentDateISO, renameModalTarget } from "../../stores";
   import {
@@ -196,7 +197,9 @@
             <div class="rename-row-lines note-font">
               {#each entry.lines as line (line.lineIdx)}
                 <div class="rename-row-line">
-                  {#if effectiveTarget}
+                  {#if isSetextUnderline(line.before)}
+                    <del class="rename-del">{line.before}</del><ins class="rename-ins">{line.after}</ins>
+                  {:else if effectiveTarget}
                     {#each diffRenameLine(line.before, effectiveTarget) as seg}
                       {#if seg.kind === "del"}
                         <del class="rename-del">{seg.text}</del>

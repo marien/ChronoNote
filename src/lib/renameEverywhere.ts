@@ -136,13 +136,22 @@ export function renameInText(
     for (const sec of listSections(text)) {
       if (titleForMatching(normalizeHeaderTitle(sec.title)).toLowerCase() !== fromCoreLower) continue;
       const oldLine = lines[sec.lineIdx];
-      const { prefix, suffix } = splitSectionTitleLine(oldLine);
+      const { prefix, core, suffix } = splitSectionTitleLine(oldLine);
+      // Safety: rename only when the split found exactly the title that matched; if the split and the title
+      // functions ever disagree (a time or date the split does not know), leave the line alone.
+      if (core.toLowerCase() !== fromCoreLower) continue;
       const newLine = prefix + newCore + suffix;
       if (newLine === oldLine) continue;
       lines[sec.lineIdx] = newLine;
       changed.push({ lineIdx: sec.lineIdx, before: oldLine, after: newLine });
-      if (sec.lineIdx + 1 < lines.length && lines[sec.lineIdx + 1] === underlineFor(oldLine)) {
-        lines[sec.lineIdx + 1] = underlineFor(newLine);
+      const underlineIdx = sec.lineIdx + 1;
+      if (underlineIdx < lines.length && lines[underlineIdx] === underlineFor(oldLine)) {
+        const newUnderline = underlineFor(newLine);
+        if (newUnderline !== lines[underlineIdx]) {
+          // The dialog shows every line the rename writes, the resized underline too.
+          changed.push({ lineIdx: underlineIdx, before: lines[underlineIdx], after: newUnderline });
+          lines[underlineIdx] = newUnderline;
+        }
       }
     }
     return changed.length > 0 ? { text: lines.join("\n"), lines: changed } : { text, lines: [] };
@@ -404,9 +413,8 @@ export async function applyRename(
     const msg = skippedMsg ? `${renamedMsg} ${skippedMsg}` : renamedMsg;
     showToast(msg, {
       durationMs: 10_000,
-      action: () => {
-        void undoRename(renamedEntries);
-      },
+      // Returns the promise so a caller can wait for the undo to be written (the toast click does not need to).
+      action: () => undoRename(renamedEntries),
     });
   } else if (skippedMsg) {
     showToast(skippedMsg, { durationMs: 10_000 });

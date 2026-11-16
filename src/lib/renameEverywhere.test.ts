@@ -79,6 +79,11 @@ describe("renameInText (step 1 table)", () => {
         before: "[10:00 - 10:30] Coffee rota",
         after: "[10:00 - 10:30] Hospitality rota",
       },
+      {
+        lineIdx: 1,
+        before: "===========================",
+        after: "================================",
+      },
     ]);
   });
 
