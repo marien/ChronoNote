@@ -23,6 +23,7 @@ import type {
   HistoryDestination,
   LanguageMode,
   NoteTab,
+  RenameTarget,
   SearchResultItem,
   SectionOccurrence,
   StartupTabMode,
@@ -59,7 +60,8 @@ export type ModalKind =
   // Earlier versions of a note (Proposal B2).
   | "versions"
   | "weekReview"
-  | "person";
+  | "person"
+  | "rename";
 
 export const tabs = writable<NoteTab[]>([]);
 export const activeTabId = writable<string>("");
@@ -162,6 +164,7 @@ export const weekReviewYear = writable<number>(0);
 export const weekReviewWeek = writable<number>(0);
 export const weekReviewShowDone = writable<boolean>(false);
 export const personViewName = writable<string | null>(null);
+export const renameModalTarget = writable<RenameTarget | null>(null);
 
 
 export const toastMessage = writable<string>("");
@@ -520,15 +523,17 @@ export const LONG_TOAST_CHARS = 60;
 
 export interface ToastOptions {
   action?: () => void;
+  durationMs?: number;
 }
 
 export function showToast(msg: string, options?: ToastOptions | (() => void)) {
   const action = typeof options === "function" ? options : options?.action;
+  const durationMs = typeof options === "function" ? undefined : options?.durationMs;
   // §415: the "Updated to vX" notice lives in the info bar now, not in this message slot: a message no longer clears it.
   toastMessage.set(msg);
   toastAction.set(action ?? null);
   if (toastTimer) clearTimeout(toastTimer);
-  const ms = msg.length > LONG_TOAST_CHARS ? Math.min(12000, 3000 + msg.length * 60) : 2400;
+  const ms = durationMs ?? (msg.length > LONG_TOAST_CHARS ? Math.min(12000, 3000 + msg.length * 60) : 2400);
   toastTimer = setTimeout(() => {
     toastMessage.set("");
     toastAction.set(null);
@@ -595,6 +600,8 @@ export interface EditorApi {
   pulseLine?: (lineIdx: number) => void;
   /** Programmatically replace lines fromLineIdx to toLineIdx (0-based inclusive) with text in one transaction. */
   replaceLines?: (fromLineIdx: number, toLineIdx: number, text: string) => void;
+  /** Programmatically replace multiple individual lines in one transaction (one undo step). */
+  applyLineEdits?: (edits: { lineIdx: number; text: string }[]) => void;
   /** Programmatically replace range [from, to] with text in one transaction. */
   replaceRange?: (from: number, to: number, text: string) => void;
   getView?: () => any;
@@ -695,6 +702,7 @@ export interface EditorContextMenuState {
   y: number;
   line: string;
   role: LineSectionRole;
+  isSectionTitle?: boolean;
   col?: number;
   inSection?: boolean;
   misspelled?: { word: string; from: number; to: number } | null;

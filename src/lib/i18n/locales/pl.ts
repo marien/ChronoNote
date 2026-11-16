@@ -1145,4 +1145,30 @@ export const pl = {
   "personView.ariaLabel": ({ name }) => `Osoba: ${name}`,
   "lineMenu.showPerson": ({ name }) => `Pokaż @${name}`,
   "commandPalette.group.people": () => "Osoby",
+  // Rename everywhere (F6)
+  "lineMenu.renameEverywhere": () => "Zmień nazwę wszędzie…",
+  "rename.command.section": () => "Zmień nazwę sekcji wszędzie…",
+  "rename.command.name": () => "Zmień imię wszędzie…",
+  "rename.command.topic": () => "Zmień temat wszędzie…",
+  "rename.modal.ariaLabel": () => "Zmień nazwę wszędzie",
+  "rename.modal.title": () => "Zmień nazwę wszędzie",
+  "rename.modal.from": () => "Z",
+  "rename.modal.to": () => "Na",
+  "rename.modal.summary": ({ lines, notes }) => {
+    const l = lines === 1 ? "1 wiersz" : `${lines} wierszy`;
+    const n = notes === 1 ? "1 notatce" : `${notes} notatkach`;
+    return `${l} w ${n}`;
+  },
+  "rename.modal.confirm": ({ count }) => (count === 1 ? "Zmień w 1 notatce" : `Zmień w ${count} notatkach`),
+  "rename.invalid.name": () => "Nazwa może zawierać tylko litery, cyfry, _ lub -.",
+  "rename.invalid.topic": () => "Temat nie może być pusty ani zawierać spacji czy nawiasów.",
+  "rename.invalid.title": () => "Tytuł musi być jednowierszowy i nie może zaczynać się od [ ani daty.",
+  "rename.invalid.same": () => "Wpisz tekst inny niż obecny.",
+  "rename.toast.renamed": ({ count }) =>
+    count === 1 ? "Zmieniono w 1 notatce. Kliknij, aby cofnąć." : `Zmieniono w ${count} notatkach. Kliknij, aby cofnąć.`,
+  "rename.toast.undone": ({ count }) => (count === 1 ? "Cofnięto w 1 notatce." : `Cofnięto w ${count} notatkach.`),
+  "rename.toast.skipped": ({ count, dates }) =>
+    count === 1
+      ? `Pominięto 1 notatkę zmienioną w międzyczasie: ${dates}`
+      : `Pominięto ${count} notatek zmienionych w międzyczasie: ${dates}`,
 } satisfies Dictionary;

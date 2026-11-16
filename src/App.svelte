@@ -78,6 +78,7 @@
   import MoreActionsModal from "./lib/components/modals/MoreActionsModal.svelte";
   import WeekReviewModal from "./lib/components/modals/WeekReviewModal.svelte";
   import PersonModal from "./lib/components/modals/PersonModal.svelte";
+  import RenameModal from "./lib/components/modals/RenameModal.svelte";
   import CalendarSyncReviewModal from "./lib/components/modals/CalendarSyncReviewModal.svelte";
   import DroppedNotesModal from "./lib/components/modals/DroppedNotesModal.svelte";
   import SyncConflictsModal from "./lib/components/modals/SyncConflictsModal.svelte";
@@ -1074,6 +1075,8 @@
     <DroppedNotesModal />
   {:else if $modal === "versions"}
     <VersionsModal />
+  {:else if $modal === "rename"}
+    <RenameModal />
   {/if}
 
   <DueDatePickerHost />

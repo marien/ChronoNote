@@ -544,14 +544,17 @@ export async function writeTabContentAndWait(
   tabId: string,
   newContent: string,
   restoreTo: string,
-  options?: { keepVersion?: boolean },
+  options?: { keepVersion?: boolean; alreadyAppliedInEditor?: boolean },
 ): Promise<void> {
   cancelScheduledSave(tabId);
   const tab = get(tabs).find((x) => x.id === tabId && !x.isScratchpad);
   if (!tab) throw new Error("the tab was closed");
-  setTabText(tabId, newContent);
+  if (!options?.alreadyAppliedInEditor) {
+    setTabText(tabId, newContent);
+  }
+  const writeOpts = options?.keepVersion !== undefined ? { keepVersion: options.keepVersion } : undefined;
   try {
-    await writeNoteAndInvalidateCache(tab.filename, newContent, { kind: "tabBaseline" }, options);
+    await writeNoteAndInvalidateCache(tab.filename, newContent, { kind: "tabBaseline" }, writeOpts);
   } catch (e) {
     if (isWriteConflictError(e)) return;
     const current = get(tabs).find((x) => x.id === tabId)?.content;

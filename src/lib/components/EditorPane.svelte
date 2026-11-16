@@ -7,6 +7,7 @@
   import { findNext, findPrevious, replaceNext, replaceAll, search, SearchCursor, SearchQuery, setSearchQuery } from "@codemirror/search";
   import {
     applyActionStateToSelection,
+    applyLineEdits,
     applyLineToken,
     applyToCurrentLine,
     convertLineToSection,
@@ -499,10 +500,16 @@ import { calendarSyncEnabled, currentDateISO, currentLineKind, editorFocused, mi
           const at = v.state.doc.lineAt(v.state.selection.main.head);
           const col = pos != null && pos >= at.from && pos <= at.to ? pos - at.from : v.state.selection.main.head - at.from;
           const docLines = v.state.doc.toString().split("\n");
-          const role = lineSectionRole(docLines, at.number - 1);
-          const inSection = role === "title" ? getSectionHeaderForLine(docLines, at.number - 1) !== "" : role !== "outside";
+          const lineIdx = at.number - 1;
+          const role = lineSectionRole(docLines, lineIdx);
+          const isSectionTitle =
+            lineIdx + 1 < docLines.length &&
+            isSetextUnderline(docLines[lineIdx + 1]) &&
+            !isSetextUnderline(docLines[lineIdx]) &&
+            docLines[lineIdx].trim() !== "";
+          const inSection = role === "title" ? getSectionHeaderForLine(docLines, lineIdx) !== "" : role !== "outside";
           const misspelled = (get(controller.backendKind) !== "web" && pos != null) ? misspelledAt(v.state, pos) : null;
-          editorContextMenu.set({ x: event.clientX, y: event.clientY, line: at.text, role, col, inSection, misspelled });
+          editorContextMenu.set({ x: event.clientX, y: event.clientY, line: at.text, role, isSectionTitle, col, inSection, misspelled });
           return true;
         },
         // Deferred: the browser also fires `blur` while Svelte is tearing this
@@ -807,6 +814,9 @@ import { calendarSyncEnabled, currentDateISO, currentLineKind, editorFocused, mi
         view.dispatch({
           changes: { from, to, insert: text },
         });
+      },
+      applyLineEdits: (edits: { lineIdx: number; text: string }[]) => {
+        if (view) applyLineEdits(view, edits);
       },
       replaceRange: (from: number, to: number, text: string) => {
         if (!view) return;

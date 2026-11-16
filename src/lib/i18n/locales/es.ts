@@ -1105,4 +1105,27 @@ export const es = {
   "personView.ariaLabel": ({ name }) => `Persona: ${name}`,
   "lineMenu.showPerson": ({ name }) => `Mostrar @${name}`,
   "commandPalette.group.people": () => "Personas",
+  // Rename everywhere (F6)
+  "lineMenu.renameEverywhere": () => "Renombrar en todas partes…",
+  "rename.command.section": () => "Renombrar sección en todas partes…",
+  "rename.command.name": () => "Renombrar nombre en todas partes…",
+  "rename.command.topic": () => "Renombrar tema en todas partes…",
+  "rename.modal.ariaLabel": () => "Renombrar en todas partes",
+  "rename.modal.title": () => "Renombrar en todas partes",
+  "rename.modal.from": () => "De",
+  "rename.modal.to": () => "A",
+  "rename.modal.summary": ({ lines, notes }) =>
+    `${lines === 1 ? "1 línea" : `${lines} líneas`} en ${notes === 1 ? "1 nota" : `${notes} notas`}`,
+  "rename.modal.confirm": ({ count }) => (count === 1 ? "Renombrar en 1 nota" : `Renombrar en ${count} notas`),
+  "rename.invalid.name": () => "Usa solo letras, dígitos, _ o - para el nombre.",
+  "rename.invalid.topic": () => "Escribe un tema sin espacios ni paréntesis.",
+  "rename.invalid.title": () => "El título debe ocupar una línea y no empezar por [ ni una fecha.",
+  "rename.invalid.same": () => "Escribe algo diferente al original.",
+  "rename.toast.renamed": ({ count }) =>
+    count === 1 ? "Renombrado en 1 nota. Haz clic para deshacer." : `Renombrado en ${count} notas. Haz clic para deshacer.`,
+  "rename.toast.undone": ({ count }) => (count === 1 ? "Deshecho en 1 nota." : `Deshecho en ${count} notas.`),
+  "rename.toast.skipped": ({ count, dates }) =>
+    count === 1
+      ? `Se omitió 1 nota que cambió entretanto: ${dates}`
+      : `Se omitieron ${count} notas que cambiaron entretanto: ${dates}`,
 } satisfies Dictionary;

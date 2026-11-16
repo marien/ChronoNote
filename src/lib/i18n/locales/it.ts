@@ -1107,4 +1107,27 @@ export const it = {
   "personView.ariaLabel": ({ name }) => `Persona: ${name}`,
   "lineMenu.showPerson": ({ name }) => `Mostra @${name}`,
   "commandPalette.group.people": () => "Persone",
+  // Rename everywhere (F6)
+  "lineMenu.renameEverywhere": () => "Rinomina ovunque…",
+  "rename.command.section": () => "Rinomina sezione ovunque…",
+  "rename.command.name": () => "Rinomina nome ovunque…",
+  "rename.command.topic": () => "Rinomina argomento ovunque…",
+  "rename.modal.ariaLabel": () => "Rinomina ovunque",
+  "rename.modal.title": () => "Rinomina ovunque",
+  "rename.modal.from": () => "Da",
+  "rename.modal.to": () => "A",
+  "rename.modal.summary": ({ lines, notes }) =>
+    `${lines === 1 ? "1 riga" : `${lines} righe`} in ${notes === 1 ? "1 nota" : `${notes} note`}`,
+  "rename.modal.confirm": ({ count }) => (count === 1 ? "Rinomina in 1 nota" : `Rinomina in ${count} note`),
+  "rename.invalid.name": () => "Usa solo lettere, cifre, _ o - per il nome.",
+  "rename.invalid.topic": () => "Inserisci un argomento senza spazi né parentesi.",
+  "rename.invalid.title": () => "Il titolo deve stare su una riga e non iniziare con [ o una data.",
+  "rename.invalid.same": () => "Inserisci qualcosa di diverso dall'originale.",
+  "rename.toast.renamed": ({ count }) =>
+    count === 1 ? "Rinominato in 1 nota. Fai clic per annullare." : `Rinominato in ${count} note. Fai clic per annullare.`,
+  "rename.toast.undone": ({ count }) => (count === 1 ? "Annullato in 1 nota." : `Annullato in ${count} note.`),
+  "rename.toast.skipped": ({ count, dates }) =>
+    count === 1
+      ? `Saltata 1 nota modificata nel frattempo: ${dates}`
+      : `Saltate ${count} note modificate nel frattempo: ${dates}`,
 } satisfies Dictionary;

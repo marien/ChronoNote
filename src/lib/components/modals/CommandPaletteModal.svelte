@@ -81,7 +81,7 @@
 
   async function commit(idx: number) {
     const item = items[idx];
-    if (!item) return;
+    if (!item || item.disabled) return;
     controller.closeAllModals();
     await tick();
     await item.run();
@@ -196,9 +196,10 @@
         {:else}
           <div
             class="modal-item {row.idx === selected ? 'selected' : ''}"
-            class:muted-row={row.item.id === "no-sections"}
+            class:muted-row={row.item.id === "no-sections" || row.item.disabled}
             role="option"
             aria-selected={row.idx === selected}
+            aria-disabled={row.item.disabled ? "true" : undefined}
             data-idx={row.idx}
             tabindex="0"
             onclick={() => commit(row.idx)}

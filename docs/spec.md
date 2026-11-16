@@ -791,6 +791,35 @@ reachable from the top bar, a shortcut, or the command palette:
   includes older dated notes for delegations and mentions). Clicking a row
   or pressing `Enter` jumps to that line (keeping the pane open when
   docked); `Up`/`Down` move across bands; `Escape` closes.
+- **Rename everywhere** (line menu's `Rename everywhere…` on a section title,
+  `@name` or `(topic)` tag, or the command palette's `Rename section everywhere…`,
+  `Rename name everywhere…` and `Rename topic everywhere…`; design
+  `docs/design/wave3-designs.html`) — renames every occurrence across all
+  non-scratchpad notes after showing a preview dialog with per-note ticks.
+  - **Matching and replacement:** Section titles match on
+    `titleForMatching(normalizeHeaderTitle(title)).toLowerCase()`: leading
+    `[HH:MM - HH:MM]`, `[CANCELED]`, leading `YYYY-MM-DD`, and trailing
+    `YYYY-MM-DD` with its separator stay unchanged, and an exact
+    `underlineFor(oldTitle)` underline is resized to `underlineFor(newTitle)`
+    while any other underline is kept. `@name` matches `"assignee"` tokens
+    case-insensitively and becomes `@<to>`; `(topic)` matches `"topicTag"`
+    tokens case-insensitively and becomes `(<to>)`. Everything else on the
+    line stays byte for byte.
+  - **Validation:** A name (after dropping a leading `@`) must be one or more
+    `NAME_CHAR`s; a topic must be non-empty with no whitespace or parentheses;
+    a title must be non-empty after trimming, single-line, and not start with
+    `[` or a `YYYY-MM-DD` date; and the new value must differ from the old one
+    in at least one character.
+  - **Scope:** Names and topics rename across all non-scratchpad notes; section
+    titles leave notes dated after today alone (calendar sync owns those).
+    Scratchpads are never touched.
+  - **Safety and undo:** Flushes pending saves first, skips any note whose
+    text changed since the preview was built (naming skipped notes in the
+    toast), and saves each changed note's prior text as an earlier version
+    (`keepVersion`). Changes to the active tab run in one CodeMirror
+    transaction (one `Ctrl/Cmd+Z` undo step). The toast stays for 10 seconds
+    and clicking it undoes the rename across every note still holding the
+    renamed text (keeping an earlier version too).
 - **Week review** (`Ctrl/Cmd+Shift+K`, palette, More, a week number in the
   date picker; §432, design `docs/design/week-review-design.md`) — one ISO
   week from its dated notes, grouped by day and then by section: open own

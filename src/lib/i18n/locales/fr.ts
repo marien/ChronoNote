@@ -1112,4 +1112,27 @@ export const fr = {
   "personView.ariaLabel": ({ name }) => `Personne : ${name}`,
   "lineMenu.showPerson": ({ name }) => `Afficher @${name}`,
   "commandPalette.group.people": () => "Personnes",
+  // Rename everywhere (F6)
+  "lineMenu.renameEverywhere": () => "Renommer partout…",
+  "rename.command.section": () => "Renommer la section partout…",
+  "rename.command.name": () => "Renommer le nom partout…",
+  "rename.command.topic": () => "Renommer le sujet partout…",
+  "rename.modal.ariaLabel": () => "Renommer partout",
+  "rename.modal.title": () => "Renommer partout",
+  "rename.modal.from": () => "De",
+  "rename.modal.to": () => "Vers",
+  "rename.modal.summary": ({ lines, notes }) =>
+    `${lines === 1 ? "1 ligne" : `${lines} lignes`} dans ${notes === 1 ? "1 note" : `${notes} notes`}`,
+  "rename.modal.confirm": ({ count }) => (count === 1 ? "Renommer dans 1 note" : `Renommer dans ${count} notes`),
+  "rename.invalid.name": () => "Utilisez uniquement des lettres, chiffres, _ ou -.",
+  "rename.invalid.topic": () => "Saisissez un sujet sans espaces ni parenthèses.",
+  "rename.invalid.title": () => "Le titre doit tenir sur une ligne et ne pas commencer par [ ou une date.",
+  "rename.invalid.same": () => "Saisissez une valeur différente de l'originale.",
+  "rename.toast.renamed": ({ count }) =>
+    count === 1 ? "Renommé dans 1 note. Cliquez pour annuler." : `Renommé dans ${count} notes. Cliquez pour annuler.`,
+  "rename.toast.undone": ({ count }) => (count === 1 ? "Annulé dans 1 note." : `Annulé dans ${count} notes.`),
+  "rename.toast.skipped": ({ count, dates }) =>
+    count === 1
+      ? `1 note modifiée entre-temps ignorée : ${dates}`
+      : `${count} notes modifiées entre-temps ignorées : ${dates}`,
 } satisfies Dictionary;
