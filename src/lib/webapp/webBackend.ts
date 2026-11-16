@@ -29,7 +29,15 @@
  * Location" section entirely when `backendKind` is `"web"`, so this
  * placeholder is never actually shown.
  */
-import { activeAgendaDates, activeEntriesForDate, activeTitlesAfterDate, activeTitlesForDate, removedTitlesForDate } from "../agendaTitles";
+import {
+  activeAgendaDates,
+  activeDetailsForDate,
+  activeEntriesForDate,
+  activeTitlesAfterDate,
+  activeTitlesForDate,
+  parseAgendaMeetings,
+  removedTitlesForDate,
+} from "../agendaTitles";
 import type { AppConfig, AppError, ColorMode, FileMetadata, LanguageMode, PeekConfig, StartupTabMode, TabSession, ThemeMode } from "../types";
 import type { TabLabelStyle, NoteVersion } from "../generated/tauri-types";
 import { PEEK_DEFAULTS, clampPeek } from "../peekDefaults";
@@ -801,28 +809,12 @@ export class WebBackend {
     },
 
     // `.agenda.json` is a file in the desktop app's notes folder — the web
-    // app has no such folder (IndexedDB-backed, no filesystem), so the
-    // "Sync calendar for this day" action is hidden there entirely
-    // (`TopBar.svelte`/`MoreActionsModal.svelte` gate on `backendKind !==
-    // "web"`). This is never actually called from the UI as a result;
-    // an empty calendar rather than a thrown error just in case, matching
-    // how a desktop install with no `.agenda.json` file yet behaves.
+    // app reads it from IndexedDB once OneDrive has synced it down.
     read_agenda_for_date: async ({ date }) => {
       const db = await this.db();
       const store = await this.getActiveNotesStore();
       const note = await idbGet<StoredNote>(db, store, ".agenda.json");
-      if (!note || !note.content.trim()) {
-        throw { code: "agendaInvalid" } satisfies AppError;
-      }
-      try {
-        const meetings: Array<{ date: string; start: string; end: string; title: string }> = JSON.parse(note.content.trim());
-        if (!Array.isArray(meetings) || meetings.length === 0) {
-          throw new Error("Invalid");
-        }
-        return activeTitlesForDate(meetings, date);
-      } catch {
-        throw { code: "agendaInvalid" } satisfies AppError;
-      }
+      return activeTitlesForDate(parseAgendaMeetings(note?.content), date);
     },
 
     // Peek's call note is desktop-only; the web app only implements the contract.
@@ -830,16 +822,14 @@ export class WebBackend {
       const db = await this.db();
       const store = await this.getActiveNotesStore();
       const note = await idbGet<StoredNote>(db, store, ".agenda.json");
-      if (!note || !note.content.trim()) {
-        throw { code: "agendaInvalid" } satisfies AppError;
-      }
-      try {
-        const meetings: Array<{ date: string; start: string; end: string; title: string }> = JSON.parse(note.content.trim());
-        if (!Array.isArray(meetings) || meetings.length === 0) throw new Error("Invalid");
-        return activeEntriesForDate(meetings, date);
-      } catch {
-        throw { code: "agendaInvalid" } satisfies AppError;
-      }
+      return activeEntriesForDate(parseAgendaMeetings(note?.content), date);
+    },
+
+    read_agenda_details_for_date: async ({ date }) => {
+      const db = await this.db();
+      const store = await this.getActiveNotesStore();
+      const note = await idbGet<StoredNote>(db, store, ".agenda.json");
+      return activeDetailsForDate(parseAgendaMeetings(note?.content), date);
     },
 
     // #78: the real titles of the day's cancelled/declined/forwarded meetings.
@@ -847,36 +837,14 @@ export class WebBackend {
       const db = await this.db();
       const store = await this.getActiveNotesStore();
       const note = await idbGet<StoredNote>(db, store, ".agenda.json");
-      if (!note || !note.content.trim()) {
-        throw { code: "agendaInvalid" } satisfies AppError;
-      }
-      try {
-        const meetings: Array<{ date: string; start: string; end: string; title: string }> = JSON.parse(note.content.trim());
-        if (!Array.isArray(meetings) || meetings.length === 0) {
-          throw new Error("Invalid");
-        }
-        return removedTitlesForDate(meetings, date);
-      } catch {
-        throw { code: "agendaInvalid" } satisfies AppError;
-      }
+      return removedTitlesForDate(parseAgendaMeetings(note?.content), date);
     },
 
     read_agenda_after: async ({ afterDate }) => {
       const db = await this.db();
       const store = await this.getActiveNotesStore();
       const note = await idbGet<StoredNote>(db, store, ".agenda.json");
-      if (!note || !note.content.trim()) {
-        throw { code: "agendaInvalid" } satisfies AppError;
-      }
-      try {
-        const meetings: Array<{ date: string; start: string; end: string; title: string }> = JSON.parse(note.content.trim());
-        if (!Array.isArray(meetings) || meetings.length === 0) {
-          throw new Error("Invalid");
-        }
-        return activeTitlesAfterDate(meetings, afterDate);
-      } catch {
-        throw { code: "agendaInvalid" } satisfies AppError;
-      }
+      return activeTitlesAfterDate(parseAgendaMeetings(note?.content), afterDate);
     },
 
     read_agenda_dates: async () => {
@@ -885,9 +853,7 @@ export class WebBackend {
       const note = await idbGet<StoredNote>(db, store, ".agenda.json");
       if (!note || !note.content.trim()) return [];
       try {
-        const meetings: Array<{ date: string; start: string; end: string; title: string }> = JSON.parse(note.content.trim());
-        if (!Array.isArray(meetings)) return [];
-        return activeAgendaDates(meetings);
+        return activeAgendaDates(parseAgendaMeetings(note.content));
       } catch {
         return [];
       }

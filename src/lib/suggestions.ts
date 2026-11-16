@@ -12,12 +12,14 @@ export interface Suggestion {
   label: string;
   lastUsed: string | null;
   meetingToday?: boolean;
+  invited?: boolean;
 }
 
 export interface SuggestionsContext {
   noteDate: string | null;
   entries: ReadonlyMap<string, NoteEntry>;
   meetingsToday: readonly string[];
+  attendees?: readonly string[];
 }
 
 const MAX_SUGGESTIONS = 8;
@@ -78,6 +80,7 @@ function buildNameOrTopicSuggestions(
   kind: "name" | "topic",
   prefix: string,
   entries: ReadonlyMap<string, NoteEntry>,
+  attendees: readonly string[] = [],
 ): Suggestion[] {
   const lowerPrefix = prefix.toLowerCase();
   const buckets = new Map<string, NameOrTopicBucket>();
@@ -114,18 +117,48 @@ function buildNameOrTopicSuggestions(
     }
   }
 
-  const sorted = [...buckets.values()].sort((a, b) => {
-    const dateCmp = compareDatesDesc(a.lastUsed, b.lastUsed);
-    if (dateCmp !== 0) return dateCmp;
-    if (a.totalCount !== b.totalCount) return b.totalCount - a.totalCount;
-    return a.lower < b.lower ? -1 : a.lower > b.lower ? 1 : 0;
-  });
+  const results: Suggestion[] = [];
+  const listedLower = new Set<string>();
 
-  return sorted.slice(0, MAX_SUGGESTIONS).map((bucket) => {
+  if (kind === "name" && attendees.length > 0) {
+    for (const raw of attendees) {
+      const name = raw.trim();
+      if (!name) continue;
+      const lower = name.toLowerCase();
+      if (!lower.startsWith(lowerPrefix) || lower === lowerPrefix) continue;
+      if (listedLower.has(lower)) continue;
+      listedLower.add(lower);
+      const bucket = buckets.get(lower);
+      const insert = `@${name}`;
+      results.push({
+        insert,
+        label: insert,
+        lastUsed: bucket?.lastUsed ?? null,
+        invited: true,
+      });
+      if (results.length >= MAX_SUGGESTIONS) {
+        return results;
+      }
+    }
+  }
+
+  const sorted = [...buckets.values()]
+    .filter((b) => !listedLower.has(b.lower))
+    .sort((a, b) => {
+      const dateCmp = compareDatesDesc(a.lastUsed, b.lastUsed);
+      if (dateCmp !== 0) return dateCmp;
+      if (a.totalCount !== b.totalCount) return b.totalCount - a.totalCount;
+      return a.lower < b.lower ? -1 : a.lower > b.lower ? 1 : 0;
+    });
+
+  for (const bucket of sorted) {
+    if (results.length >= MAX_SUGGESTIONS) break;
     const spelling = bestSpelling(bucket.spellings);
     const insert = kind === "name" ? `@${spelling}` : `(${spelling})`;
-    return { insert, label: insert, lastUsed: bucket.lastUsed };
-  });
+    results.push({ insert, label: insert, lastUsed: bucket.lastUsed });
+  }
+
+  return results;
 }
 
 interface TitleBucket {
@@ -209,5 +242,5 @@ export function buildSuggestions(
   if (kind === "title") {
     return buildTitleSuggestions(prefix, ctx);
   }
-  return buildNameOrTopicSuggestions(kind, prefix, ctx.entries);
+  return buildNameOrTopicSuggestions(kind, prefix, ctx.entries, ctx.attendees);
 }

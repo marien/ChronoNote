@@ -3,6 +3,7 @@ import type { NoteEntry } from "./notesIndex";
 import { dateISOOfFilename } from "./notesIndex/entries";
 import { scenario } from "./testing/scenarios";
 import { buildSuggestions } from "./suggestions";
+import { attendeeNames } from "./attendeeNames";
 
 function entriesOf(notes: Record<string, string>): Map<string, NoteEntry> {
   const map = new Map<string, NoteEntry>();
@@ -177,6 +178,43 @@ describe("buildSuggestions", () => {
     });
 
     expect(rows).toHaveLength(8);
+  });
+
+  it("puts invited attendees first in attendee order, then usual rows", () => {
+    const entries = entriesOf({
+      "2026-11-15.txt": "# ping @Dave",
+    });
+
+    const rows = buildSuggestions("name", "D", {
+      noteDate: "2026-11-16",
+      entries,
+      meetingsToday: [],
+      attendees: attendeeNames(["Dana Smith", "Ben Jones"], ""),
+    });
+
+    expect(rows).toEqual([
+      { insert: "@Dana", label: "@Dana", lastUsed: null, invited: true },
+      { insert: "@Dave", label: "@Dave", lastUsed: "2026-11-15" },
+    ]);
+  });
+
+  it("lists an attendee already used in notes once, keeping their lastUsed date", () => {
+    const entries = entriesOf({
+      "2026-11-12.txt": "# ask @dana",
+      "2026-11-15.txt": "# ping @Dave",
+    });
+
+    const rows = buildSuggestions("name", "D", {
+      noteDate: "2026-11-16",
+      entries,
+      meetingsToday: [],
+      attendees: attendeeNames(["Dana Smith", "Ben Jones"], ""),
+    });
+
+    expect(rows).toEqual([
+      { insert: "@Dana", label: "@Dana", lastUsed: "2026-11-12", invited: true },
+      { insert: "@Dave", label: "@Dave", lastUsed: "2026-11-15" },
+    ]);
   });
 
   it("measures buildSuggestions on busy-week scenario", () => {

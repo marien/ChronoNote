@@ -532,4 +532,75 @@ test.describe("Peek switcher and new call", () => {
     await page.locator('#peek-switcher [role="option"]', { hasText: "Late Sync" }).click();
     await expect(page.locator("#peek-bar")).toContainText("Late Sync");
   });
+
+  test("Join button shows in Peek bar and on-now list for meetings with joinUrl without changing bar height", async ({ page }) => {
+    const note = [
+      "Standup",
+      "=======",
+      "o standup notes",
+      "",
+      "Design review",
+      "=============",
+      "o design notes",
+    ].join("\n");
+
+    await seed(page, {
+      notes: { [TODAY]: note },
+      agendaJson: JSON.stringify([
+        {
+          date: "2026-09-07",
+          start: "08:30",
+          end: "09:30",
+          title: "Standup",
+          joinUrl: "https://teams.microsoft.com/l/meetup-join/standup",
+        },
+        {
+          date: "2026-09-07",
+          start: "09:00",
+          end: "10:00",
+          title: "Design review",
+          joinUrl: "https://teams.microsoft.com/l/meetup-join/design",
+        },
+      ]),
+    });
+
+    await runCallShortcutFromPalette(page);
+    await expect(page.locator("body.peek-mode")).toBeVisible();
+    await expect(page.locator("#peek-bar")).toContainText("Design review");
+
+    const joinBtn = page.locator('#peek-bar [data-testid="peek-join"]');
+    await expect(joinBtn).toBeVisible();
+    await expect(joinBtn).toHaveAttribute("aria-label", "Join Design review");
+
+    // Clicking Join opens the meeting's joinUrl without leaving Peek
+    await joinBtn.click();
+    await expect
+      .poll(() => page.evaluate(() => window.__CHRONO_MOCK__!.openedUrls))
+      .toContain("https://teams.microsoft.com/l/meetup-join/design");
+    await expect(page.locator("body.peek-mode")).toBeVisible();
+
+    // Check bar height stays 30px at 100% and 125% zoom
+    const barHeight100 = await page.locator("#peek-bar").evaluate((el) => el.getBoundingClientRect().height);
+    expect(barHeight100).toBeCloseTo(30, 0);
+    await page.evaluate(() => {
+      document.documentElement.style.zoom = "1.25";
+    });
+    const barHeight125 = await page.locator("#peek-bar").evaluate((el) => el.getBoundingClientRect().height);
+    expect(barHeight125).toBeCloseTo(30 * 1.25, 0);
+    await page.evaluate(() => {
+      document.documentElement.style.zoom = "";
+    });
+
+    // Open on-now list and click Standup's Join button without switching section
+    await page.locator('#peek-bar [data-testid="peek-switch"]').click();
+    const switcher = page.locator("#peek-switcher");
+    await expect(switcher).toBeVisible();
+    const standupJoin = switcher.getByRole("button", { name: "Join Standup" });
+    await expect(standupJoin).toBeVisible();
+    await standupJoin.click();
+    await expect
+      .poll(() => page.evaluate(() => window.__CHRONO_MOCK__!.openedUrls))
+      .toContain("https://teams.microsoft.com/l/meetup-join/standup");
+    await expect(page.locator("#peek-bar")).toContainText("Design review");
+  });
 });

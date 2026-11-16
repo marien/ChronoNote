@@ -154,6 +154,18 @@ describe("formatSuggestionDate", () => {
       { today: "2026-11-16", noteDate: "2026-11-16", locale: "en", labels },
     );
     expect(otherYear).toContain("2025");
+    expect(
+      formatSuggestionDate(
+        { insert: "@Dana", label: "@Dana", lastUsed: null, invited: true },
+        { today: "2026-11-16", noteDate: "2026-11-16", locale: "en", labels },
+      ),
+    ).toBe("invited");
+    expect(
+      formatSuggestionDate(
+        { insert: "@Dana", label: "@Dana", lastUsed: "2026-11-12", invited: true },
+        { today: "2026-11-16", noteDate: "2026-11-16", locale: "en", labels },
+      ),
+    ).toBe("Thu");
   });
 });
 

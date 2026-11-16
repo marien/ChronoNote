@@ -36,6 +36,8 @@ export type TrashItem = { name: string, originalFilename: string, deletedMs: num
 
 export type NoteVersion = { name: string, savedMs: number, sizeBytes: number };
 
+export type AgendaDetails = { start: string, end: string, title: string, joinUrl: string | null, attendees: Array<string> };
+
 export type AppError = { "code": "agendaInvalid" } | { "code": "oneDriveSyncBusy" } | { "code": "oneDriveNoPendingSession" } | { "code": "oneDriveMissingRefreshTokenScope" } | { "code": "oneDriveTokenRequestFailed", detail: string } | { "code": "oneDriveTokenExchangeRejected", detail: string } | { "code": "other", detail: string };
 
 export type OneDriveAccount = { email: string, displayName: string };

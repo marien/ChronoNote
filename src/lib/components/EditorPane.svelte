@@ -26,10 +26,13 @@
   import { spellcheckExtension, misspelledAt } from "../editor/spellcheck";
   import { isMac } from "../platform";
   import { locale, t } from "../i18n";
+  import { attendeeNames } from "../attendeeNames";
+  import { meetingMatchKey } from "../calendarReconcile";
   import { ensureLoaded, notesIndex } from "../notesIndex";
   import { dateISOOfFilename } from "../notesIndex/entries";
   import { buildSuggestions, type SuggestionKind } from "../suggestions";
   import * as api from "../tauriApi";
+  import type { AgendaDetails } from "../types";
   import {
     closeOpenAction,
     getSectionHeaderForLine,
@@ -42,7 +45,7 @@
   import * as controller from "../controller";
   import { editorContextMenu, findMatch, findOpen, readableLineLength, spellCheck, wordWrap } from "../controller";
   import { isTitleLine } from "../grammar/tokenize";
-import { calendarSyncEnabled, currentDateISO, currentLineKind, editorFocused, tabs } from "../stores";
+import { calendarSyncEnabled, currentDateISO, currentLineKind, editorFocused, minutesName, tabs } from "../stores";
   import { lineKind } from "../lineKind";
   import { htmlToNoteText, noteTextToHtml } from "../richClipboard";
 
@@ -255,8 +258,8 @@ import { calendarSyncEnabled, currentDateISO, currentLineKind, editorFocused, ta
     recomputeFindMatch();
   }
 
-  const agendaCache = new Map<string, string[]>();
-  const agendaInFlight = new Set<string>();
+  const agendaDetailsCache = new Map<string, AgendaDetails[]>();
+  const agendaDetailsInFlight = new Set<string>();
   let loadingNotesIndex = false;
   let unsubscribeSuggestionsNotes: (() => void) | undefined;
 
@@ -265,32 +268,32 @@ import { calendarSyncEnabled, currentDateISO, currentLineKind, editorFocused, ta
     return tab && !tab.isScratchpad ? dateISOOfFilename(tab.filename) : null;
   }
 
-  function meetingsForDate(noteDate: string | null): string[] {
+  function detailsForDate(noteDate: string | null): AgendaDetails[] {
     if (!noteDate || !get(calendarSyncEnabled)) return [];
-    const cached = agendaCache.get(noteDate);
+    const cached = agendaDetailsCache.get(noteDate);
     if (cached !== undefined) return cached;
-    if (!agendaInFlight.has(noteDate)) {
-      agendaInFlight.add(noteDate);
+    if (!agendaDetailsInFlight.has(noteDate)) {
+      agendaDetailsInFlight.add(noteDate);
       api
-        .readAgendaForDate(noteDate)
+        .readAgendaDetailsForDate(noteDate)
         .then((list) => {
-          const titles = (list ?? []).map((s) => s.trim()).filter((s) => s.length > 0);
-          agendaCache.set(noteDate, titles);
-          if (titles.length > 0 && view) {
+          const details = (list ?? []).filter((d) => d.title.trim().length > 0);
+          agendaDetailsCache.set(noteDate, details);
+          if (details.length > 0 && view) {
             view.dispatch({ effects: refreshSuggestions.of() });
           }
         })
         .catch(() => {
-          agendaCache.set(noteDate, []);
+          agendaDetailsCache.set(noteDate, []);
         })
         .finally(() => {
-          agendaInFlight.delete(noteDate);
+          agendaDetailsInFlight.delete(noteDate);
         });
     }
     return [];
   }
 
-  function suggestionSource(kind: SuggestionKind, prefix: string) {
+  function suggestionSource(kind: SuggestionKind, prefix: string, sectionHeader = "") {
     const index = get(notesIndex);
     if (!index.loaded && !loadingNotesIndex) {
       loadingNotesIndex = true;
@@ -304,8 +307,17 @@ import { calendarSyncEnabled, currentDateISO, currentLineKind, editorFocused, ta
         });
     }
     const noteDate = activeNoteDate();
-    const meetingsToday = kind === "title" ? meetingsForDate(noteDate) : [];
-    return buildSuggestions(kind, prefix, { noteDate, entries: index.entries, meetingsToday });
+    const details = kind === "title" || kind === "name" ? detailsForDate(noteDate) : [];
+    const meetingsToday = kind === "title" ? details.map((d) => d.title.trim()) : [];
+    let attendees: string[] = [];
+    if (kind === "name" && sectionHeader) {
+      const headerKey = meetingMatchKey(sectionHeader);
+      const meeting = headerKey ? details.find((d) => meetingMatchKey(d.title) === headerKey) : undefined;
+      if (meeting && meeting.attendees.length > 0) {
+        attendees = attendeeNames(meeting.attendees, get(minutesName));
+      }
+    }
+    return buildSuggestions(kind, prefix, { noteDate, entries: index.entries, meetingsToday, attendees });
   }
 
   onMount(() => {
@@ -423,6 +435,7 @@ import { calendarSyncEnabled, currentDateISO, currentLineKind, editorFocused, ta
                         today: tr("suggestions.today", undefined),
                         yesterday: tr("suggestions.yesterday", undefined),
                         meetingToday: tr("suggestions.meetingToday", undefined),
+                        invited: tr("suggestions.invited", undefined),
                         listLabel: tr("suggestions.listLabel", undefined),
                       };
                     },

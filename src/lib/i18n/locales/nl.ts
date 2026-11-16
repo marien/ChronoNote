@@ -203,6 +203,8 @@ export const nl = {
   "peek.rename": () =>
     "Klik om dit gesprek een naam te geven",
   "peek.switch": () => "Lopende vergaderingen",
+  "peek.join": () => "Deelnemen",
+  "peek.joinLabel": ({ title }) => `Deelnemen aan ${title}`,
   "peek.newCall": () => "Nieuw gesprek",
   "peek.prev": () =>
     "Vorige keer",
@@ -1078,6 +1080,7 @@ export const nl = {
   "suggestions.today": () => "vandaag",
   "suggestions.yesterday": () => "gisteren",
   "suggestions.meetingToday": () => "vergadering vandaag",
+  "suggestions.invited": () => "uitgenodigd",
   "suggestions.listLabel": () => "Suggesties",
   "personView.openActions": ({ name }) => `Je open acties waarin ${name} voorkomt`,
   "personView.delegated": ({ name }) => `Gedelegeerd aan ${name}`,

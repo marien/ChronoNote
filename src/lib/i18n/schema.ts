@@ -181,6 +181,8 @@ export type TranslationParams = {
   "peek.float": undefined;
   "peek.rename": undefined;
   "peek.switch": undefined;
+  "peek.join": undefined;
+  "peek.joinLabel": { title: string };
   "peek.newCall": undefined;
   "peek.prev": undefined;
   "peek.next": undefined;
@@ -1078,6 +1080,7 @@ export type TranslationParams = {
   "suggestions.today": undefined;
   "suggestions.yesterday": undefined;
   "suggestions.meetingToday": undefined;
+  "suggestions.invited": undefined;
   "suggestions.listLabel": undefined;
   // Person view (F5)
   "personView.openActions": { name: string };

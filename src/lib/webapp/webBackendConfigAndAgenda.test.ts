@@ -219,7 +219,83 @@ describe("WebBackend - update_config & agenda reads", () => {
         backend.invoke("read_agenda_for_date", { date: "2026-10-20" }),
       ).rejects.toEqual({ code: "agendaInvalid" });
 
+      await expect(
+        backend.invoke("read_agenda_details_for_date", { date: "2026-10-20" }),
+      ).rejects.toEqual({ code: "agendaInvalid" });
+
       expect(await backend.invoke("read_agenda_dates")).toEqual([]);
+    });
+
+    it("reads joinUrl and attendees leniently and carries both across timezones", async () => {
+      mockStores.notes_browser.set(".agenda.json", {
+        content: JSON.stringify([
+          {
+            date: "2026-10-20",
+            start: "09:00",
+            end: "09:30",
+            title: "Standup",
+            joinUrl: "https://teams.microsoft.com/l/meetup-join/1",
+            attendees: ["  Dana Smith ", "", 42, "Ben Jones"],
+            seriesId: "AAMkAGI2",
+          },
+          {
+            date: "2026-10-20",
+            start: "10:00",
+            end: "10:30",
+            title: "Sync",
+            joinUrl: "http://x",
+            attendees: "Dana",
+          },
+        ]),
+        contentHash: "hash-details",
+        modifiedMs: Date.now(),
+      });
+
+      const details = await backend.invoke("read_agenda_details_for_date", { date: "2026-10-20" });
+      expect(details).toEqual([
+        {
+          start: "09:00",
+          end: "09:30",
+          title: "Standup",
+          joinUrl: "https://teams.microsoft.com/l/meetup-join/1",
+          attendees: ["Dana Smith", "Ben Jones"],
+        },
+        {
+          start: "10:00",
+          end: "10:30",
+          title: "Sync",
+          joinUrl: null,
+          attendees: [],
+        },
+      ]);
+
+      mockStores.notes_browser.set(".agenda.json", {
+        content: JSON.stringify({
+          timezone: "UTC",
+          meetings: [
+            {
+              date: "2026-10-20",
+              start: "09:00",
+              end: "09:30",
+              title: "UTC Sync",
+              joinUrl: "https://meet.example.org/utc",
+              attendees: ["Dana Smith"],
+            },
+          ],
+        }),
+        contentHash: "hash-tz",
+        modifiedMs: Date.now(),
+      });
+
+      const tzDetails = (await backend.invoke("read_agenda_details_for_date", {
+        date: "2026-10-20",
+      })) as Array<{ title: string; joinUrl: string | null; attendees: string[] }>;
+      expect(tzDetails).toHaveLength(1);
+      expect(tzDetails[0]).toMatchObject({
+        title: "UTC Sync",
+        joinUrl: "https://meet.example.org/utc",
+        attendees: ["Dana Smith"],
+      });
     });
   });
 });

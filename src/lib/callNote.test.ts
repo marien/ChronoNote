@@ -9,6 +9,7 @@ import { adhocMinutes, insertSection, listSections, noteCall, pickMeeting, secti
 vi.mock("./tauriApi", () => ({
   readAllNotes: vi.fn().mockResolvedValue([]),
   readAgendaEntriesForDate: vi.fn().mockResolvedValue([]),
+  readAgendaDetailsForDate: vi.fn().mockResolvedValue([]),
 }));
 
 const at = (h: number, m = 0) => h * 60 + m;

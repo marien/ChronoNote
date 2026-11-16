@@ -29,6 +29,8 @@ export interface AgendaEntry {
   start: string;
   end: string;
   title: string;
+  joinUrl?: string;
+  attendees?: string[];
 }
 
 const toMinutes = (hhmm: string): number | null => {
@@ -45,6 +47,7 @@ export interface NowItem {
   kind: "meeting" | "call";
   /** Start in minutes since midnight. */
   minutes: number;
+  joinUrl?: string;
 }
 
 /** What is on at `nowMin` in today's note `content`:
@@ -90,6 +93,7 @@ export function sectionsOnNow(entries: readonly AgendaEntry[], content: string, 
       title: entry.title,
       kind: "meeting" as const,
       minutes: start,
+      ...(entry.joinUrl ? { joinUrl: entry.joinUrl } : {}),
     })),
     ...calls,
   ];
@@ -176,12 +180,20 @@ const hhmm = (d: Date) => `${pad(d.getHours())}:${pad(d.getMinutes())}`;
 
 let busy = false;
 
-/** Today's agenda entries (the `api.readAgendaEntriesForDate` mapping noteCall uses; [] on error). */
+/** Today's agenda entries (the `api.readAgendaDetailsForDate` mapping noteCall uses; [] on error). */
 export async function todayAgendaEntries(): Promise<AgendaEntry[]> {
   const date = todayISO();
   return api
-    .readAgendaEntriesForDate(date)
-    .then((rows) => rows.map(([start, end, title]) => ({ start, end, title })))
+    .readAgendaDetailsForDate(date)
+    .then((rows) =>
+      rows.map((r) => ({
+        start: r.start,
+        end: r.end,
+        title: r.title,
+        ...(r.joinUrl ? { joinUrl: r.joinUrl } : {}),
+        ...(r.attendees.length > 0 ? { attendees: r.attendees } : {}),
+      })),
+    )
     .catch(() => []);
 }
 

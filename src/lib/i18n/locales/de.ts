@@ -206,6 +206,8 @@ export const de = {
   "peek.rename": () =>
     "Klicken, um diesen Anruf zu benennen",
   "peek.switch": () => "Laufende Besprechungen",
+  "peek.join": () => "Beitreten",
+  "peek.joinLabel": ({ title }) => `${title} beitreten`,
   "peek.newCall": () => "Neuer Anruf",
   "peek.prev": () =>
     "Vorheriges Vorkommen",
@@ -1083,6 +1085,7 @@ export const de = {
   "suggestions.today": () => "heute",
   "suggestions.yesterday": () => "gestern",
   "suggestions.meetingToday": () => "Besprechung heute",
+  "suggestions.invited": () => "eingeladen",
   "suggestions.listLabel": () => "Vorschläge",
   "personView.openActions": ({ name }) => `Deine offenen Aktionen, die ${name} erwähnen`,
   "personView.delegated": ({ name }) => `An ${name} delegiert`,

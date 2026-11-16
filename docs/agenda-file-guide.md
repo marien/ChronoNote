@@ -101,10 +101,20 @@ that's a string instead of an object) fails validation for the **entire
 file**, not just that one entry — see §4 for exactly what that means in
 practice. There is no lenient/partial mode.
 
-Nothing else in an entry is read. If your source data naturally includes
-extra fields (an event ID, a location, attendee emails, a Teams link),
-leave them in — they're harmlessly ignored, no need to strip them before
-writing the file.
+Two optional fields may also be included on any entry:
+
+| Field | Format | What ChronoNote does with it |
+| :--- | :--- | :--- |
+| `joinUrl` | `https://…` string | Shows a **Join** button on Peek's header bar and in its "Meetings on now" list that opens the link in your browser. Only strings starting with `https://` are kept. |
+| `attendees` | array of strings | Display names (e.g. `"Dana Smith"`, `"Smith, Dana"`, `"dana.smith@example.org"`). When typing `@` inside that meeting's section (and calendar sync is on), invited people come first in the name suggestions, converted to short `@name`s and excluding your own name (`minutesName`). Non-string or blank items are dropped. |
+
+A wrong type on either optional field (for example `"attendees": "Dana"`,
+`"joinUrl": 5`, or `"joinUrl": "http://…"`) is treated as absent and
+**never fails the file**.
+
+Your exporter may also write `seriesId`; ChronoNote does not read it yet.
+Any other extra fields (an event ID, a location, etc.) are harmlessly
+ignored — no need to strip them before writing the file.
 
 ## 4. What counts as a valid file (this is the part most likely to surprise you)
 
@@ -238,7 +248,14 @@ placeholder that resolved into a real meeting, and a recurring standup:
 ```json
 [
   { "date": "2026-09-14", "start": "09:00", "end": "09:15", "title": "Daily Standup" },
-  { "date": "2026-09-14", "start": "10:00", "end": "10:30", "title": "Confirmed: Design Review" },
+  {
+    "date": "2026-09-14",
+    "start": "10:00",
+    "end": "10:30",
+    "title": "Confirmed: Design Review",
+    "joinUrl": "https://teams.microsoft.com/l/meetup-join/example",
+    "attendees": ["Dana Smith", "Ben de Vries"]
+  },
   { "date": "2026-09-14", "start": "14:00", "end": "14:30", "title": "Declined: Budget Sync" },
   { "date": "2026-09-15", "start": "09:00", "end": "09:15", "title": "Daily Standup" },
   { "date": "2026-09-15", "start": "11:00", "end": "11:30", "title": "1:1 with Sam" }

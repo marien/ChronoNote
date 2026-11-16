@@ -205,6 +205,8 @@ export const fr = {
   "peek.rename": () =>
     "Cliquer pour nommer cet appel",
   "peek.switch": () => "Réunions en cours",
+  "peek.join": () => "Rejoindre",
+  "peek.joinLabel": ({ title }) => `Rejoindre ${title}`,
   "peek.newCall": () => "Nouvel appel",
   "peek.prev": () =>
     "Occurrence précédente",
@@ -1099,6 +1101,7 @@ export const fr = {
   "suggestions.today": () => "aujourd’hui",
   "suggestions.yesterday": () => "hier",
   "suggestions.meetingToday": () => "réunion d'aujourd'hui",
+  "suggestions.invited": () => "invité",
   "suggestions.listLabel": () => "Suggestions",
   "personView.openActions": ({ name }) => `Vos actions ouvertes mentionnant ${name}`,
   "personView.delegated": ({ name }) => `Délégué à ${name}`,

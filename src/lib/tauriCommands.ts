@@ -1,4 +1,5 @@
 import type {
+  AgendaDetails,
   AppConfig,
   ColorMode,
   ConfigPatch,
@@ -106,6 +107,8 @@ export interface TauriCommands {
   read_agenda_removed_for_date: { args: { date: string }; returns: string[] };
   /** `[start, end, title]` of the day's live meetings (HH:mm local times), sorted: which meeting is on now. */
   read_agenda_entries_for_date: { args: { date: string }; returns: [string, string, string][] };
+  /** F9: live meetings for `date` with optional `joinUrl` and `attendees`. */
+  read_agenda_details_for_date: { args: { date: string }; returns: AgendaDetails[] };
   /** #66: every `(date, title)` pair after `afterDate` — used to find the
    * next occurrence of a recurring meeting when "copy to next occurrence"
    * has calendar sync leading the search. See

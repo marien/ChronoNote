@@ -289,3 +289,35 @@ body.peek-mode #app {
   font-weight: 500;
   font-variant-numeric: tabular-nums;
 }
+
+.peek-btn.peek-join-btn {
+  flex: 0 0 auto;
+  font-size: 12px;
+  line-height: normal;
+  padding: 2px 6px;
+  font-weight: 500;
+  color: var(--tab-active-border);
+}
+
+.peek-btn.peek-join-btn:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--tab-active-border) 15%, var(--surface-raised));
+  color: var(--tab-active-border);
+}
+
+.peek-switch-join {
+  flex: 0 0 auto;
+  background: transparent;
+  border: 1px solid color-mix(in srgb, var(--tab-active-border) 45%, transparent);
+  border-radius: var(--radius-control);
+  color: var(--tab-active-border);
+  font: inherit;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: normal;
+  padding: 1px 6px;
+  cursor: pointer;
+}
+
+.peek-switch-join:hover {
+  background: color-mix(in srgb, var(--tab-active-border) 15%, var(--surface-raised));
+}
