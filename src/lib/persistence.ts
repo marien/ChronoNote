@@ -24,6 +24,16 @@ import type { NoteTab } from "./types";
 import { registerSyncHooks, syncOneDriveNow } from "./oneDriveSync";
 import { EMPTY_CONTENT_HASH, sha256Hex } from "./hash";
 import { t } from "./i18n";
+import {
+  addPrefetched,
+  diskSnapshot,
+  ensureLoaded,
+  invalidateDiskLayer,
+  isDiskLoaded,
+  removeDiskNote,
+  setDiskNote,
+  whenDiskReadSettled,
+} from "./notesIndex/diskLayer";
 
 /** How a write protects against overwriting a version it hasn't seen. */
 export type WriteGuard =
@@ -220,24 +230,15 @@ export async function flushAllPendingSaves(): Promise<void> {
 /** The expensive part of "all notes" is the disk read — the merge with
  * currently-open tabs' live (possibly unsaved) content below is cheap and
  * always re-run, so a cached disk layer can't go stale with respect to
- * anything actually open right now. `null` means "needs a fresh read";
- * invalidated by `writeNoteAndInvalidateCache()` and on a directory
+ * anything actually open right now. The disk layer itself (its "needs a
+ * fresh read" state, the read in flight) lives in `notesIndex/diskLayer.ts`;
+ * it is invalidated by `writeNoteAndInvalidateCache()` and on a directory
  * switch. (§38 — this used to unconditionally re-read every file on every
  * single Action Drawer / Search / Date-picker / History open.) */
-let diskNotesCacheRaw: Record<string, string> | null = null;
 
-/** #62: `boot.ts` now fires a background `refreshAllNotesCache()` right at
- * startup, which can race a user opening History/Action Drawer/Search
- * before it resolves — without this, both callers would see the cache
- * still `null` and each kick off their own `api.readAllNotes()`, doubling
- * the disk read the background warm exists to avoid paying twice. */
-let diskReadInFlight: Promise<void> | null = null;
-
-/** Force the next `refreshAllNotesCache()` to re-read from disk — used on
- * a notes-directory switch, where the whole disk layer is a different
- * folder. */
+/** Force the next `refreshAllNotesCache()` to re-read from disk. */
 export function invalidateDiskNotesCache() {
-  diskNotesCacheRaw = null;
+  invalidateDiskLayer();
 }
 
 /** §451: a sync wrote or deleted these notes in local storage. Re-reads just those into the disk layer and
@@ -245,8 +246,8 @@ export function invalidateDiskNotesCache() {
  * catches up without a full read. If the disk layer was never read, the next full read sees them anyway; if it
  * was dropped while the visible list still holds older content, read it all again. */
 export async function updateNotesInCache(filenames: string[]): Promise<void> {
-  if (diskReadInFlight) await diskReadInFlight.catch(() => {});
-  if (diskNotesCacheRaw !== null && filenames.length > 0) {
+  await whenDiskReadSettled();
+  if (isDiskLoaded() && filenames.length > 0) {
     const read = await Promise.all(
       filenames.map(async (fn) => {
         try {
@@ -256,14 +257,14 @@ export async function updateNotesInCache(filenames: string[]): Promise<void> {
         }
       }),
     );
-    if (diskNotesCacheRaw !== null) {
+    if (isDiskLoaded()) {
       for (const [fn, content] of read) {
-        if (content === null) delete diskNotesCacheRaw[fn];
-        else if (content !== undefined) diskNotesCacheRaw[fn] = content;
+        if (content === null) removeDiskNote(fn);
+        else if (content !== undefined) setDiskNote(fn, content);
       }
     }
   }
-  if (diskNotesCacheRaw !== null || Object.keys(get(allNotesCache)).length > 0) await refreshAllNotesCache();
+  if (isDiskLoaded() || Object.keys(get(allNotesCache)).length > 0) await refreshAllNotesCache();
   if (filenames.length > 0) notesChangedBySync.update((n) => n + 1);
 }
 
@@ -274,19 +275,8 @@ registerSyncHooks({
 });
 
 export async function refreshAllNotesCache() {
-  if (diskNotesCacheRaw === null) {
-    if (!diskReadInFlight) {
-      diskReadInFlight = (async () => {
-        const entries = await api.readAllNotes();
-        diskNotesCacheRaw = {};
-        for (const [fn, content] of entries) diskNotesCacheRaw[fn] = content;
-      })().finally(() => {
-        diskReadInFlight = null;
-      });
-    }
-    await diskReadInFlight;
-  }
-  const map: Record<string, string> = { ...diskNotesCacheRaw };
+  await ensureLoaded();
+  const map: Record<string, string> = diskSnapshot() ?? {};
   for (const t of get(tabs)) if (!t.isScratchpad) map[t.filename] = t.content;
   allNotesCache.set(map);
 }
@@ -297,7 +287,7 @@ export async function refreshAllNotesCache() {
  * so a handful of days' dots/bold show immediately instead of waiting
  * on `refreshAllNotesCache()`'s full read of however much history lives
  * in the notes folder (only slow the very first time anything asks for
- * it each session — `diskNotesCacheRaw` is cached after that). Skips
+ * it each session — the disk layer is cached after that). Skips
  * anything already in `allNotesCache` (nothing to gain re-reading it) or
  * belonging to an open, non-scratchpad tab — that tab's live (possibly
  * unsaved) content always wins over whatever's on disk for it, the same
@@ -320,7 +310,12 @@ export async function prefetchNotesForDates(filenames: string[]): Promise<void> 
   allNotesCache.update((map) => {
     const next = { ...map };
     for (const [fn, content] of openContent) next[fn] = content;
-    for (const [fn, content] of fetched) if (content !== null) next[fn] = content;
+    for (const [fn, content] of fetched) {
+      if (content !== null) {
+        next[fn] = content;
+        addPrefetched(fn, content);
+      }
+    }
     return next;
   });
 }
@@ -342,7 +337,7 @@ export function writeNoteAndInvalidateCache(
   options?: { keepVersion?: boolean },
 ): Promise<void> {
   const hasOpenTab = get(tabs).some((t) => !t.isScratchpad && t.filename === filename);
-  if (!hasOpenTab) diskNotesCacheRaw = null;
+  if (!hasOpenTab) invalidateDiskLayer();
   return writeNoteRaw(filename, content, guard, options);
 }
 
@@ -385,7 +380,7 @@ export function isWriteConflictError(err: unknown): boolean {
 export function deleteNoteAndInvalidateCache(filename: string, expectedHash: string): Promise<void> {
   return api.deleteNote(filename, expectedHash).then(
     () => {
-      if (diskNotesCacheRaw !== null) delete diskNotesCacheRaw[filename];
+      removeDiskNote(filename);
       allNotesCache.update((map) => {
         if (!(filename in map)) return map;
         const next = { ...map };
@@ -396,7 +391,7 @@ export function deleteNoteAndInvalidateCache(filename: string, expectedHash: str
     },
     (err) => {
       if (isWriteConflictError(err)) {
-        diskNotesCacheRaw = null; // the file has content we haven't read
+        invalidateDiskLayer(); // the file has content we haven't read
         showToast(get(t)("toast.persistence.keptChangedNote", { filename }));
       }
       // Any other failure: at worst an empty file stays behind (as before).
@@ -419,10 +414,11 @@ export function deleteNoteAndInvalidateCache(filename: string, expectedHash: str
  * Patches the cached entry directly with the tab's own last content,
  * rather than invalidating the whole cache (§38's expensive-full-reread
  * concern) — that content is exactly what `flushSave` is writing (or just
- * wrote) to disk. No-op before the cache has ever been populated; the
- * first real read after that will be correct regardless. */
+ * wrote) to disk. Before the first read `raw` of the disk layer is left
+ * alone (the first real read after that will be correct regardless), but
+ * the notes index already knows the text. */
 export function noteClosingWithContent(filename: string, content: string): void {
-  if (diskNotesCacheRaw !== null) diskNotesCacheRaw[filename] = content;
+  setDiskNote(filename, content);
 }
 
 function writeNoteRaw(

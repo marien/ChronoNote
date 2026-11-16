@@ -31,7 +31,8 @@ import {
   tabs,
   unsavedScratchpadNames,
 } from "./stores";
-import { flushAllPendingSaves, flushScratchpadDrafts, invalidateDiskNotesCache } from "./persistence";
+import { flushAllPendingSaves, flushScratchpadDrafts } from "./persistence";
+import { clearDiskLayer } from "./notesIndex/diskLayer";
 import { restoreOrBootstrapTabs } from "./boot";
 import { createScratchpadWith, isUnsavedScratchpad } from "./tabs";
 import { refreshAgendaFileExists } from "./calendarSyncActions";
@@ -130,7 +131,7 @@ export async function performDirectorySwitch(path: string) {
   notesDir.set(cfg.notesDir);
   recentNotesDirs.set(cfg.recentNotesDirs);
 
-  invalidateDiskNotesCache();
+  clearDiskLayer();
   allNotesCache.set({});
   actionSnapshot.set([]);
   historyOccurrences.set([]);
