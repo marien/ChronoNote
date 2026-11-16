@@ -392,6 +392,7 @@ export const en = {
   "commandPalette.group.currentLine": () => "Current line",
   "commandPalette.group.help": () => "Help",
   "commandPalette.group.openTabs": () => "Open tabs",
+  "commandPalette.group.savedSearches": () => "Saved searches",
   "commandPalette.group.openActions": () => "Open actions",
   "commandPalette.group.dates": () => "Dates",
 
@@ -433,6 +434,7 @@ export const en = {
   "commandPalette.jumpToDate": ({ date }) => `Jump to ${date}`,
   "commandPalette.dateHint": () => "date",
   "commandPalette.existingNoteHint": () => "existing note",
+  "commandPalette.savedSearchHint": () => "Saved search",
 
   "topBar.openTabsList.title": () => "Open tabs list",
   "topBar.openTabsList.ariaLabel": ({ count }) => `Open tabs list (${count} open)`,
@@ -592,6 +594,10 @@ export const en = {
     "Check your spelling or try using search operators like is:open, due: or #tag.",
   "searchModal.footer.open": () => "Open",
   "searchModal.footer.select": () => "Select",
+  "searchModal.saveSearch": () => "Save this search",
+  "searchModal.unsaveSearch": () => "Remove from saved searches",
+  "searchModal.savedSearchChip": ({ query }) => `Saved search: ${query}`,
+  "searchModal.savedSearchesRow": () => "Saved searches",
 
   "datePicker.ariaLabel": () => "Jump to date",
   "datePicker.jumpPlaceholder": () => "Go to: today, -2, 2026-09-05",

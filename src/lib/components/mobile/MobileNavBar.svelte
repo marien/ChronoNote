@@ -68,7 +68,7 @@
     type="button"
     class="mobile-nav-dest"
     class:active={activeDestination === "search"}
-    onclick={controller.openCrossTabSearch}
+    onclick={() => controller.openCrossTabSearch()}
     aria-label={$t("topBar.label.search")}
   >
     <div class="mobile-nav-pill">

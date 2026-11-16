@@ -184,6 +184,7 @@ interface MockDir {
    * (§94). Kept separate from `notes` so they never surface as note files. */
   conflictCopies: Map<string, string>;
   versions: Map<string, MockVersionEntry[]>;
+  savedSearches: string | null;
 }
 
 const MAX_RECENT = 5;
@@ -200,6 +201,7 @@ const MUTATING_COMMANDS = new Set([
   "restore_version",
   "write_conflict_copy",
   "write_phone_ledger",
+  "write_saved_searches",
   "write_tab_session",
   "import_notes_bundle",
   "spell_add",
@@ -535,6 +537,7 @@ export class MockBackend {
       session: toTabSession(seed.session),
       conflictCopies: new Map(),
       versions: new Map(Object.entries(seed.versions ?? {})),
+      savedSearches: null,
     });
     for (const [path, notes] of Object.entries(seed.otherDirs ?? {})) {
       this.dirs.set(path, {
@@ -542,6 +545,7 @@ export class MockBackend {
         session: toTabSession(seed.sessions?.[path]),
         conflictCopies: new Map(),
         versions: new Map(),
+        savedSearches: null,
       });
     }
   }
@@ -607,6 +611,7 @@ export class MockBackend {
         d.session,
         [...d.conflictCopies],
         [...d.versions].map(([f, vs]) => [f, vs]),
+        d.savedSearches,
       ]),
     });
   }
@@ -669,6 +674,7 @@ export class MockBackend {
           TabSession | null,
           [string, string][]?,
           [string, MockVersionEntry[]][]?,
+          (string | null)?,
         ][];
       };
       if (seedId !== undefined && s.seedId !== seedId) return null;
@@ -710,13 +716,14 @@ export class MockBackend {
       b.agendaJson = s.agendaJson;
       b.trash = (s as unknown as { trash?: MockTrashEntry[] }).trash ?? [];
       b.dirs = new Map(
-        s.dirs.map(([path, notes, session, conflicts, versions]) => [
+        s.dirs.map(([path, notes, session, conflicts, versions, savedSearches]) => [
           path,
           {
             notes: new Map(notes),
             session,
             conflictCopies: new Map(conflicts ?? []),
             versions: new Map(versions ?? []),
+            savedSearches: savedSearches ?? null,
           },
         ]),
       );
@@ -745,7 +752,7 @@ export class MockBackend {
   private dir(path = this.notesDir): MockDir {
     let d = this.dirs.get(path);
     if (!d) {
-      d = { notes: new Map(), session: null, conflictCopies: new Map(), versions: new Map() };
+      d = { notes: new Map(), session: null, conflictCopies: new Map(), versions: new Map(), savedSearches: null };
       this.dirs.set(path, d);
     }
     return d;
@@ -1230,6 +1237,19 @@ export class MockBackend {
     },
 
     read_phone_inbox: () => this.phoneInbox,
+
+    read_saved_searches: () => {
+      const content = this.dir().savedSearches;
+      if (content === null) return null;
+      if (new TextEncoder().encode(content).length > 64 * 1024) {
+        throw new Error("saved searches too large");
+      }
+      return content;
+    },
+
+    write_saved_searches: ({ content }) => {
+      this.dir().savedSearches = content;
+    },
 
     read_phone_ledger: () => this.phoneLedger,
 

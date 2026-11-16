@@ -16,6 +16,7 @@ describe("webOneDriveSync unit logic", () => {
     expect(isSyncableFile("2026-09-19.txt")).toBe(true);
     expect(isSyncableFile("1999-01-01.txt")).toBe(true);
     expect(isSyncableFile(".agenda.json")).toBe(true);
+    expect(isSyncableFile(".chrononote-searches.txt")).toBe(true);
     expect(isSyncableFile("random.txt")).toBe(false);
     expect(isSyncableFile("2026-09-19.md")).toBe(false);
     expect(isSyncableFile(".chrononote-session.json")).toBe(false);
@@ -353,6 +354,48 @@ describe("WebOneDriveSyncEngine lifecycle & sync", () => {
       expect(mockStores.meta.get(IDB_META_KEYS.ONEDRIVE_CACHE).conflicts["2026-09-19.txt"].remoteContent).toBe("x\ny\n");
       await migrate();
       expect(JSON.stringify([...mockStores.notes_cloud], null, 0) + JSON.stringify([...mockStores.meta])).toBe(snapshot);
+    });
+  });
+
+  describe("saved searches divergence", () => {
+    it("unions divergent .chrononote-searches.txt local then remote lines with no conflict held", async () => {
+      mockStores.meta.set(IDB_META_KEYS.ONEDRIVE_AUTH, {
+        accessToken: "valid-tok",
+        refreshToken: "ref-tok",
+        expiresAt: Math.floor(Date.now() / 1000) + 3600,
+        account: { email: "a@b.com", displayName: "A" },
+      });
+      mockStores.meta.set(IDB_META_KEYS.ONEDRIVE_FOLDER, { folderId: "folder-xyz", folderPath: "/Notes" });
+
+      const base = "a\n";
+      const baseHash = await computeSha256Hex(base);
+      const local = "a\nb\n";
+      const localHash = await computeSha256Hex(local);
+      const remote = "a\nc\n";
+
+      mockStores.notes_cloud.set(".chrononote-searches.txt", {
+        content: local,
+        contentHash: localHash,
+        modifiedMs: 1000,
+      });
+      mockStores.meta.set(IDB_META_KEYS.ONEDRIVE_BASES, { ".chrononote-searches.txt": base });
+      mockStores.meta.set(IDB_META_KEYS.ONEDRIVE_CACHE, {
+        files: {
+          ".chrononote-searches.txt": { id: "rem-searches", etag: "etag-old", localHash: baseHash },
+        },
+        conflicts: {},
+      });
+      (mockClient.getFolderDelta as any).mockResolvedValue({
+        changes: [{ id: "rem-searches", name: ".chrononote-searches.txt", etag: "etag-new" }],
+        deltaLink: "d2",
+      });
+      (mockClient.downloadFileContent as any).mockResolvedValue(remote);
+
+      const res = await engine.syncNow();
+      expect(res.success).toBe(true);
+      expect(mockStores.notes_cloud.get(".chrononote-searches.txt").content).toBe("a\nb\nc\n");
+      expect(mockStores.meta.get(IDB_META_KEYS.ONEDRIVE_CACHE).conflicts).toEqual({});
+      expect(await engine.listConflicts()).toEqual([]);
     });
   });
 

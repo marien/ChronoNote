@@ -400,6 +400,7 @@ export const fr = {
   "commandPalette.group.currentLine": () => "Ligne courante",
   "commandPalette.group.help": () => "Aide",
   "commandPalette.group.openTabs": () => "Onglets ouverts",
+  "commandPalette.group.savedSearches": () => "Recherches enregistrées",
   "commandPalette.group.openActions": () => "Actions ouvertes",
   "commandPalette.group.dates": () => "Dates",
 
@@ -441,6 +442,7 @@ export const fr = {
   "commandPalette.jumpToDate": ({ date }) => `Aller au ${date}`,
   "commandPalette.dateHint": () => "date",
   "commandPalette.existingNoteHint": () => "note existante",
+  "commandPalette.savedSearchHint": () => "Recherche enregistrée",
 
   "topBar.openTabsList.title": () => "Liste des onglets ouverts",
   "topBar.openTabsList.ariaLabel": ({ count }) => `Liste des onglets ouverts (${count} ouvert${count === 1 ? "" : "s"})`,
@@ -610,6 +612,10 @@ export const fr = {
     "Vérifiez l'orthographe ou utilisez des opérateurs de recherche comme is:open, due: ou #tag.",
   "searchModal.footer.open": () => "Ouvrir",
   "searchModal.footer.select": () => "Sélectionner",
+  "searchModal.saveSearch": () => "Enregistrer cette recherche",
+  "searchModal.unsaveSearch": () => "Retirer des recherches enregistrées",
+  "searchModal.savedSearchChip": ({ query }) => `Recherche enregistrée : ${query}`,
+  "searchModal.savedSearchesRow": () => "Recherches enregistrées",
 
   "datePicker.ariaLabel": () => "Aller à la date",
   "datePicker.jumpPlaceholder": () => "Aller à : aujourd'hui, -2, 2026-09-05",

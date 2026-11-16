@@ -74,6 +74,7 @@ const SAMPLE_PARAMS: Partial<Record<TranslationKey, unknown>> = {
   "searchModal.matchCount": { count: 5 },
   "searchModal.removeFilterAriaLabel": { label: "is:open" },
   "searchModal.noMatches": { query: "meeting" },
+  "searchModal.savedSearchChip": { query: "is:open" },
   "syncHealth.relativeTime.justNow": { time: "14:32" },
   "syncHealth.notesCount": { count: 12 },
   "oneDrivePicker.toast.folderSet": { path: "/Notes" },

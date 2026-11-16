@@ -66,5 +66,7 @@ export const ICONS = {
   "close-others": `<path d="M4 8l5 5M9 8l-5 5"/><rect x="13" y="5" width="7" height="14" rx="2"/>`,
   "close-right": `<rect x="4" y="5" width="6" height="14" rx="1.5"/><path d="M14 9l3 3-3 3M17 12h-4"/>`,
   "close-clean": `<rect x="4" y="5" width="16" height="14" rx="2"/><path d="M8 12.5l2.5 2.5 5.5-5.5"/>`,
+  star: `<polygon points="12 3.5 14.7 9 20.8 9.9 16.4 14.2 17.4 20.2 12 17.4 6.6 20.2 7.6 14.2 3.2 9.9 9.3 9 12 3.5"/>`,
+  "star-filled": `<polygon points="12 3.5 14.7 9 20.8 9.9 16.4 14.2 17.4 20.2 12 17.4 6.6 20.2 7.6 14.2 3.2 9.9 9.3 9 12 3.5" fill="currentColor"/>`,
 } as const;
 

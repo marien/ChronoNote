@@ -364,6 +364,7 @@ export type TranslationParams = {
   "commandPalette.group.currentLine": undefined;
   "commandPalette.group.help": undefined;
   "commandPalette.group.openTabs": undefined;
+  "commandPalette.group.savedSearches": undefined;
   "commandPalette.group.openActions": undefined;
   "commandPalette.group.dates": undefined;
 
@@ -405,6 +406,7 @@ export type TranslationParams = {
   "commandPalette.jumpToDate": { date: string };
   "commandPalette.dateHint": undefined;
   "commandPalette.existingNoteHint": undefined;
+  "commandPalette.savedSearchHint": undefined;
 
   // Top bar (`TopBar.svelte`). Several icon-label strings render in up to
   // three places at once (the live button, and two off-screen measurement
@@ -582,6 +584,10 @@ export type TranslationParams = {
   "searchModal.emptySubtitle": undefined;
   "searchModal.footer.open": undefined;
   "searchModal.footer.select": undefined;
+  "searchModal.saveSearch": undefined;
+  "searchModal.unsaveSearch": undefined;
+  "searchModal.savedSearchChip": { query: string };
+  "searchModal.savedSearchesRow": undefined;
 
   // Date picker (`DatePickerModal.svelte`). Month/weekday names come from
   // `Intl.DateTimeFormat` (`date.ts`'s `monthName`/`weekdayAbbrev`), not

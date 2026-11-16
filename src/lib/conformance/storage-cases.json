@@ -493,5 +493,29 @@
         "expect": { "result": null }
       }
     ]
+  },
+  {
+    "name": "read_saved_searches before any write returns null",
+    "steps": [
+      { "cmd": "read_saved_searches", "args": {}, "expect": { "result": null } }
+    ]
+  },
+  {
+    "name": "write_saved_searches and read_saved_searches round trip",
+    "steps": [
+      { "cmd": "write_saved_searches", "args": { "content": "has:@dana is:open\nsection:board is:decision\n" } },
+      {
+        "cmd": "read_saved_searches",
+        "args": {},
+        "expect": { "result": "has:@dana is:open\nsection:board is:decision\n" }
+      }
+    ]
+  },
+  {
+    "name": "write_saved_searches is excluded from list_note_files",
+    "steps": [
+      { "cmd": "write_saved_searches", "args": { "content": "is:open\n" } },
+      { "cmd": "list_note_files", "args": {}, "expect": { "result": [] } }
+    ]
   }
 ]

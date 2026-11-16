@@ -234,6 +234,14 @@ export function readPhoneInbox(): Promise<string | null> {
   return invoke("read_phone_inbox", {});
 }
 
+export function readSavedSearches(): Promise<string | null> {
+  return invoke("read_saved_searches", {});
+}
+
+export function writeSavedSearches(content: string): Promise<void> {
+  return invoke("write_saved_searches", { content });
+}
+
 export function readPhoneLedger(): Promise<string | null> {
   return invoke("read_phone_ledger", {});
 }

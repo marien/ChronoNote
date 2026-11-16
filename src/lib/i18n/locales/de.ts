@@ -401,6 +401,7 @@ export const de = {
   "commandPalette.group.currentLine": () => "Aktuelle Zeile",
   "commandPalette.group.help": () => "Hilfe",
   "commandPalette.group.openTabs": () => "Offene Tabs",
+  "commandPalette.group.savedSearches": () => "Gespeicherte Suchen",
   "commandPalette.group.openActions": () => "Offene Aktionen",
   "commandPalette.group.dates": () => "Daten",
 
@@ -442,6 +443,7 @@ export const de = {
   "commandPalette.jumpToDate": ({ date }) => `Zu ${date} springen`,
   "commandPalette.dateHint": () => "Datum",
   "commandPalette.existingNoteHint": () => "bestehende Notiz",
+  "commandPalette.savedSearchHint": () => "Gespeicherte Suche",
 
   "topBar.openTabsList.title": () => "Tab-Liste öffnen",
   "topBar.openTabsList.ariaLabel": ({ count }) => `Tab-Liste öffnen (${count} offen)`,
@@ -601,6 +603,10 @@ export const de = {
     "Überprüfe die Schreibweise oder verwende Suchoperatoren wie is:open, due: oder #tag.",
   "searchModal.footer.open": () => "Öffnen",
   "searchModal.footer.select": () => "Auswählen",
+  "searchModal.saveSearch": () => "Diese Suche speichern",
+  "searchModal.unsaveSearch": () => "Aus gespeicherten Suchen entfernen",
+  "searchModal.savedSearchChip": ({ query }) => `Gespeicherte Suche: ${query}`,
+  "searchModal.savedSearchesRow": () => "Gespeicherte Suchen",
 
   "datePicker.ariaLabel": () => "Zu einem Datum springen",
   "datePicker.jumpPlaceholder": () => "Gehe zu: heute, -2, 2026-09-05",

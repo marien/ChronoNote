@@ -1251,6 +1251,32 @@ fn write_phone_outbox_at(root: &Path, content: &str) -> Result<(), String> {
 /// The phone's requests are a few lines of JSON; anything bigger is not from the phone app.
 const MAX_PHONE_INBOX_BYTES: u64 = 1024 * 1024;
 
+const SAVED_SEARCHES_FILENAME: &str = ".chrononote-searches.txt";
+const MAX_SAVED_SEARCHES_BYTES: u64 = 64 * 1024;
+
+fn read_saved_searches_at(root: &Path) -> Result<Option<String>, String> {
+    let path = root.join(SAVED_SEARCHES_FILENAME);
+    let meta = match fs::metadata(&path) {
+        Ok(m) => m,
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(None),
+        Err(e) => return Err(e.to_string()),
+    };
+    if meta.len() > MAX_SAVED_SEARCHES_BYTES {
+        return Err("saved searches too large".to_string());
+    }
+    match fs::read(&path) {
+        // Checked again on what was read: the file can grow between the two calls (OneDrive).
+        Ok(bytes) if bytes.len() as u64 > MAX_SAVED_SEARCHES_BYTES => Err("saved searches too large".to_string()),
+        Ok(bytes) => String::from_utf8(bytes).map(Some).map_err(|e| e.to_string()),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(None),
+        Err(e) => Err(e.to_string()),
+    }
+}
+
+fn write_saved_searches_at(root: &Path, content: &str) -> Result<(), String> {
+    atomic_write(&root.join(SAVED_SEARCHES_FILENAME), content.as_bytes()).map_err(|e| e.to_string())
+}
+
 fn read_phone_inbox_at(root: &Path) -> Result<Option<String>, String> {
     let path = root.join(MOBILE_DIRNAME).join("inbox.json");
     let meta = match fs::metadata(&path) {
@@ -1868,6 +1894,14 @@ pub fn write_conflict_copy(app: &AppHandle, name: &str, content: &str) -> Result
 
 pub fn read_phone_inbox(app: &AppHandle) -> Result<Option<String>, String> {
     read_phone_inbox_at(&notes_root(app)?)
+}
+
+pub fn read_saved_searches(app: &AppHandle) -> Result<Option<String>, String> {
+    read_saved_searches_at(&notes_root(app)?)
+}
+
+pub fn write_saved_searches(app: &AppHandle, content: &str) -> Result<(), String> {
+    write_saved_searches_at(&notes_root(app)?, content)
 }
 
 fn app_data_root(app: &AppHandle) -> Result<PathBuf, String> {
@@ -2514,6 +2548,26 @@ mod tests {
         assert_eq!(read_phone_inbox_at(dir.path()).unwrap().unwrap().len(), 1024 * 1024);
         fs::write(folder.join("inbox.json"), vec![b' '; 1024 * 1024 + 1]).unwrap();
         assert_eq!(read_phone_inbox_at(dir.path()).unwrap_err(), "inbox too large");
+    }
+
+    #[test]
+    fn saved_searches_is_none_when_missing_and_round_trips() {
+        let dir = tempfile::tempdir().unwrap();
+        assert_eq!(read_saved_searches_at(dir.path()).unwrap(), None);
+        write_saved_searches_at(dir.path(), "has:@dana is:open\n").unwrap();
+        assert_eq!(
+            read_saved_searches_at(dir.path()).unwrap().as_deref(),
+            Some("has:@dana is:open\n")
+        );
+    }
+
+    #[test]
+    fn saved_searches_over_64_kb_is_an_error_but_exactly_64_kb_is_read() {
+        let dir = tempfile::tempdir().unwrap();
+        fs::write(dir.path().join(SAVED_SEARCHES_FILENAME), vec![b'a'; 64 * 1024]).unwrap();
+        assert_eq!(read_saved_searches_at(dir.path()).unwrap().unwrap().len(), 64 * 1024);
+        fs::write(dir.path().join(SAVED_SEARCHES_FILENAME), vec![b'a'; 64 * 1024 + 1]).unwrap();
+        assert_eq!(read_saved_searches_at(dir.path()).unwrap_err(), "saved searches too large");
     }
 
     #[test]
@@ -4385,6 +4439,13 @@ mod tests {
                     "restore_from_trash" => {
                         let name = args.get("name").and_then(|v| v.as_str()).unwrap_or("");
                         restore_from_trash_at(root, name).map(|orig| serde_json::to_value(&orig).unwrap())
+                    }
+                    "read_saved_searches" => {
+                        read_saved_searches_at(root).map(|opt| serde_json::to_value(&opt).unwrap())
+                    }
+                    "write_saved_searches" => {
+                        let content = args.get("content").and_then(|v| v.as_str()).unwrap_or("");
+                        write_saved_searches_at(root, content).map(|()| serde_json::Value::Null)
                     }
                     other => {
                         failures.push(format!("Case '{case_name}', step {step_idx}: unknown cmd '{other}'"));

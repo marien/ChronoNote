@@ -400,6 +400,7 @@ export const it = {
   "commandPalette.group.currentLine": () => "Riga corrente",
   "commandPalette.group.help": () => "Aiuto",
   "commandPalette.group.openTabs": () => "Schede aperte",
+  "commandPalette.group.savedSearches": () => "Ricerche salvate",
   "commandPalette.group.openActions": () => "Azioni aperte",
   "commandPalette.group.dates": () => "Date",
 
@@ -440,6 +441,7 @@ export const it = {
   "commandPalette.jumpToDate": ({ date }) => `Vai a ${date}`,
   "commandPalette.dateHint": () => "data",
   "commandPalette.existingNoteHint": () => "nota esistente",
+  "commandPalette.savedSearchHint": () => "Ricerca salvata",
 
   "topBar.openTabsList.title": () => "Elenco schede aperte",
   "topBar.openTabsList.ariaLabel": ({ count }) => `Elenco schede aperte (${count} aperte)`,
@@ -607,6 +609,10 @@ export const it = {
     "Controlla l'ortografia o usa operatori di ricerca come is:open, due: o #tag.",
   "searchModal.footer.open": () => "Apri",
   "searchModal.footer.select": () => "Seleziona",
+  "searchModal.saveSearch": () => "Salva questa ricerca",
+  "searchModal.unsaveSearch": () => "Rimuovi dalle ricerche salvate",
+  "searchModal.savedSearchChip": ({ query }) => `Ricerca salvata: ${query}`,
+  "searchModal.savedSearchesRow": () => "Ricerche salvate",
 
   "datePicker.ariaLabel": () => "Vai alla data",
   "datePicker.jumpPlaceholder": () => "Vai a: oggi, -2, 2026-09-05",

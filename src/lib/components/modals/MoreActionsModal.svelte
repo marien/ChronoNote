@@ -115,7 +115,7 @@
       <Icon name="section-history" size={14} /><span>{$t("history.modal.ariaLabel")}</span>
       <kbd>{formatShortcut("openHistory")}</kbd>
     </button>
-    <button type="button" class="more-actions-item" role="menuitem" onclick={controller.openCrossTabSearch}>
+    <button type="button" class="more-actions-item" role="menuitem" onclick={() => controller.openCrossTabSearch()}>
       <Icon name="search" size={14} /><span>{$t("shortcuts.crossTabSearch.label")}</span>
       <kbd>{formatShortcut("crossTabSearch")}</kbd>
     </button>

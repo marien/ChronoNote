@@ -14,6 +14,13 @@
   import EmptyState from "../EmptyState.svelte";
   import type { SearchResultItem } from "../../types";
   import { parseSearchQuery, removeChipFromQuery, type SearchFilterChip } from "../../search";
+  import {
+    savedSearches,
+    loadSavedSearches,
+    toggleSavedSearch,
+    removeSavedSearch,
+    normalizeQuery,
+  } from "../../savedSearches";
   import { dueWordExtra } from "../../date";
   import { locale, t } from "../../i18n";
   import {
@@ -50,13 +57,38 @@
   const parsed = $derived(parseSearchQuery(query, searchCtx));
   const chips = $derived(parsed.chips);
   const queryTerm = $derived(parsed.term);
+  const normalizedQuery = $derived(normalizeQuery(query));
+  const isSaved = $derived(normalizedQuery !== "" && $savedSearches.includes(normalizedQuery));
 
   function removeChip(chip: SearchFilterChip) {
     query = removeChipFromQuery(query, chip, searchCtx);
     inputEl?.focus();
   }
 
-  onMount(() => inputEl?.focus());
+  async function onToggleSave() {
+    await toggleSavedSearch(query);
+    inputEl?.focus();
+  }
+
+  function applySavedSearch(saved: string) {
+    query = saved;
+    inputEl?.focus();
+  }
+
+  onMount(() => {
+    void loadSavedSearches();
+    const initial = controller.consumeInitialSearch();
+    if (initial) {
+      query = initial.query;
+      if (initial.scope === "all") {
+        void setScope("all");
+      } else {
+        inputEl?.focus();
+      }
+    } else {
+      inputEl?.focus();
+    }
+  });
 
   async function setScope(next: "open" | "all") {
     if (scope === next) return;
@@ -242,6 +274,18 @@
       {:else}
         <span class="modal-counter">{$t("searchModal.matchCount", { count: flatList.length })}</span>
       {/if}
+      {#if query.trim()}
+        <button
+          type="button"
+          class="modal-star-btn"
+          class:is-saved={isSaved}
+          aria-label={isSaved ? $t("searchModal.unsaveSearch") : $t("searchModal.saveSearch")}
+          title={isSaved ? $t("searchModal.unsaveSearch") : $t("searchModal.saveSearch")}
+          onclick={onToggleSave}
+        >
+          <Icon name={isSaved ? "star-filled" : "star"} size={14} />
+        </button>
+      {/if}
       <button
         type="button"
         class="icon-btn modal-close-btn"
@@ -251,6 +295,32 @@
         <Icon name="close" size={14} />
       </button>
     </div>
+    {#if $savedSearches.length > 0}
+      <div class="search-chips-row saved-searches-row" aria-label={$t("searchModal.savedSearchesRow")}>
+        {#each $savedSearches as saved (saved)}
+          <button
+            type="button"
+            class="search-chip saved-search-chip"
+            aria-label={$t("searchModal.savedSearchChip", { query: saved })}
+            title={saved}
+            onclick={() => applySavedSearch(saved)}
+            oncontextmenu={(e) => {
+              e.preventDefault();
+              void removeSavedSearch(saved);
+            }}
+            onkeydown={async (e) => {
+              if (e.key === "Delete") {
+                e.preventDefault();
+                await removeSavedSearch(saved);
+                inputEl?.focus();
+              }
+            }}
+          >
+            <span class="saved-search-label">{saved}</span>
+          </button>
+        {/each}
+      </div>
+    {/if}
     {#if chips.length > 0}
       <div class="search-chips-row">
         {#each chips as chip, idx (chip.id ?? idx)}

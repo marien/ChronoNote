@@ -698,6 +698,28 @@ export class WebBackend {
 
     read_phone_inbox: async () => null,
 
+    read_saved_searches: async () => {
+      const db = await this.db();
+      const store = await this.getActiveNotesStore();
+      const note = await idbGet<StoredNote>(db, store, ".chrononote-searches.txt");
+      if (!note) return null;
+      if (new TextEncoder().encode(note.content).length > 64 * 1024) {
+        throw new Error("saved searches too large");
+      }
+      return note.content;
+    },
+
+    write_saved_searches: async ({ content }) => {
+      const db = await this.db();
+      const store = await this.getActiveNotesStore();
+      const note: StoredNote = {
+        content,
+        contentHash: await sha256Hex(content),
+        modifiedMs: Date.now(),
+      };
+      await idbPut(db, store, ".chrononote-searches.txt", note);
+    },
+
     read_phone_ledger: async () => null,
 
     write_phone_ledger: async () => {

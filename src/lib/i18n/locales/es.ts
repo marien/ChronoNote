@@ -398,6 +398,7 @@ export const es = {
   "commandPalette.group.currentLine": () => "Línea actual",
   "commandPalette.group.help": () => "Ayuda",
   "commandPalette.group.openTabs": () => "Pestañas abiertas",
+  "commandPalette.group.savedSearches": () => "Búsquedas guardadas",
   "commandPalette.group.openActions": () => "Acciones pendientes",
   "commandPalette.group.dates": () => "Fechas",
 
@@ -438,6 +439,7 @@ export const es = {
   "commandPalette.jumpToDate": ({ date }) => `Ir a ${date}`,
   "commandPalette.dateHint": () => "fecha",
   "commandPalette.existingNoteHint": () => "nota existente",
+  "commandPalette.savedSearchHint": () => "Búsqueda guardada",
 
   "topBar.openTabsList.title": () => "Lista de pestañas abiertas",
   "topBar.openTabsList.ariaLabel": ({ count }) => `Lista de pestañas abiertas (${count} abiertas)`,
@@ -605,6 +607,10 @@ export const es = {
     "Revisa la ortografía o usa operadores de búsqueda como is:open, due: o #tag.",
   "searchModal.footer.open": () => "Abrir",
   "searchModal.footer.select": () => "Seleccionar",
+  "searchModal.saveSearch": () => "Guardar esta búsqueda",
+  "searchModal.unsaveSearch": () => "Quitar de búsquedas guardadas",
+  "searchModal.savedSearchChip": ({ query }) => `Búsqueda guardada: ${query}`,
+  "searchModal.savedSearchesRow": () => "Búsquedas guardadas",
 
   "datePicker.ariaLabel": () => "Ir a fecha",
   "datePicker.jumpPlaceholder": () => "Ir a: hoy, -2, 2026-09-05",

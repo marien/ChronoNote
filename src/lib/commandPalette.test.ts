@@ -171,6 +171,27 @@ describe("buildPaletteResults prefix query modes", () => {
     expect(inactiveItems.find((i) => i.id === "cmd-apply-phone-changes")).toBeUndefined();
   });
 
+  it("includes Saved searches in default mode after Open tabs and filters them", async () => {
+    const { savedSearches } = await import("./savedSearches");
+    savedSearches.set(["has:@dana is:open", "section:board is:decision"]);
+
+    const allItems = await buildPaletteResults("");
+    const saved = allItems.filter((i) => i.group === "Saved searches");
+    expect(saved.map((i) => i.label)).toEqual(["has:@dana is:open", "section:board is:decision"]);
+    expect(saved[0].hint).toBe("Saved search");
+
+    const filtered = await buildPaletteResults("board");
+    const savedFiltered = filtered.filter((i) => i.group === "Saved searches");
+    expect(savedFiltered.map((i) => i.label)).toEqual(["section:board is:decision"]);
+
+    await savedFiltered[0].run();
+    const { consumeInitialSearch } = await import("./search");
+    expect(get(modal)).toBe("search");
+    expect(consumeInitialSearch()).toEqual({ query: "section:board is:decision", scope: "all" });
+
+    savedSearches.set([]);
+  });
+
 });
 
 describe("Selection Snapshotting & Focus Restoration (Decision 2)", () => {
