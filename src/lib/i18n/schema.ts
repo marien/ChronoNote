@@ -1079,6 +1079,16 @@ export type TranslationParams = {
   "suggestions.yesterday": undefined;
   "suggestions.meetingToday": undefined;
   "suggestions.listLabel": undefined;
+  // Person view (F5)
+  "personView.openActions": { name: string };
+  "personView.delegated": { name: string };
+  "personView.mentions": undefined;
+  "personView.lines": { count: number };
+  "personView.none": undefined;
+  "personView.showOlder": undefined;
+  "personView.ariaLabel": { name: string };
+  "lineMenu.showPerson": { name: string };
+  "commandPalette.group.people": undefined;
 };
 
 export type TranslationKey = keyof TranslationParams;

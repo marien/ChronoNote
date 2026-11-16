@@ -203,7 +203,7 @@ export function modalCard(page: Page, label: string): Locator {
     return page.locator(`.modal-card[aria-label="${label}"], main.settings-page[aria-label="${label}"]`);
   }
   return page.locator(
-    `.modal-card[aria-label="${label}"], aside.history-pane[aria-label="${label}"], aside.actions-pane[aria-label="${label}"], aside.week-review-pane[aria-label="${label}"]`
+    `.modal-card[aria-label="${label}"], aside.history-pane[aria-label="${label}"], aside.actions-pane[aria-label="${label}"], aside.week-review-pane[aria-label="${label}"], aside.person-pane[aria-label="${label}"]`
   );
 }
 

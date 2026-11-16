@@ -54,6 +54,7 @@ import { applyPhoneChangesNow } from "./phoneInboxUi";
 import { openDueDatePicker } from "./dueDateCommands";
 import { openMeetingHistory } from "./history";
 import { openWeekReview } from "./weekReview";
+import { knownPeople, openPersonView } from "./personView";
 import { peekSettings, togglePeek } from "./peek";
 import { newCall, noteCall } from "./callNote";
 import { openCrossTabSearch } from "./search";
@@ -84,6 +85,7 @@ export const COMMAND_PALETTE_GROUP_KEYS: Record<string, TranslationKey> = {
   "Saved searches": "commandPalette.group.savedSearches",
   "Open actions": "commandPalette.group.openActions",
   Dates: "commandPalette.group.dates",
+  People: "commandPalette.group.people",
   Sections: "commandPalette.sectionsGroup",
 };
 
@@ -703,7 +705,24 @@ export async function buildPaletteResults(query: string): Promise<PaletteItem[]>
         run: () => commitDatePick(d),
       });
     }
-    return out.slice(0, 100);
+    const dateOut = out.slice(0, 100);
+    const nameTerm = term.replace(/^@+/, "").toLowerCase();
+    const people = knownPeople(entries)
+      .filter((name) => !nameTerm || name.toLowerCase().startsWith(nameTerm))
+      .slice(0, 20);
+    for (const name of people) {
+      const matchedIndices = nameTerm
+        ? Array.from({ length: nameTerm.length }, (_, k) => 1 + k)
+        : [];
+      dateOut.push({
+        id: `person-${name.toLowerCase()}`,
+        label: `@${name}`,
+        group: "People",
+        matchedIndices,
+        run: () => openPersonView(name),
+      });
+    }
+    return dateOut;
   }
 
   const commandsOnly = q.startsWith(">");

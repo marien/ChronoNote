@@ -779,6 +779,18 @@ reachable from the top bar, a shortcut, or the command palette:
   hidden this way, nothing is offered at all. Like every modal, it owns the
   keyboard while open — no shortcut
   (Ctrl/Cmd+Tab included) reaches the app underneath until it's closed.
+- **Person view** (`Ctrl/Cmd+click` on an `@name`, line menu's `Show @name`,
+  or `@name` in the command palette; design `docs/design/wave3-designs.html`)
+  — read-only snapshot for one person, docked right of the note on a window
+  1000px or wider (sharing Actions' pane width; `F6` toggles focus between
+  note and pane) and a dialog otherwise and on the phone. Shows three bands:
+  every open own action (`#`, not delegated) mentioning the person across all
+  notes (dated or undated, any age), delegations (`=> @name`) within the
+  last 8 weeks (56 days, plus future notes), and remaining lines mentioning
+  the person grouped by note and section within that window (`Show older`
+  includes older dated notes for delegations and mentions). Clicking a row
+  or pressing `Enter` jumps to that line (keeping the pane open when
+  docked); `Up`/`Down` move across bands; `Escape` closes.
 - **Week review** (`Ctrl/Cmd+Shift+K`, palette, More, a week number in the
   date picker; §432, design `docs/design/week-review-design.md`) — one ISO
   week from its dated notes, grouped by day and then by section: open own

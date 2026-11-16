@@ -131,6 +131,11 @@ const SAMPLE_PARAMS: Partial<Record<TranslationKey, unknown>> = {
   "toast.calendarSync.autoRemoved": { title: "1:1 Dana" },
   "toast.calendarSync.autoRemovedMore": { title: "1:1 Dana", count: 2 },
   "listCopy.toast.copied": { count: 3 },
+  "personView.openActions": { name: "Dana" },
+  "personView.delegated": { name: "Dana" },
+  "personView.lines": { count: 2 },
+  "personView.ariaLabel": { name: "Dana" },
+  "lineMenu.showPerson": { name: "Dana" },
 };
 
 /** Defense in depth beyond the `satisfies Dictionary` compile-time check

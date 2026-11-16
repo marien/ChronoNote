@@ -1127,4 +1127,19 @@ export const pl = {
   "suggestions.yesterday": () => "wczoraj",
   "suggestions.meetingToday": () => "dzisiejsze spotkanie",
   "suggestions.listLabel": () => "Podpowiedzi",
+  "personView.openActions": ({ name }) => `Twoje otwarte zadania z wzmianką o ${name}`,
+  "personView.delegated": ({ name }) => `Delegowane do ${name}`,
+  "personView.mentions": () => "Ostatnie wzmianki · według spotkania",
+  "personView.lines": ({ count }) => {
+    if (count === 1) return "1 wiersz";
+    const mod10 = count % 10;
+    const mod100 = count % 100;
+    if (mod10 >= 2 && mod10 <= 4 && !(mod100 >= 12 && mod100 <= 14)) return `${count} wiersze`;
+    return `${count} wierszy`;
+  },
+  "personView.none": () => "Brak",
+  "personView.showOlder": () => "Pokaż starsze",
+  "personView.ariaLabel": ({ name }) => `Osoba: ${name}`,
+  "lineMenu.showPerson": ({ name }) => `Pokaż @${name}`,
+  "commandPalette.group.people": () => "Osoby",
 } satisfies Dictionary;

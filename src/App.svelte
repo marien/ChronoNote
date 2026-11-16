@@ -77,6 +77,7 @@
   import CommandPaletteModal from "./lib/components/modals/CommandPaletteModal.svelte";
   import MoreActionsModal from "./lib/components/modals/MoreActionsModal.svelte";
   import WeekReviewModal from "./lib/components/modals/WeekReviewModal.svelte";
+  import PersonModal from "./lib/components/modals/PersonModal.svelte";
   import CalendarSyncReviewModal from "./lib/components/modals/CalendarSyncReviewModal.svelte";
   import DroppedNotesModal from "./lib/components/modals/DroppedNotesModal.svelte";
   import SyncConflictsModal from "./lib/components/modals/SyncConflictsModal.svelte";
@@ -90,6 +91,7 @@
     editorContextMenu,
     historyPaneShare,
     oneDriveFolderPickerOpen,
+    personViewName,
     statusBarVisible,
     syncHealthPopoverOpen,
   } from "./lib/stores";
@@ -271,6 +273,16 @@
             editorApi?.focus();
           } else {
             document.querySelector<HTMLElement>(".week-review-pane .modal-list")?.focus();
+          }
+          return;
+        }
+        if (dockedPane === "person") {
+          e.preventDefault();
+          const paneEl = document.querySelector(".person-pane");
+          if (paneEl && paneEl.contains(document.activeElement)) {
+            editorApi?.focus();
+          } else {
+            document.querySelector<HTMLElement>(".person-pane .modal-list")?.focus();
           }
           return;
         }
@@ -634,11 +646,12 @@
   const activeTab = $derived($tabs.find((t) => t.id === $activeTabId));
   const settingsPage = $derived(!$isMobile && $modal === "settings");
 
+  type DockedPaneKind = "history" | "actions" | "weekReview" | "person";
   let windowInnerWidth = $state(typeof window !== "undefined" ? window.innerWidth : 1200);
   const paneDocked = $derived(windowInnerWidth >= 1000 && !$isMobile && !$isZenMode && !$peekMode);
-  const dockedPane = $derived(($modal === "history" || $modal === "actions" || $modal === "weekReview") && paneDocked ? $modal : null);
+  const dockedPane = $derived(($modal === "history" || $modal === "actions" || $modal === "weekReview" || $modal === "person") && paneDocked ? $modal : null);
 
-  let isDraggingPane = $state<"history" | "actions" | "weekReview" | null>(null);
+  let isDraggingPane = $state<DockedPaneKind | null>(null);
   let previousUserSelect = "";
 
   function computePaneWidth(share: number, windowWidth: number): number {
@@ -648,7 +661,7 @@
     return Math.min(maxW, Math.max(minW, raw));
   }
 
-  function handlePointerDown(pane: "history" | "actions" | "weekReview", e: PointerEvent) {
+  function handlePointerDown(pane: DockedPaneKind, e: PointerEvent) {
     if (e.button !== 0) return;
     const target = e.currentTarget as HTMLElement;
     target.setPointerCapture(e.pointerId);
@@ -657,7 +670,7 @@
     document.body.style.userSelect = "none";
   }
 
-  function handlePointerMove(pane: "history" | "actions" | "weekReview", e: PointerEvent) {
+  function handlePointerMove(pane: DockedPaneKind, e: PointerEvent) {
     if (isDraggingPane !== pane) return;
     const rawShare = (windowInnerWidth - e.clientX) / windowInnerWidth;
     const minShare = Math.max(0.18, 180 / windowInnerWidth);
@@ -670,7 +683,7 @@
     }
   }
 
-  function handlePointerUp(pane: "history" | "actions" | "weekReview", e: PointerEvent) {
+  function handlePointerUp(pane: DockedPaneKind, e: PointerEvent) {
     if (isDraggingPane !== pane) return;
     isDraggingPane = null;
     document.body.style.userSelect = previousUserSelect;
@@ -686,7 +699,7 @@
     }
   }
 
-  function handleResizerKeyDown(pane: "history" | "actions" | "weekReview", e: KeyboardEvent) {
+  function handleResizerKeyDown(pane: DockedPaneKind, e: KeyboardEvent) {
     if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
       e.preventDefault();
       const current = get(pane === "history" ? historyPaneShare : actionsPaneShare);
@@ -703,7 +716,7 @@
     }
   }
 
-  function handleResizerDblClick(pane: "history" | "actions" | "weekReview") {
+  function handleResizerDblClick(pane: DockedPaneKind) {
     if (pane === "history") {
       void controller.setHistoryPaneShare(0.30);
     } else {
@@ -715,7 +728,7 @@
     historyDocked.set(paneDocked);
   });
 
-  let wasDockedPane: "history" | "actions" | "weekReview" | null = null;
+  let wasDockedPane: DockedPaneKind | null = null;
   $effect(() => {
     const current = dockedPane;
     if (wasDockedPane !== null && current === null && $modal === wasDockedPane) {
@@ -957,6 +970,34 @@
         <WeekReviewModal docked />
       </aside>
     {/if}
+    {#if dockedPane === "person"}
+      <aside
+        class="person-pane"
+        aria-label={$t("personView.ariaLabel", { name: $personViewName ?? "" })}
+        style:width="{computePaneWidth($actionsPaneShare, windowInnerWidth)}px"
+      >
+        <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+        <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+        <div
+          class="pane-resizer"
+          class:dragging={isDraggingPane === "person"}
+          role="separator"
+          aria-orientation="vertical"
+          aria-label={$t("pane.resize")}
+          aria-valuenow={Math.round($actionsPaneShare * 100)}
+          aria-valuemin={18}
+          aria-valuemax={60}
+          tabindex="0"
+          onpointerdown={(e) => handlePointerDown("person", e)}
+          onpointermove={(e) => handlePointerMove("person", e)}
+          onpointerup={(e) => handlePointerUp("person", e)}
+          onpointercancel={(e) => handlePointerUp("person", e)}
+          onkeydown={(e) => handleResizerKeyDown("person", e)}
+          ondblclick={() => handleResizerDblClick("person")}
+        ></div>
+        <PersonModal docked />
+      </aside>
+    {/if}
   </div>
   {#if $isMobile && $editorFocused}
     <MobileAccessoryBar />
@@ -1001,6 +1042,8 @@
     <ActionDrawerModal />
   {:else if $modal === "weekReview" && !paneDocked}
     <WeekReviewModal />
+  {:else if $modal === "person" && !paneDocked}
+    <PersonModal />
   {:else if $modal === "history" && !paneDocked}
     <HistoryModal />
   {:else if $modal === "search"}

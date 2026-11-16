@@ -58,7 +58,8 @@ export type ModalKind =
   | "droppedNotes"
   // Earlier versions of a note (Proposal B2).
   | "versions"
-  | "weekReview";
+  | "weekReview"
+  | "person";
 
 export const tabs = writable<NoteTab[]>([]);
 export const activeTabId = writable<string>("");
@@ -160,6 +161,7 @@ export const actionDrawerFilterRequest = writable<string | null>(null);
 export const weekReviewYear = writable<number>(0);
 export const weekReviewWeek = writable<number>(0);
 export const weekReviewShowDone = writable<boolean>(false);
+export const personViewName = writable<string | null>(null);
 
 
 export const toastMessage = writable<string>("");

@@ -10,6 +10,7 @@
   import { spellSuggest, spellAdd, spellIgnore } from "../tauriApi";
   import { recheckAll } from "../editor/spellcheck";
   import { lineMenuStateAt } from "../tokens";
+  import { personForLineMenu } from "../personView";
   import { buildPasteDataTransfer } from "../editor/clipboardPaste";
   import { copyPlain } from "../clipboardWrite";
 
@@ -85,10 +86,11 @@
   const isAction = $derived(menuState.kind === "action");
   const isTopic = $derived(menuState.kind === "topic");
   const hasActionPart = $derived(menuState.hasActionPart);
+  const personName = $derived(personForLineMenu(line, col, { title: onTitle }));
 
   const lineItemCount = $derived(onTitle ? 0 : isAction ? 4 : isTopic ? 3 : 2);
   const otherItemCount = $derived(
-    (onTitle ? 1 : 3 + (hasActionPart ? 1 : 0)) + (inSection ? 1 : 0) + ($backendKind === "desktop" ? 1 : 0) + (!isSelectionEmpty ? 1 : 0),
+    (onTitle ? 1 : 3 + (hasActionPart ? 1 : 0)) + (inSection ? 1 : 0) + (personName ? 1 : 0) + ($backendKind === "desktop" ? 1 : 0) + (!isSelectionEmpty ? 1 : 0),
   );
   const spellItemCount = $derived(misspelled ? (suggestions ? Math.max(1, suggestions.length) : 1) + 2 : 0);
   const itemCount = $derived(1 + lineItemCount + otherItemCount + spellItemCount);
@@ -407,6 +409,21 @@
       <span class="editor-context-label">{$t("shortcuts.openHistory.label")}</span>
       <span class="editor-context-key">{formatShortcut("openHistory")}</span>
     </button>
+    {#if personName}
+      <button
+        type="button"
+        class="editor-context-item"
+        role="menuitem"
+        onclick={() => {
+          const targetName = personName;
+          close();
+          if (targetName) void controller.openPersonView(targetName);
+        }}
+      >
+        <Icon name="person" size={14} />
+        <span class="editor-context-label">{$t("lineMenu.showPerson", { name: personName })}</span>
+      </button>
+    {/if}
     {#if inSection}
       <button
         type="button"

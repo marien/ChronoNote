@@ -1095,4 +1095,13 @@ export const it = {
   "suggestions.yesterday": () => "ieri",
   "suggestions.meetingToday": () => "riunione di oggi",
   "suggestions.listLabel": () => "Suggerimenti",
+  "personView.openActions": ({ name }) => `Le tue azioni aperte che menzionano ${name}`,
+  "personView.delegated": ({ name }) => `Delegato a ${name}`,
+  "personView.mentions": () => "Ultime menzioni · per riunione",
+  "personView.lines": ({ count }) => (count === 1 ? "1 riga" : `${count} righe`),
+  "personView.none": () => "Nessuna",
+  "personView.showOlder": () => "Mostra precedenti",
+  "personView.ariaLabel": ({ name }) => `Persona: ${name}`,
+  "lineMenu.showPerson": ({ name }) => `Mostra @${name}`,
+  "commandPalette.group.people": () => "Persone",
 } satisfies Dictionary;
