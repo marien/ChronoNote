@@ -136,6 +136,7 @@ const SAMPLE_PARAMS: Partial<Record<TranslationKey, unknown>> = {
   "personView.lines": { count: 2 },
   "personView.ariaLabel": { name: "Dana" },
   "lineMenu.showPerson": { name: "Dana" },
+  "peek.joinLabel": { title: "Design review" },
 };
 
 /** Defense in depth beyond the `satisfies Dictionary` compile-time check

@@ -205,6 +205,8 @@ export const pl = {
   "peek.rename": () =>
     "Kliknij, aby nazwać tę rozmowę",
   "peek.switch": () => "Trwające spotkania",
+  "peek.join": () => "Dołącz",
+  "peek.joinLabel": ({ title }) => `Dołącz do ${title}`,
   "peek.newCall": () => "Nowa rozmowa",
   "peek.prev": () =>
     "Poprzednie wystąpienie",
@@ -1126,6 +1128,7 @@ export const pl = {
   "suggestions.today": () => "dzisiaj",
   "suggestions.yesterday": () => "wczoraj",
   "suggestions.meetingToday": () => "dzisiejsze spotkanie",
+  "suggestions.invited": () => "zaproszony",
   "suggestions.listLabel": () => "Podpowiedzi",
   "personView.openActions": ({ name }) => `Twoje otwarte zadania z wzmianką o ${name}`,
   "personView.delegated": ({ name }) => `Delegowane do ${name}`,

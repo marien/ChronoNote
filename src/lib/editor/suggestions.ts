@@ -5,6 +5,7 @@ import { parseISODateLocal, todayISO } from "../date";
 import { NAME_CHAR } from "../grammar/symbols";
 import { isSetextUnderline, isTitleUnderline, tokenizeLine } from "../grammar/tokenize";
 import type { Suggestion, SuggestionKind } from "../suggestions";
+import { getSectionHeaderForLine } from "../tokens";
 
 export interface SuggestionContext {
   kind: SuggestionKind;
@@ -17,6 +18,7 @@ export interface SuggestionsLabels {
   today: string;
   yesterday: string;
   meetingToday: string;
+  invited?: string;
   listLabel: string;
 }
 
@@ -31,6 +33,7 @@ const DEFAULT_LABELS: SuggestionsLabels = {
   today: "today",
   yesterday: "yesterday",
   meetingToday: "today's meeting",
+  invited: "invited",
   listLabel: "Suggestions",
 };
 
@@ -109,7 +112,7 @@ export function formatSuggestionDate(
   opts: { today: string; noteDate: string | null; locale: string; labels: SuggestionsLabels },
 ): string {
   if (row.meetingToday) return opts.labels.meetingToday;
-  if (!row.lastUsed) return "";
+  if (!row.lastUsed) return row.invited ? (opts.labels.invited ?? DEFAULT_LABELS.invited!) : "";
 
   const diffDays = Math.round(
     (parseISODateLocal(opts.today).getTime() - parseISODateLocal(row.lastUsed).getTime()) / 86_400_000,
@@ -156,7 +159,7 @@ function contextKey(lineNumber: number, ctx: SuggestionContext): string {
 }
 
 export function suggestionsExtension(
-  source: (kind: SuggestionKind, prefix: string) => Suggestion[],
+  source: (kind: SuggestionKind, prefix: string, sectionHeader?: string) => Suggestion[],
   options: SuggestionsOptions = {},
 ): Extension {
   const listId = `cn-suggest-${++nextListId}`;
@@ -322,7 +325,11 @@ export function suggestionsExtension(
           : { ...CLOSED_STATE, dismissedKey: key };
       }
 
-      const rows = source(ctx.kind, ctx.prefix).slice(0, 8);
+      const sectionHeader =
+        ctx.kind === "name"
+          ? getSectionHeaderForLine(tr.state.doc.toString().split("\n"), line.number - 1)
+          : "";
+      const rows = source(ctx.kind, ctx.prefix, sectionHeader).slice(0, 8);
       if (rows.length === 0) {
         return { ...CLOSED_STATE, context: ctx };
       }

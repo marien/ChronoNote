@@ -47,6 +47,42 @@ test.describe("inline suggestions (F3)", () => {
     await expect(listbox).toHaveCount(0);
     expect(await activeTabContent(page)).toBe("# ask @Ruth\nsecond line");
   });
+
+  test("puts invited attendees from the current meeting first when typing @", async ({ page }) => {
+    const today = todayFilename();
+    const todayDate = today.replace(".txt", "");
+    await seedApp(page, {
+      seed: {
+        calendarSyncEnabled: true,
+        minutesName: "Marien",
+        notes: {
+          "2026-09-04.txt": "# ping @Dave\n",
+          [today]: "Design review\n=============\n# ask ",
+        },
+        session: { openTabs: [today], activeTab: today },
+        agendaJson: JSON.stringify([
+          {
+            date: todayDate,
+            start: "09:00",
+            end: "09:30",
+            title: "Design review",
+            attendees: ["Marien de Gelder", "Dana Smith", "Ben Jones"],
+          },
+        ]),
+      },
+    });
+
+    await editor(page).click();
+    await page.keyboard.press("ControlOrMeta+End");
+    await editor(page).pressSequentially("@D");
+
+    const listbox = page.locator('[role="listbox"].cn-suggest');
+    await expect(listbox).toBeVisible();
+    const options = listbox.locator('[role="option"]');
+    await expect(options.nth(0)).toContainText("@Dana");
+    await expect(options.nth(0)).toContainText("invited");
+    await expect(options.nth(1)).toContainText("@Dave");
+  });
 });
 
 test.describe("inline suggestions on phone", () => {

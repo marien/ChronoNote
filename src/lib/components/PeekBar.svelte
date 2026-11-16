@@ -27,6 +27,7 @@
     type NowItem,
   } from "../controller";
   import Icon from "../icons/Icon.svelte";
+  import { openExternalUrl } from "../tauriApi";
   import { t } from "../i18n";
   import { devBuild } from "../stores";
   import { formatShortcut } from "../shortcuts";
@@ -236,6 +237,8 @@
     );
   });
 
+  const shownOnNow = $derived(shownOnNowIdx >= 0 ? onNowItems[shownOnNowIdx] : null);
+
   // #209: the chip shows whenever the list holds a section other than the shown one, e.g. an overrunning meeting
   // (no longer on now by the calendar) with only the next meeting on now.
   const canSwitch = $derived(onNowItems.length >= 2 || (onNowItems.length === 1 && shownOnNowIdx < 0));
@@ -337,6 +340,16 @@
           <span class="peek-title" data-tauri-drag-region>{title}</span>
         {/if}
       {/if}
+      {#if shownOnNow?.joinUrl}
+        <button
+          type="button"
+          class="peek-btn peek-join-btn"
+          data-testid="peek-join"
+          aria-label={$t("peek.joinLabel", { title: shownOnNow.title })}
+          title={$t("peek.joinLabel", { title: shownOnNow.title })}
+          onclick={() => void openExternalUrl(shownOnNow.joinUrl!)}
+        >{$t("peek.join")}</button>
+      {/if}
       {#if canSwitch}
         <button
           type="button"
@@ -400,6 +413,19 @@
         >
           <span class="peek-switch-time">{hh}:{mm}</span>
           <span class="peek-switch-title">{displayTitle}</span>
+          {#if item.joinUrl}
+            <button
+              type="button"
+              class="peek-switch-join"
+              data-testid="peek-switch-join"
+              aria-label={$t("peek.joinLabel", { title: displayTitle })}
+              title={$t("peek.joinLabel", { title: displayTitle })}
+              onclick={(e) => {
+                e.stopPropagation();
+                void openExternalUrl(item.joinUrl!);
+              }}
+            >{$t("peek.join")}</button>
+          {/if}
           {#if isCurrent}
             <span class="peek-switch-mark">✓</span>
           {/if}

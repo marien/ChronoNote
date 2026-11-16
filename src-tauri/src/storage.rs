@@ -2007,6 +2007,7 @@ fn generate_typescript_bindings() {
         ImportResult::decl(&cfg),
         TrashItem::decl(&cfg),
         NoteVersion::decl(&cfg),
+        crate::agenda::AgendaDetails::decl(&cfg),
 
         // i18n Phase 2 (docs/design/i18n-roadmap.md): the small, stable
         // error-code shape a few commands/result fields return instead of

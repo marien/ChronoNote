@@ -34,17 +34,78 @@
 
 use chrono::{Local, NaiveDateTime, TimeZone};
 use chrono_tz::Tz;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
+use ts_rs::TS;
 
 use crate::error::AppError;
 use crate::storage;
 
-#[derive(Deserialize, Clone, Debug, PartialEq, Eq)]
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct RawAgendaMeeting {
+    date: String,
+    start: String,
+    end: String,
+    title: String,
+    join_url: Option<serde_json::Value>,
+    attendees: Option<serde_json::Value>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
 struct AgendaMeeting {
     date: String,
     start: String,
     end: String,
     title: String,
+    join_url: Option<String>,
+    attendees: Vec<String>,
+}
+
+/// F9: a live meeting's times, title, optional `https://` join link, and attendee display names.
+#[derive(Serialize, Clone, Debug, PartialEq, Eq, TS)]
+#[serde(rename_all = "camelCase")]
+pub struct AgendaDetails {
+    pub start: String,
+    pub end: String,
+    pub title: String,
+    pub join_url: Option<String>,
+    pub attendees: Vec<String>,
+}
+
+fn parse_join_url(value: Option<serde_json::Value>) -> Option<String> {
+    match value {
+        Some(serde_json::Value::String(s)) if s.starts_with("https://") => Some(s),
+        _ => None,
+    }
+}
+
+fn parse_attendees(value: Option<serde_json::Value>) -> Vec<String> {
+    match value {
+        Some(serde_json::Value::Array(items)) => items
+            .into_iter()
+            .filter_map(|item| match item {
+                serde_json::Value::String(s) => {
+                    let trimmed = s.trim();
+                    if trimmed.is_empty() { None } else { Some(trimmed.to_string()) }
+                }
+                _ => None,
+            })
+            .collect(),
+        _ => Vec::new(),
+    }
+}
+
+impl RawAgendaMeeting {
+    fn into_meeting(self) -> AgendaMeeting {
+        AgendaMeeting {
+            date: self.date,
+            start: self.start,
+            end: self.end,
+            title: self.title,
+            join_url: parse_join_url(self.join_url),
+            attendees: parse_attendees(self.attendees),
+        }
+    }
 }
 
 /// Parses the file's raw content into meetings. Errors (rather than
@@ -61,21 +122,22 @@ fn parse_agenda(raw: &str) -> Result<Vec<AgendaMeeting>, ()> {
 #[derive(Deserialize)]
 #[serde(untagged)]
 enum AgendaFile {
-    List(Vec<AgendaMeeting>),
-    InZone { timezone: String, meetings: Vec<AgendaMeeting> },
+    List(Vec<RawAgendaMeeting>),
+    InZone { timezone: String, meetings: Vec<RawAgendaMeeting> },
 }
 
 /// `parse_agenda` with the machine's zone passed in (a test fixes it). An unknown time zone name is an error like any
 /// other unusable file: guessing would put every meeting at the wrong time.
 fn parse_agenda_in<L: TimeZone>(raw: &str, local: &L) -> Result<Vec<AgendaMeeting>, ()> {
     let file: AgendaFile = serde_json::from_str(raw.trim()).map_err(|_| ())?;
-    let (zone, meetings) = match file {
+    let (zone, raw_meetings) = match file {
         AgendaFile::List(meetings) => (None, meetings),
         AgendaFile::InZone { timezone, meetings } => (Some(parse_zone(&timezone)?), meetings),
     };
-    if meetings.is_empty() {
+    if raw_meetings.is_empty() {
         return Err(());
     }
+    let meetings: Vec<AgendaMeeting> = raw_meetings.into_iter().map(RawAgendaMeeting::into_meeting).collect();
     Ok(match zone {
         Some(zone) => meetings.into_iter().map(|m| to_local(m, zone, local)).collect(),
         None => meetings,
@@ -109,7 +171,14 @@ fn to_local<L: TimeZone>(m: AgendaMeeting, zone: Tz, local: &L) -> AgendaMeeting
         Some((end_date, _)) if end_date > date => "24:00".to_string(),
         _ => m.end.clone(),
     };
-    AgendaMeeting { date, start, end, title: m.title }
+    AgendaMeeting {
+        date,
+        start,
+        end,
+        title: m.title,
+        join_url: m.join_url,
+        attendees: m.attendees,
+    }
 }
 
 /// #74 / #78: prefixes an external calendar syncer stamps onto a meeting's own title to say it is
@@ -197,6 +266,26 @@ fn entries_for_date(meetings: Vec<AgendaMeeting>, date: &str) -> Vec<(String, St
     day
 }
 
+/// F9: the day's live meetings in the same order as `entries_for_date`, with optional `joinUrl` and `attendees`.
+fn details_for_date(meetings: Vec<AgendaMeeting>, date: &str) -> Vec<AgendaDetails> {
+    let mut day: Vec<AgendaDetails> = meetings
+        .into_iter()
+        .filter(|m| m.date == date)
+        .filter_map(|m| {
+            classify_title(&m.title).filter(|c| !c.removed).map(|c| AgendaDetails {
+                start: m.start,
+                end: m.end,
+                title: c.title,
+                join_url: m.join_url,
+                attendees: m.attendees,
+            })
+        })
+        .collect();
+    day.sort_by(|a, b| (&a.start, &a.end, &a.title).cmp(&(&b.start, &b.end, &b.title)));
+    day.dedup_by(|a, b| a.start == b.start && a.end == b.end && a.title == b.title);
+    day
+}
+
 /// #78: the real titles of the day's *removed* meetings (cancelled, declined, forwarded), sorted and
 /// de-duplicated. The sync review treats a section with one of these titles as a meeting that is gone.
 fn removed_titles_for_date(meetings: Vec<AgendaMeeting>, date: &str) -> Vec<String> {
@@ -232,6 +321,18 @@ pub fn read_agenda_entries_for_date(
     let raw = std::fs::read_to_string(&path).unwrap_or_default();
     let meetings = parse_agenda(&raw).map_err(|_| AppError::AgendaInvalid)?;
     Ok(entries_for_date(meetings, &date))
+}
+
+#[tauri::command]
+pub fn read_agenda_details_for_date(
+    app: tauri::AppHandle,
+    date: String,
+) -> Result<Vec<AgendaDetails>, AppError> {
+    let cfg = storage::load_config(&app)?;
+    let path = std::path::Path::new(&cfg.notes_dir).join(".agenda.json");
+    let raw = std::fs::read_to_string(&path).unwrap_or_default();
+    let meetings = parse_agenda(&raw).map_err(|_| AppError::AgendaInvalid)?;
+    Ok(details_for_date(meetings, &date))
 }
 
 #[tauri::command]
@@ -661,5 +762,128 @@ mod tests {
         let meetings = parse_agenda_in(raw, &Amsterdam).unwrap();
         assert_eq!(titles_for_date(meetings.clone(), "2026-10-05"), vec!["Design review".to_string()]);
         assert_eq!(titles_for_date(meetings, "2026-10-06"), vec!["Late".to_string()]);
+    }
+
+    #[test]
+    fn parses_join_url_and_attendees_and_ignores_series_id() {
+        let raw = r#"[
+            {
+                "date": "2026-09-14",
+                "start": "11:00",
+                "end": "11:30",
+                "title": "Confirmed: Design review",
+                "joinUrl": "https://teams.microsoft.com/l/meetup-join/123",
+                "attendees": ["  Dana Smith ", "", 42, "Ben Jones"],
+                "seriesId": "AAMkAGI2"
+            },
+            {
+                "date": "2026-09-14",
+                "start": "09:00",
+                "end": "09:30",
+                "title": "Standup"
+            },
+            {
+                "date": "2026-09-14",
+                "start": "10:00",
+                "end": "10:30",
+                "title": "Cancelled: Old sync",
+                "joinUrl": "https://example.com/old",
+                "attendees": ["Dana Smith"]
+            }
+        ]"#;
+        let meetings = parse_agenda(raw).unwrap();
+        let details = details_for_date(meetings.clone(), "2026-09-14");
+        assert_eq!(
+            details,
+            vec![
+                AgendaDetails {
+                    start: "09:00".to_string(),
+                    end: "09:30".to_string(),
+                    title: "Standup".to_string(),
+                    join_url: None,
+                    attendees: vec![],
+                },
+                AgendaDetails {
+                    start: "11:00".to_string(),
+                    end: "11:30".to_string(),
+                    title: "Design review".to_string(),
+                    join_url: Some("https://teams.microsoft.com/l/meetup-join/123".to_string()),
+                    attendees: vec!["Dana Smith".to_string(), "Ben Jones".to_string()],
+                },
+            ]
+        );
+        let entries = entries_for_date(meetings, "2026-09-14");
+        assert_eq!(
+            entries,
+            details
+                .into_iter()
+                .map(|d| (d.start, d.end, d.title))
+                .collect::<Vec<_>>()
+        );
+    }
+
+    #[test]
+    fn wrong_types_and_non_https_join_url_are_treated_as_absent() {
+        let raw = r#"[
+            {
+                "date": "2026-09-14",
+                "start": "09:00",
+                "end": "09:30",
+                "title": "Standup",
+                "joinUrl": "http://x",
+                "attendees": "Dana"
+            },
+            {
+                "date": "2026-09-14",
+                "start": "10:00",
+                "end": "10:30",
+                "title": "Sync",
+                "joinUrl": 5,
+                "attendees": null
+            }
+        ]"#;
+        let details = details_for_date(parse_agenda(raw).unwrap(), "2026-09-14");
+        assert_eq!(
+            details,
+            vec![
+                AgendaDetails {
+                    start: "09:00".to_string(),
+                    end: "09:30".to_string(),
+                    title: "Standup".to_string(),
+                    join_url: None,
+                    attendees: vec![],
+                },
+                AgendaDetails {
+                    start: "10:00".to_string(),
+                    end: "10:30".to_string(),
+                    title: "Sync".to_string(),
+                    join_url: None,
+                    attendees: vec![],
+                },
+            ]
+        );
+    }
+
+    #[test]
+    fn timezone_shape_carries_join_url_and_attendees() {
+        let raw = r#"{"timezone":"GMT","meetings":[{
+            "date": "2026-10-05",
+            "start": "09:00",
+            "end": "09:30",
+            "title": "Design review",
+            "joinUrl": "https://meet.example.org/room",
+            "attendees": ["Dana Smith"]
+        }]}"#;
+        let meetings = parse_agenda_in(raw, &Amsterdam).unwrap();
+        assert_eq!(
+            details_for_date(meetings, "2026-10-05"),
+            vec![AgendaDetails {
+                start: "11:00".to_string(),
+                end: "11:30".to_string(),
+                title: "Design review".to_string(),
+                join_url: Some("https://meet.example.org/room".to_string()),
+                attendees: vec!["Dana Smith".to_string()],
+            }]
+        );
     }
 }

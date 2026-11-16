@@ -199,6 +199,8 @@ export const en = {
   "peek.rename": () =>
     "Click to name this call",
   "peek.switch": () => "Meetings on now",
+  "peek.join": () => "Join",
+  "peek.joinLabel": ({ title }) => `Join ${title}`,
   "peek.newCall": () => "New call",
   "peek.prev": () =>
     "Previous occurrence",
@@ -1069,6 +1071,7 @@ export const en = {
   "suggestions.today": () => "today",
   "suggestions.yesterday": () => "yesterday",
   "suggestions.meetingToday": () => "today's meeting",
+  "suggestions.invited": () => "invited",
   "suggestions.listLabel": () => "Suggestions",
   "personView.openActions": ({ name }) => `Your open actions that mention ${name}`,
   "personView.delegated": ({ name }) => `Delegated to ${name}`,

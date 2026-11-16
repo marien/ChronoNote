@@ -28,7 +28,15 @@
  *   - `read_note` returns `null` (not an error) for a missing file.
  *   - the session file lives *inside* the notes dir and is never returned
  */
-import { activeAgendaDates, activeEntriesForDate, toLocalMeetings, activeTitlesAfterDate, activeTitlesForDate, removedTitlesForDate as removedTitlesForDateShared } from "../agendaTitles";
+import {
+  activeAgendaDates,
+  activeDetailsForDate,
+  activeEntriesForDate,
+  activeTitlesAfterDate,
+  activeTitlesForDate,
+  parseAgendaMeetings,
+  removedTitlesForDate as removedTitlesForDateShared,
+} from "../agendaTitles";
 import type { AppConfig, AppError, ColorMode, FileMetadata, LanguageMode, PeekConfig, StartupTabMode, TabSession, ThemeMode } from "../types";
 import type { TabLabelStyle, TrashItem, NoteVersion } from "../generated/tauri-types";
 import { PEEK_DEFAULTS, clampPeek } from "../peekDefaults";
@@ -236,65 +244,8 @@ export interface InvokeLogEntry {
   at: number;
 }
 
-interface AgendaMeeting {
-  date: string;
-  start: string;
-  end: string;
-  title: string;
-}
-
-function isAgendaMeeting(x: unknown): x is AgendaMeeting {
-  const m = x as Record<string, unknown> | null;
-  return (
-    !!m &&
-    typeof m === "object" &&
-    typeof m.date === "string" &&
-    typeof m.start === "string" &&
-    typeof m.end === "string" &&
-    typeof m.title === "string"
-  );
-}
-
-/** Mirrors `src-tauri/src/agenda.rs`'s `parse_agenda` + `titles_for_date`
- * exactly: scoped to `date`, sorted by (start, end, title), de-duplicated
- * on the exact (start, end, title) tuple. Throws — rather than resolving
- * to an empty list — for anything that isn't a genuine, non-empty array of
- * well-formed meetings: missing/blank content, unparseable JSON, a bare
- * `[]`, or an array with even one malformed element. Rust's `serde_json`
- * deserialization of `Vec<AgendaMeeting>` fails the *whole* array if even
- * one element doesn't match the struct shape (not just that element) —
- * `isAgendaMeeting` validated with `.every()`, not `.filter()`, mirrors
- * that all-or-nothing behavior. A day with no matching entries in an
- * otherwise-valid, non-empty file is a legitimate empty result, not an
- * error — only the whole file being empty/invalid is. */
-function parseAgendaMeetings(raw: string | undefined): AgendaMeeting[] {
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse((raw ?? "").trim());
-  } catch {
-    throw { code: "agendaInvalid" } satisfies AppError;
-  }
-  // `{ "timezone": "GMT", "meetings": [...] }`: the times are in that zone (see `toLocalMeetings`).
-  let zone: string | null = null;
-  if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
-    const file = parsed as { timezone?: unknown; meetings?: unknown };
-    if (typeof file.timezone !== "string") throw { code: "agendaInvalid" } satisfies AppError;
-    zone = file.timezone;
-    parsed = file.meetings;
-  }
-  if (!Array.isArray(parsed) || parsed.length === 0 || !parsed.every(isAgendaMeeting)) {
-    throw { code: "agendaInvalid" } satisfies AppError;
-  }
-  if (zone === null) return parsed as AgendaMeeting[];
-  try {
-    return toLocalMeetings(parsed as AgendaMeeting[], zone);
-  } catch {
-    throw { code: "agendaInvalid" } satisfies AppError;
-  }
-}
-
 /** #74/#78: the title rules (removed prefixes, "Placeholder"/"Confirmed" stamps) live in the shared
- * `agendaTitles.ts`, mirroring `agenda.rs`. The mock adds only the file-level validation. */
+ * `agendaTitles.ts`, mirroring `agenda.rs`. */
 function titlesForDate(raw: string | undefined, date: string): string[] {
   return activeTitlesForDate(parseAgendaMeetings(raw), date);
 }
@@ -1318,6 +1269,7 @@ export class MockBackend {
     read_agenda_for_date: ({ date }) => titlesForDate(this.agendaJson, date),
     read_agenda_removed_for_date: ({ date }) => removedTitlesForDate(this.agendaJson, date),
     read_agenda_entries_for_date: ({ date }) => activeEntriesForDate(parseAgendaMeetings(this.agendaJson), date),
+    read_agenda_details_for_date: ({ date }) => activeDetailsForDate(parseAgendaMeetings(this.agendaJson), date),
 
     read_agenda_after: ({ afterDate }) => titlesAfterDate(this.agendaJson, afterDate),
 

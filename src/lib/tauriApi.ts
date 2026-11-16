@@ -2,6 +2,7 @@ import { invoke as coreInvoke, type Channel } from "@tauri-apps/api/core";
 import { getVersion } from "@tauri-apps/api/app";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import type {
+  AgendaDetails,
   AppConfig,
   ColorMode,
   ConfigPatch,
@@ -330,6 +331,10 @@ export function readAgendaRemovedForDate(date: string): Promise<string[]> {
 
 export function readAgendaEntriesForDate(date: string): Promise<[string, string, string][]> {
   return invoke("read_agenda_entries_for_date", { date });
+}
+
+export function readAgendaDetailsForDate(date: string): Promise<AgendaDetails[]> {
+  return invoke("read_agenda_details_for_date", { date });
 }
 
 export function readAgendaForDate(date: string): Promise<string[]> {

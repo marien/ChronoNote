@@ -35,11 +35,83 @@ export function classifyTitle(raw: string): { title: string; removed: boolean } 
   return { title: stripStatusWord(raw.trim()), removed: false };
 }
 
+import type { AgendaDetails, AppError } from "./types";
+
 export interface AgendaMeeting {
   date: string;
   start: string;
   end: string;
   title: string;
+  joinUrl?: string | null;
+  attendees?: string[];
+}
+
+function isRawAgendaMeeting(x: unknown): x is Record<string, unknown> & {
+  date: string;
+  start: string;
+  end: string;
+  title: string;
+} {
+  const m = x as Record<string, unknown> | null;
+  return (
+    !!m &&
+    typeof m === "object" &&
+    typeof m.date === "string" &&
+    typeof m.start === "string" &&
+    typeof m.end === "string" &&
+    typeof m.title === "string"
+  );
+}
+
+function parseJoinUrl(value: unknown): string | null {
+  return typeof value === "string" && value.startsWith("https://") ? value : null;
+}
+
+function parseAttendees(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  const out: string[] = [];
+  for (const item of value) {
+    if (typeof item !== "string") continue;
+    const trimmed = item.trim();
+    if (trimmed.length > 0) out.push(trimmed);
+  }
+  return out;
+}
+
+/** Parses `.agenda.json` (plain array or `{ timezone, meetings }`), mirroring `src-tauri/src/agenda.rs`.
+ * Required fields (`date`, `start`, `end`, `title`) are strict; `joinUrl` and `attendees` are lenient and any
+ * other field (such as `seriesId`) is ignored. Throws `{ code: "agendaInvalid" }` on any invalid file. */
+export function parseAgendaMeetings(raw: string | undefined): AgendaMeeting[] {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse((raw ?? "").trim());
+  } catch {
+    throw { code: "agendaInvalid" } satisfies AppError;
+  }
+  let zone: string | null = null;
+  if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+    const file = parsed as { timezone?: unknown; meetings?: unknown };
+    if (typeof file.timezone !== "string") throw { code: "agendaInvalid" } satisfies AppError;
+    zone = file.timezone;
+    parsed = file.meetings;
+  }
+  if (!Array.isArray(parsed) || parsed.length === 0 || !parsed.every(isRawAgendaMeeting)) {
+    throw { code: "agendaInvalid" } satisfies AppError;
+  }
+  const meetings: AgendaMeeting[] = parsed.map((m) => ({
+    date: m.date,
+    start: m.start,
+    end: m.end,
+    title: m.title,
+    joinUrl: parseJoinUrl(m.joinUrl),
+    attendees: parseAttendees(m.attendees),
+  }));
+  if (zone === null) return meetings;
+  try {
+    return toLocalMeetings(meetings, zone);
+  } catch {
+    throw { code: "agendaInvalid" } satisfies AppError;
+  }
 }
 
 /** The day's live meeting titles: sorted by start (then end, then title), exact duplicates dropped. */
@@ -65,22 +137,35 @@ export function activeTitlesForDate(meetings: AgendaMeeting[], date: string): st
 /** The day's live meetings with their times, `[start, end, title]`, sorted and de-duplicated like `activeTitlesForDate`
  * (mirrors `agenda.rs`'s `entries_for_date`): for Peek's "notes for the meeting that is on now" shortcut. */
 export function activeEntriesForDate(meetings: AgendaMeeting[], date: string): [string, string, string][] {
+  return activeDetailsForDate(meetings, date).map((d): [string, string, string] => [d.start, d.end, d.title]);
+}
+
+/** F9: the day's live meetings in the same order as `activeEntriesForDate`, with optional `joinUrl` and `attendees`. */
+export function activeDetailsForDate(meetings: AgendaMeeting[], date: string): AgendaDetails[] {
   const day = meetings
     .filter((m) => m.date === date)
     .flatMap((m) => {
       const c = typeof m.title === "string" ? classifyTitle(m.title) : null;
-      return c && !c.removed ? [{ start: m.start, end: m.end, title: c.title }] : [];
+      return c && !c.removed
+        ? [
+            {
+              start: m.start,
+              end: m.end,
+              title: c.title,
+              joinUrl: m.joinUrl ?? null,
+              attendees: m.attendees ?? [],
+            },
+          ]
+        : [];
     });
   day.sort((a, b) => a.start.localeCompare(b.start) || a.end.localeCompare(b.end) || a.title.localeCompare(b.title));
   const seen = new Set<string>();
-  return day
-    .filter((m) => {
-      const key = `${m.start}|${m.end}|${m.title}`;
-      if (seen.has(key)) return false;
-      seen.add(key);
-      return true;
-    })
-    .map((m): [string, string, string] => [m.start, m.end, m.title]);
+  return day.filter((m) => {
+    const key = `${m.start}|${m.end}|${m.title}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 }
 
 /** The real titles of the day's removed meetings, sorted and de-duplicated. */
