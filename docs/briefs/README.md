@@ -81,6 +81,10 @@ S6 last. Each gets the full browser suite and the perf project before and after.
 | S5 | Date picker, phone companion, export, phone tab bar, Peek | [wave-3/S5-views-from-index.md](wave-3/S5-views-from-index.md) | after S1 (beside S2-S4) | Hydrogen |
 | S6 | Remove the old map; a guard against its return | [wave-3/S6-remove-all-notes-cache.md](wave-3/S6-remove-all-notes-cache.md) | after S2-S5 | Hydrogen |
 
+Progress: S1 merged (#243, §487; plus S1b, the six fixes from Gemini's review,
+[wave-3/S1b-review-fixes.md](wave-3/S1b-review-fixes.md)). S2-S5 in one PR (§488-§491, one combined browser suite;
+separate PRs would each have added to the end of the same changelog file).
+
 After S6: ask Marien once whether open views (the Actions pane first) should follow edits live (design 8.4).
 
 ## Wave 4 · depth

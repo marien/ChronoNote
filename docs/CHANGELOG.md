@@ -507,3 +507,7 @@ line, and this index is regenerated with `node scripts/changelog-index.mjs`.
 - §485 Calendar sync adds new meetings by itself
 - §486 Copy the Actions list as shown
 - §487 One index of all notes: the core (R1, slice S1)
+- §488 The due item reads the notes index (R1, slice S2)
+- §489 The Actions view, the week review and the palette read the notes index (R1, slice S3)
+- §490 Search, Section History, occurrences and copy forward read the notes index (R1, slice S4)
+- §491 Date picker, phone companion, export, phone tab bar and Peek read the notes index (R1, slice S5)

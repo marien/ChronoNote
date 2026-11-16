@@ -8,7 +8,8 @@ import {
   runPaletteLineAction,
 } from "./commandPalette";
 import { get } from "svelte/store";
-import { registerEditorApi, allNotesCache, modal, type EditorApi } from "./stores";
+import { registerEditorApi, modal, type EditorApi } from "./stores";
+import { seedDiskNotesForTest } from "./notesIndex/diskLayer";
 
 vi.mock("./tauriApi", () => ({
   readAllNotes: vi.fn(async () => [
@@ -55,7 +56,7 @@ describe("commandPalette match highlighting", () => {
 
 describe("buildPaletteResults prefix query modes", () => {
   beforeEach(() => {
-    allNotesCache.set({
+    seedDiskNotesForTest({
       "2026-09-20.txt": "# Buy milk\nv Call dentist\n> Review pull request",
       "2026-09-21.txt": "# Plan sprint",
     });

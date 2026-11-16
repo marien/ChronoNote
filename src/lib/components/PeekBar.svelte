@@ -1,7 +1,8 @@
 <script lang="ts">
   import { get } from "svelte/store";
   import * as controller from "../controller";
-  import { activeTabId, allNotesCache, currentDateISO, tabs } from "../controller";
+  import { activeTabId, currentDateISO, tabs } from "../controller";
+  import { notesIndex } from "../notesIndex";
   import {
     cancelPeekRename,
     editorApi,
@@ -114,8 +115,7 @@
 
   function getTodayContent(): string {
     const todayFilename = `${todayISO()}.txt`;
-    const todayTab = get(tabs).find((x) => x.filename === todayFilename && !x.isScratchpad);
-    return todayTab?.content ?? get(allNotesCache)[todayFilename] ?? "";
+    return get(notesIndex).entries.get(todayFilename)?.text ?? "";
   }
 
   async function refreshOnNow() {

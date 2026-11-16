@@ -13,7 +13,6 @@ import { t } from "./i18n";
 import { computeDayHeat, todayISO, type DayHeatState } from "./date";
 import {
   activeTabId,
-  allNotesCache,
   editorApi,
   historyDestinations,
   historyLoading,
@@ -24,6 +23,9 @@ import {
   showToast,
   tabs,
 } from "./stores";
+import { notesIndex } from "./notesIndex";
+import { isScratchpadKey } from "./notesIndex/entries";
+import { linesOf } from "./notesIndex/facets";
 import { tokenizeLine } from "./grammar/tokenize";
 import { refreshAllNotesCache } from "./persistence";
 import { cursorSection } from "./occurrences";
@@ -36,14 +38,15 @@ const DATED_FILE = /^\d{4}-\d{2}-\d{2}\.txt$/;
 
 async function buildOccurrences(targetHeader: string): Promise<SectionOccurrence[]> {
   await refreshAllNotesCache();
-  const allSources = get(allNotesCache);
+  const { entries } = get(notesIndex);
   // Chronological, oldest first — the occurrence strip reads left-to-right
   // like a calendar (and like the main tab strip it's modeled on), newest
   // date at the right end.
-  const sortedFiles = Object.keys(allSources).sort();
+  const sortedFiles = [...entries.keys()].filter((k) => !isScratchpadKey(k)).sort();
   const occurrences: SectionOccurrence[] = [];
   for (const filename of sortedFiles) {
-    const flines = allSources[filename].split("\n");
+    const entry = entries.get(filename)!;
+    const flines = linesOf(entry) as string[];
     const body = extractSectionBody(flines, targetHeader);
     if (!body) continue;
     occurrences.push({ filename, date: filename.replace(/\.txt$/, ""), lines: body.lines, startLineIdx: body.startLineIdx });

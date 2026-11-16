@@ -1,12 +1,25 @@
 import { derived, type Readable } from "svelte/store";
-import { allNotesCache, currentDateISO, tabs } from "./stores";
+import { currentDateISO } from "./stores";
+import { notesIndex, type NoteEntry } from "./notesIndex/index";
+import { dueOf, linesOf } from "./notesIndex/facets";
 import * as tokens from "./tokens";
 import { addDaysISO } from "./date";
 import { getLineActionParts, tokenizeNoteLine } from "./grammar/tokenize";
 
-/** Module-level memoisation map: key -> { text, today, count }
- * Preserved across keystrokes so only texts that change are recounted. */
-export const overdueCountMemo = new Map<string, { text: string; today: string; count: number }>();
+interface EntrySummary {
+  today: string;
+  overdue: number;
+  upcoming: number;
+  dueToday: number;
+  items: DueSoonItem[];
+}
+
+/** Per-entry memoisation: WeakMap<NoteEntry, ...> lets unchanged entries keep their results across keystrokes. */
+const overdueByEntry = new WeakMap<NoteEntry, { today: string; count: number }>();
+const summaryByEntry = new WeakMap<NoteEntry, EntrySummary>();
+
+/** How often `summarizeEntry` computed (not returned a remembered value). For tests only. */
+export const _dueOverviewRuns = { summarize: 0 };
 
 export interface DueSoonItem {
   date: string;
@@ -48,21 +61,53 @@ export function compareDueSoonItems(a: DueSoonItem, b: DueSoonItem): number {
   return a.lineIdx - b.lineIdx;
 }
 
-export const dueSummaryMemo = new Map<
-  string,
-  {
-    text: string;
-    today: string;
-    overdue: number;
-    upcoming: number;
-    dueToday: number;
-    items: DueSoonItem[];
-  }
->();
+export function _resetMemoForTest() {}
 
-export function _resetMemoForTest() {
-  overdueCountMemo.clear();
-  dueSummaryMemo.clear();
+function summarizeEntry(e: NoteEntry, today: string): EntrySummary {
+  _dueOverviewRuns.summarize++;
+  const maxUpcoming = addDaysISO(today, 6);
+  const lines = linesOf(e);
+  const items: DueSoonItem[] = [];
+  // One pass over the due items (the same rules as countOverdue and countUpcoming): this runs on every
+  // keystroke for the note being typed in.
+  let overdue = 0;
+  let upcoming = 0;
+  let dueToday = 0;
+
+  for (const d of dueOf(e)) {
+    if (d.state !== "#" || d.delegated || !d.date) continue;
+    const isOverdue = d.date < today;
+    const isUpcoming = d.date >= today && d.date <= maxUpcoming;
+    if (!isOverdue && !isUpcoming) continue;
+    if (isOverdue) overdue++;
+    else upcoming++;
+    if (d.date === today) dueToday++;
+
+    const line = lines[d.lineIdx] ?? "";
+    const lineTokens = tokenizeNoteLine(lines, d.lineIdx);
+    const parts = getLineActionParts(line, lineTokens);
+    const part = parts.find((p) => d.from >= p.from && d.from < p.to);
+    const actionText = part
+      ? extractActionText(line, part.from, part.to)
+      : extractActionText(line, 0, line.length);
+    const secHeader = tokens.getSectionHeaderForLine(lines as string[], d.lineIdx);
+
+    items.push({
+      date: d.date,
+      text: actionText,
+      section: secHeader ? secHeader : null,
+      filename: e.filename,
+      lineIdx: d.lineIdx,
+    });
+  }
+
+  return {
+    today,
+    overdue,
+    upcoming,
+    dueToday,
+    items,
+  };
 }
 
 /**
@@ -74,100 +119,23 @@ export const dueSummary: Readable<{
   dueToday: number;
   items: DueSoonItem[];
 }> = derived(
-  [allNotesCache, tabs, currentDateISO],
-  ([$allNotesCache, $tabs, $currentDateISO]) => {
-    const currentKeys = new Set<string>();
-    const activeTexts = new Map<string, { text: string; filename: string }>();
-
-    // 1. All notes in cache
-    for (const [filename, content] of Object.entries($allNotesCache)) {
-      activeTexts.set(filename, { text: content, filename });
-      currentKeys.add(filename);
-    }
-
-    // 2. Open tabs (live content overlays cached content; scratchpads included)
-    for (const tab of $tabs) {
-      if (tab.isScratchpad) {
-        const key = `scratchpad:${tab.id}`;
-        activeTexts.set(key, { text: tab.content, filename: tab.filename });
-        currentKeys.add(key);
-      } else {
-        activeTexts.set(tab.filename, { text: tab.content, filename: tab.filename });
-        currentKeys.add(tab.filename);
-      }
-    }
-
-    // Drop keys no longer present
-    for (const key of dueSummaryMemo.keys()) {
-      if (!currentKeys.has(key)) {
-        dueSummaryMemo.delete(key);
-      }
-    }
-
+  [notesIndex, currentDateISO],
+  ([$notesIndex, $currentDateISO]) => {
     let totalOverdue = 0;
     let totalUpcoming = 0;
     let totalDueToday = 0;
     const allItems: DueSoonItem[] = [];
 
-    const maxUpcoming = addDaysISO($currentDateISO, 6);
-
-    for (const [key, { text, filename }] of activeTexts) {
-      const remembered = dueSummaryMemo.get(key);
-      if (remembered && remembered.text === text && remembered.today === $currentDateISO) {
-        totalOverdue += remembered.overdue;
-        totalUpcoming += remembered.upcoming;
-        totalDueToday += remembered.dueToday;
-        allItems.push(...remembered.items);
-      } else {
-        const lines = text.split("\n");
-        const items: DueSoonItem[] = [];
-        // One pass over the due items (the same rules as countOverdue and countUpcoming): this runs on every
-        // keystroke for the note being typed in.
-        let overdue = 0;
-        let upcoming = 0;
-        let dueToday = 0;
-
-        for (const d of tokens.dueItems(text)) {
-          if (d.state !== "#" || d.delegated || !d.date) continue;
-          const isOverdue = d.date < $currentDateISO;
-          const isUpcoming = d.date >= $currentDateISO && d.date <= maxUpcoming;
-          if (!isOverdue && !isUpcoming) continue;
-          if (isOverdue) overdue++;
-          else upcoming++;
-          if (d.date === $currentDateISO) dueToday++;
-
-          const line = lines[d.lineIdx] ?? "";
-          const lineTokens = tokenizeNoteLine(lines, d.lineIdx);
-          const parts = getLineActionParts(line, lineTokens);
-          const part = parts.find((p) => d.from >= p.from && d.from < p.to);
-          const actionText = part
-            ? extractActionText(line, part.from, part.to)
-            : extractActionText(line, 0, line.length);
-          const secHeader = tokens.getSectionHeaderForLine(lines, d.lineIdx);
-
-          items.push({
-            date: d.date,
-            text: actionText,
-            section: secHeader ? secHeader : null,
-            filename,
-            lineIdx: d.lineIdx,
-          });
-        }
-
-        dueSummaryMemo.set(key, {
-          text,
-          today: $currentDateISO,
-          overdue,
-          upcoming,
-          dueToday,
-          items,
-        });
-
-        totalOverdue += overdue;
-        totalUpcoming += upcoming;
-        totalDueToday += dueToday;
-        allItems.push(...items);
+    for (const entry of $notesIndex.entries.values()) {
+      let summary = summaryByEntry.get(entry);
+      if (!summary || summary.today !== $currentDateISO) {
+        summary = summarizeEntry(entry, $currentDateISO);
+        summaryByEntry.set(entry, summary);
       }
+      totalOverdue += summary.overdue;
+      totalUpcoming += summary.upcoming;
+      totalDueToday += summary.dueToday;
+      allItems.push(...summary.items);
     }
 
     allItems.sort(compareDueSoonItems);
@@ -182,52 +150,19 @@ export const dueSummary: Readable<{
 );
 
 /**
- * Derived store counting open own actions past their due date across all notes.
- * The texts counted are: every note in allNotesCache, with each open non-scratchpad tab's
- * live content replacing its file's cached text (match on filename), plus every open
- * scratchpad tab's content.
+ * Derived store counting open own actions past their due date across all notes in the notes index.
  */
 export const overdueCount: Readable<number> = derived(
-  [allNotesCache, tabs, currentDateISO],
-  ([$allNotesCache, $tabs, $currentDateISO]) => {
-    const currentKeys = new Set<string>();
-    const activeTexts = new Map<string, string>();
-
-    // 1. All notes in cache
-    for (const [filename, content] of Object.entries($allNotesCache)) {
-      activeTexts.set(filename, content);
-      currentKeys.add(filename);
-    }
-
-    // 2. Open tabs (live content overlays cached content; scratchpads included)
-    for (const tab of $tabs) {
-      if (tab.isScratchpad) {
-        const key = `scratchpad:${tab.id}`;
-        activeTexts.set(key, tab.content);
-        currentKeys.add(key);
-      } else {
-        activeTexts.set(tab.filename, tab.content);
-        currentKeys.add(tab.filename);
-      }
-    }
-
-    // Drop keys no longer present
-    for (const key of overdueCountMemo.keys()) {
-      if (!currentKeys.has(key)) {
-        overdueCountMemo.delete(key);
-      }
-    }
-
+  [notesIndex, currentDateISO],
+  ([$notesIndex, $currentDateISO]) => {
     let total = 0;
-    for (const [key, text] of activeTexts) {
-      const remembered = overdueCountMemo.get(key);
-      if (remembered && remembered.text === text && remembered.today === $currentDateISO) {
-        total += remembered.count;
-      } else {
-        const count = tokens.countOverdue(text, $currentDateISO);
-        overdueCountMemo.set(key, { text, today: $currentDateISO, count });
-        total += count;
+    for (const entry of $notesIndex.entries.values()) {
+      let remembered = overdueByEntry.get(entry);
+      if (!remembered || remembered.today !== $currentDateISO) {
+        remembered = { today: $currentDateISO, count: tokens.countOverdue(entry.text, $currentDateISO) };
+        overdueByEntry.set(entry, remembered);
       }
+      total += remembered.count;
     }
 
     return total;

@@ -39,7 +39,8 @@ import {
   updatePhoneOutbox,
   type OutboxResult,
 } from "./phoneCompanion";
-import { allNotesCache, appVersion, backendKind, currentDateISO, tabs } from "./stores";
+import { seedDiskNotesForTest } from "./notesIndex/diskLayer";
+import { appVersion, backendKind, currentDateISO, tabs } from "./stores";
 
 const TODAY = "2026-10-29";
 const NOW = new Date(2026, 9, 29, 8, 40, 12);
@@ -52,8 +53,9 @@ function section(title: string, ...lines: string[]): string {
 async function loadWiredCompanion() {
   vi.resetModules();
   const stores = await import("./stores");
+  const diskLayer = await import("./notesIndex/diskLayer");
   const pc = await import("./phoneCompanion");
-  return { stores, pc };
+  return { stores, pc, diskLayer };
 }
 
 describe("1. buildMeetings and meetingsJson", () => {
@@ -155,7 +157,7 @@ describe("3. updatePhoneOutbox split file writes", () => {
     currentDateISO.set(TODAY);
     appVersion.set("0.36.0");
     disk.files = { "2026-10-28.txt": section("Standup") };
-    allNotesCache.set({ ...disk.files });
+    seedDiskNotesForTest({ ...disk.files });
     tabs.set([]);
   });
 
@@ -239,7 +241,7 @@ describe("8. write failure isolation and retries", () => {
     currentDateISO.set(TODAY);
     appVersion.set("0.36.0");
     disk.files = { "2026-10-28.txt": section("Standup") };
-    allNotesCache.set({ ...disk.files });
+    seedDiskNotesForTest({ ...disk.files });
     tabs.set([]);
   });
 
@@ -289,12 +291,12 @@ describe("6 & 7. heartbeat with fake timers and wirePhoneCompanion", () => {
   });
 
   it("6. heartbeat: advancing < 5 min writes no outbox; advancing past 5 min writes outbox.json with later generatedAt and same results without rewriting meetings.json", async () => {
-    const { stores, pc } = await loadWiredCompanion();
+    const { stores, pc, diskLayer } = await loadWiredCompanion();
     stores.backendKind.set("desktop");
     pc.phoneCompanionEnabled.set(true);
     stores.currentDateISO.set(TODAY);
     stores.appVersion.set("0.36.0");
-    stores.allNotesCache.set({ ...disk.files });
+    diskLayer.seedDiskNotesForTest({ ...disk.files });
     stores.tabs.set([]);
 
     pc.wirePhoneCompanion();
@@ -326,12 +328,12 @@ describe("6 & 7. heartbeat with fake timers and wirePhoneCompanion", () => {
   });
 
   it("7. with setting off, nothing is written and heartbeat writes nothing", async () => {
-    const { stores, pc } = await loadWiredCompanion();
+    const { stores, pc, diskLayer } = await loadWiredCompanion();
     stores.backendKind.set("desktop");
     pc.phoneCompanionEnabled.set(false);
     stores.currentDateISO.set(TODAY);
     stores.appVersion.set("0.36.0");
-    stores.allNotesCache.set({ ...disk.files });
+    diskLayer.seedDiskNotesForTest({ ...disk.files });
     stores.tabs.set([]);
 
     pc.wirePhoneCompanion();
@@ -347,12 +349,12 @@ describe("6 & 7. heartbeat with fake timers and wirePhoneCompanion", () => {
   });
 
   it("7b. turning setting off stops heartbeat from writing", async () => {
-    const { stores, pc } = await loadWiredCompanion();
+    const { stores, pc, diskLayer } = await loadWiredCompanion();
     stores.backendKind.set("desktop");
     pc.phoneCompanionEnabled.set(true);
     stores.currentDateISO.set(TODAY);
     stores.appVersion.set("0.36.0");
-    stores.allNotesCache.set({ ...disk.files });
+    diskLayer.seedDiskNotesForTest({ ...disk.files });
     stores.tabs.set([]);
 
     pc.wirePhoneCompanion();
@@ -373,12 +375,12 @@ describe("6 & 7. heartbeat with fake timers and wirePhoneCompanion", () => {
   });
 
   it("7c. does nothing and heartbeat writes nothing when backendKind is web", async () => {
-    const { stores, pc } = await loadWiredCompanion();
+    const { stores, pc, diskLayer } = await loadWiredCompanion();
     stores.backendKind.set("web");
     pc.phoneCompanionEnabled.set(true);
     stores.currentDateISO.set(TODAY);
     stores.appVersion.set("0.36.0");
-    stores.allNotesCache.set({ ...disk.files });
+    diskLayer.seedDiskNotesForTest({ ...disk.files });
     stores.tabs.set([]);
 
     pc.wirePhoneCompanion();

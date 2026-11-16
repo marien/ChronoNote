@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { get } from "svelte/store";
-import { allNotesCache, currentDateISO, tabs } from "./stores";
+import { currentDateISO, tabs } from "./stores";
+import { seedDiskNotesForTest } from "./notesIndex/diskLayer";
 import * as tokens from "./tokens";
 import {
   _resetMemoForTest,
@@ -9,20 +10,19 @@ import {
   groupByDue,
   itemDueDate,
   overdueCount,
-  overdueCountMemo,
 } from "./dueOverview";
 import type { NoteTab } from "./types";
 
 describe("overdueCount store (independent)", () => {
   beforeEach(() => {
     _resetMemoForTest();
-    allNotesCache.set({});
+    seedDiskNotesForTest({});
     tabs.set([]);
     currentDateISO.set("2026-10-23");
   });
 
   it("counts overdue actions across all notes in cache, not just active note", () => {
-    allNotesCache.set({
+    seedDiskNotesForTest({
       "2026-10-18.txt": "# overdue task A by:2026-10-19",
       "2026-10-19.txt": "# overdue task B by:2026-10-20\n# overdue task C by:2026-10-21",
       "2026-10-20.txt": "# not overdue task by:2026-10-24",
@@ -32,7 +32,7 @@ describe("overdueCount store (independent)", () => {
   });
 
   it("live unsaved tab content overlays cached file text", () => {
-    allNotesCache.set({
+    seedDiskNotesForTest({
       "2026-10-20.txt": "# disk action 1 by:2026-10-20\n# disk action 2 by:2026-10-21",
     });
     expect(get(overdueCount)).toBe(2);
@@ -51,7 +51,7 @@ describe("overdueCount store (independent)", () => {
   });
 
   it("open scratchpad tabs count towards overdue total and drop when closed", () => {
-    allNotesCache.set({
+    seedDiskNotesForTest({
       "2026-10-20.txt": "# note action by:2026-10-20",
     });
     const scratchpad: NoteTab = {
@@ -69,22 +69,21 @@ describe("overdueCount store (independent)", () => {
   });
 
   it("deleting a note from cache removes its overdue actions from count", () => {
-    allNotesCache.set({
+    seedDiskNotesForTest({
       "2026-10-19.txt": "# overdue in note A by:2026-10-20",
       "2026-10-20.txt": "# overdue in note B by:2026-10-21",
     });
     expect(get(overdueCount)).toBe(2);
 
     // Delete note A from cache
-    allNotesCache.set({
+    seedDiskNotesForTest({
       "2026-10-20.txt": "# overdue in note B by:2026-10-21",
     });
     expect(get(overdueCount)).toBe(1);
-    expect(overdueCountMemo.has("2026-10-19.txt")).toBe(false);
   });
 
   it("excludes non-overdue, resolved, deferred, cancelled, delegated, unparsed, and topic lines", () => {
-    allNotesCache.set({
+    seedDiskNotesForTest({
       "2026-10-20.txt": [
         "v completed action by:2026-10-20",
         "> deferred action by:2026-10-20",
@@ -106,7 +105,7 @@ describe("overdueCount store (independent)", () => {
   });
 
   it("counts several due parts on one line separately", () => {
-    allNotesCache.set({
+    seedDiskNotesForTest({
       "2026-10-20.txt": [
         // Two open overdue parts on a single line
         "# part 1 by:2026-10-20 => # part 2 by:2026-10-21",
@@ -121,7 +120,7 @@ describe("overdueCount store (independent)", () => {
   });
 
   it("advancing clock past midnight makes due-today action overdue", () => {
-    allNotesCache.set({
+    seedDiskNotesForTest({
       "2026-10-23.txt": "# action due today by:2026-10-23",
     });
     // Today is 2026-10-23: not overdue yet
@@ -134,14 +133,14 @@ describe("overdueCount store (independent)", () => {
 
   it("forwarding an action keeps by: on target and source '>' stops counting", () => {
     // Initial state: 1 overdue action in older note
-    allNotesCache.set({
+    seedDiskNotesForTest({
       "2026-10-20.txt": "# report numbers by:2026-10-20",
       "2026-10-23.txt": "Top priorities\n==============",
     });
     expect(get(overdueCount)).toBe(1);
 
     // Forwarded: source note line becomes '>', target note gets '#' with from link, both keeping by:
-    allNotesCache.set({
+    seedDiskNotesForTest({
       "2026-10-20.txt": "> report numbers by:2026-10-20 (>2026-10-23)",
       "2026-10-23.txt": "# report numbers by:2026-10-20 (<2026-10-20)\nTop priorities\n==============",
     });
@@ -150,7 +149,7 @@ describe("overdueCount store (independent)", () => {
   });
 
   it("memoisation reuses previous count for unchanged texts", () => {
-    allNotesCache.set({
+    seedDiskNotesForTest({
       "2026-10-20.txt": "# task 1 by:2026-10-20",
       "2026-10-21.txt": "# task 2 by:2026-10-21",
     });

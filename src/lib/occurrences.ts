@@ -10,7 +10,9 @@ import { extractSectionBody } from "./history";
 import { refreshAllNotesCache } from "./persistence";
 import { jumpToFileLine } from "./tabs";
 import * as api from "./tauriApi";
-import { activeTabId, allNotesCache, editorApi, showToast, tabs } from "./stores";
+import { activeTabId, editorApi, showToast, tabs } from "./stores";
+import { notesIndex, noteTexts } from "./notesIndex";
+import { linesOf } from "./notesIndex/facets";
 import { t } from "./i18n";
 import { getSectionHeaderForLine, normalizeHeaderTitle, titleForMatching } from "./tokens";
 import type { NoteTab } from "./types";
@@ -35,9 +37,7 @@ export function sectionTargetAt(content: string, lineIdx: number): string | null
 }
 
 function sources(): Record<string, string> {
-  const all: Record<string, string> = { ...get(allNotesCache) };
-  for (const tab of get(tabs)) if (!tab.isScratchpad) all[tab.filename] = tab.content;
-  return all;
+  return noteTexts(get(notesIndex));
 }
 
 function filesWithSection(all: Record<string, string>, target: string): string[] {
@@ -76,7 +76,8 @@ export async function stepToOccurrence(
   const next = pos.files[pos.index - 1 + direction];
   if (!next) return null;
   const openTab = get(tabs).find((x) => x.filename === next && !x.isScratchpad);
-  const sourceLines = openTab?.content.split("\n") ?? (get(allNotesCache)[next] ?? "").split("\n");
+  const entry = get(notesIndex).entries.get(next);
+  const sourceLines = entry ? (linesOf(entry) as string[]) : [""];
   const body = extractSectionBody(sourceLines, target);
   await jumpToFileLine({ tabId: openTab?.id, filename: next, lineIdx: body ? body.startLineIdx : 0 });
   const shown = get(tabs).find((x) => x.filename === next && !x.isScratchpad);
@@ -91,7 +92,7 @@ export function occurrenceKeyApplies(): boolean {
   if (!tab || !editorApi) return false;
   const target = sectionTargetAt(tab.content, editorApi.getCursorLineIdx());
   if (!target) return false;
-  if (Object.keys(get(allNotesCache)).length === 0) return true; // not loaded yet: assume yes, the step decides
+  if (!get(notesIndex).loaded) return true; // not loaded yet: assume yes, the step decides
   return filesWithSection(sources(), target).length > 1;
 }
 

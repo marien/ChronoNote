@@ -1,9 +1,8 @@
 <script lang="ts">
   import { onMount, onDestroy, tick } from "svelte";
   import * as controller from "../../controller";
-  import { currentDateISO, tabs } from "../../controller";
+  import { currentDateISO } from "../../controller";
   import {
-    allNotesCache,
     isMobile,
     editorApi,
     weekReviewYear,
@@ -11,6 +10,7 @@
     weekReviewShowDone,
     showToast,
   } from "../../stores";
+  import { notesIndex } from "../../notesIndex";
   import { focusTrap } from "../../actions/focusTrap";
   import { sheetSwipe } from "../../actions/sheetSwipe";
   import { closeOnOutsideClick } from "../../actions/closeOnOutsideClick";
@@ -131,23 +131,9 @@
     }
   }
 
-  // Precedence: open tabs override disk cache
-  const noteList = $derived.by(() => {
-    const tabMap = new Map($tabs.map((t) => [t.filename, t.content]));
-    const result: { filename: string; content: string }[] = [];
-    for (const [filename, content] of Object.entries($allNotesCache)) {
-      result.push({
-        filename,
-        content: tabMap.has(filename) ? tabMap.get(filename)! : content,
-      });
-    }
-    for (const t of $tabs) {
-      if (!Object.prototype.hasOwnProperty.call($allNotesCache, t.filename)) {
-        result.push({ filename: t.filename, content: t.content });
-      }
-    }
-    return result;
-  });
+  const noteList = $derived(
+    Array.from($notesIndex.entries.values(), (e) => ({ filename: e.filename, content: e.text })),
+  );
 
   const reviewModel = $derived(
     buildWeekReview(noteList, $weekReviewYear, $weekReviewWeek, $currentDateISO),

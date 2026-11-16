@@ -4,7 +4,8 @@ import { get } from "svelte/store";
 import { EditorState } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
 import { dueDatesPlugin } from "./dueDates";
-import { allNotesCache, currentDateISO, tabs } from "../stores";
+import { currentDateISO, tabs } from "../stores";
+import { seedDiskNotesForTest } from "../notesIndex/diskLayer";
 import { countOverdue, countUpcoming, dueItems, withDueDate } from "../tokens";
 import { _resetMemoForTest, dueSummary, groupByDue } from "../dueOverview";
 import { withToLink } from "../paste";
@@ -71,7 +72,7 @@ describe("Rule 4 (D10): impossible due dates and unknown due words", () => {
     expect(countOverdue(text, today)).toBe(0);
     expect(countUpcoming(text, today, 7)).toBe(1);
 
-    allNotesCache.set({ "2026-11-14.txt": text });
+    seedDiskNotesForTest({ "2026-11-14.txt": text });
     const summary = get(dueSummary);
     expect({ overdue: summary.overdue, dueToday: summary.dueToday, upcoming: summary.upcoming }).toEqual({
       overdue: 0,
@@ -83,7 +84,7 @@ describe("Rule 4 (D10): impossible due dates and unknown due words", () => {
       today,
     );
     expect(groups.flatMap((g) => g.items).map((i) => i.dueDate)).toEqual(["2026-11-15"]);
-    allNotesCache.set({});
+    seedDiskNotesForTest({});
   });
 
   it("keeps balanced forward-link section parens before due dates and re-forwarding", () => {

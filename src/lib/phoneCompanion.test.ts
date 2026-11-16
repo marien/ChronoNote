@@ -30,7 +30,8 @@ import {
   updatePhoneOutbox,
   wirePhoneCompanion,
 } from "./phoneCompanion";
-import { allNotesCache, appVersion, backendKind, currentDateISO, tabs } from "./stores";
+import { seedDiskNotesForTest } from "./notesIndex/diskLayer";
+import { appVersion, backendKind, currentDateISO, tabs } from "./stores";
 
 const TODAY = "2026-10-29";
 const NOW = new Date(2026, 9, 29, 8, 40, 12);
@@ -180,7 +181,7 @@ describe("updatePhoneOutbox", () => {
     currentDateISO.set(TODAY);
     appVersion.set("0.36.0");
     disk.files = { "2026-10-28.txt": section("Standup") };
-    allNotesCache.set({ ...disk.files });
+    seedDiskNotesForTest({ ...disk.files });
     tabs.set([]);
     apiMock.readNote.mockClear();
   });

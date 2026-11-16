@@ -1,19 +1,18 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { get } from "svelte/store";
-import { allNotesCache, currentDateISO, tabs } from "./stores";
+import { currentDateISO, tabs } from "./stores";
+import { seedDiskNotesForTest } from "./notesIndex/diskLayer";
 import * as tokens from "./tokens";
 import {
   _resetMemoForTest,
   compareDueSoonItems,
   dueGroupForDate,
   dueSummary,
-  dueSummaryMemo,
   extractActionText,
   getSundayOfIsoWeek,
   groupByDue,
   itemDueDate,
   overdueCount,
-  overdueCountMemo,
   type DueSoonItem,
 } from "./dueOverview";
 import type { NoteTab } from "./types";
@@ -21,13 +20,13 @@ import type { NoteTab } from "./types";
 describe("overdueCount store", () => {
   beforeEach(() => {
     _resetMemoForTest();
-    allNotesCache.set({});
+    seedDiskNotesForTest({});
     tabs.set([]);
     currentDateISO.set("2026-10-23");
   });
 
   it("counts overdue actions across several notes in cache", () => {
-    allNotesCache.set({
+    seedDiskNotesForTest({
       "2026-10-20.txt": "# overdue 1 by:2026-10-20\n# overdue 2 by:2026-10-21",
       "2026-10-21.txt": "# overdue 3 by:2026-10-22",
       "2026-10-22.txt": "# not overdue by:2026-10-24",
@@ -36,7 +35,7 @@ describe("overdueCount store", () => {
   });
 
   it("open non-scratchpad tab's live content replaces cached file text", () => {
-    allNotesCache.set({
+    seedDiskNotesForTest({
       "2026-10-20.txt": "# task 1 by:2026-10-20\n# task 2 by:2026-10-21",
     });
     expect(get(overdueCount)).toBe(2);
@@ -54,7 +53,7 @@ describe("overdueCount store", () => {
   });
 
   it("open scratchpad tabs count towards overdue total", () => {
-    allNotesCache.set({
+    seedDiskNotesForTest({
       "2026-10-20.txt": "# note action by:2026-10-20",
     });
     const scratchTab: NoteTab = {
@@ -72,7 +71,7 @@ describe("overdueCount store", () => {
   });
 
   it("does not count delegated, done, deferred, won't-do, or due-today actions", () => {
-    allNotesCache.set({
+    seedDiskNotesForTest({
       "2026-10-20.txt": [
         "v done action by:2026-10-20",
         "> deferred action by:2026-10-20",
@@ -87,7 +86,7 @@ describe("overdueCount store", () => {
   });
 
   it("changing currentDateISO to the next day makes a due-today action overdue", () => {
-    allNotesCache.set({
+    seedDiskNotesForTest({
       "2026-10-23.txt": "# due today by:2026-10-23",
     });
     expect(get(overdueCount)).toBe(0);
@@ -98,7 +97,7 @@ describe("overdueCount store", () => {
   });
 
   it("memoisation: unchanged notes are not recounted when tabs change", () => {
-    allNotesCache.set({
+    seedDiskNotesForTest({
       "2026-10-20.txt": "# note 1 by:2026-10-20",
       "2026-10-21.txt": "# note 2 by:2026-10-21",
     });
@@ -130,12 +129,10 @@ describe("overdueCount store", () => {
     );
 
     // Key cleanup: remove note 2 from cache
-    allNotesCache.set({
+    seedDiskNotesForTest({
       "2026-10-20.txt": "# note 1 by:2026-10-20",
     });
-    expect(overdueCountMemo.has("2026-10-21.txt")).toBe(true);
     get(overdueCount);
-    expect(overdueCountMemo.has("2026-10-21.txt")).toBe(false);
 
     spy.mockRestore();
   });
@@ -335,13 +332,13 @@ describe("compareDueSoonItems", () => {
 describe("dueSummary store", () => {
   beforeEach(() => {
     _resetMemoForTest();
-    allNotesCache.set({});
+    seedDiskNotesForTest({});
     tabs.set([]);
     currentDateISO.set("2026-10-24");
   });
 
   it("computes counts and lists of overdue and rolling 7-day upcoming items", () => {
-    allNotesCache.set({
+    seedDiskNotesForTest({
       "2026-10-20.txt": "# overdue 1 by:2026-10-20\n# overdue 2 by:2026-10-21",
       "2026-10-24.txt": "# due today by:2026-10-24\n# due tomorrow by:2026-10-25",
       "2026-10-30.txt": "# due day 6 by:2026-10-30\n# due day 7 by:2026-10-31",
@@ -359,7 +356,7 @@ describe("dueSummary store", () => {
   });
 
   it("hasToday is false when no items due today", () => {
-    allNotesCache.set({
+    seedDiskNotesForTest({
       "2026-10-25.txt": "# due tomorrow by:2026-10-25",
     });
 

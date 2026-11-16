@@ -15,7 +15,6 @@ import { get } from "svelte/store";
 import {
   activeTabId,
   agendaFileExists,
-  allNotesCache,
   backendKind,
   calendarSyncEnabled,
   colorMode,
@@ -32,6 +31,9 @@ import {
   tabs,
   wordWrap,
 } from "./stores";
+import { notesIndex, type NoteEntry } from "./notesIndex";
+import { isScratchpadKey } from "./notesIndex/entries";
+import { linesOf } from "./notesIndex/facets";
 import { sortFilenamesByRecency } from "./tabSort";
 import { refreshAllNotesCache } from "./persistence";
 import { listSections, openActionLineIndices, stripLeadingToken } from "./tokens";
@@ -555,8 +557,13 @@ export function fuzzyMatch(haystack: string, needle: string): boolean {
   return fuzzyMatchWithIndices(haystack, needle) !== null;
 }
 
+/** Non-scratchpad index keys ordered most-recent-first. */
+function nonScratchpadKeysByRecency(entries: ReadonlyMap<string, NoteEntry>): string[] {
+  return sortFilenamesByRecency(Array.from(entries.keys()).filter((key) => !isScratchpadKey(key)));
+}
+
 /** Build the visible result list for `query`. Async because the `!`/`#`
- * and `@` modes need the notes cache. */
+ * and `@` modes need the notes index. */
 export async function buildPaletteResults(query: string): Promise<PaletteItem[]> {
   const q = query.trim();
   const translate = get(t);
@@ -625,11 +632,12 @@ export async function buildPaletteResults(query: string): Promise<PaletteItem[]>
   if (q.startsWith("!")) {
     const term = q.slice(1).trim();
     await refreshAllNotesCache();
-    const cache = get(allNotesCache);
+    const entries = get(notesIndex).entries;
     const out: PaletteItem[] = [];
-    for (const filename of sortFilenamesByRecency(Object.keys(cache))) {
-      const lines = cache[filename].split("\n");
-      for (const lineIdx of openActionLineIndices(cache[filename])) {
+    for (const filename of nonScratchpadKeysByRecency(entries)) {
+      const entry = entries.get(filename)!;
+      const lines = linesOf(entry);
+      for (const lineIdx of openActionLineIndices(entry.text)) {
         const text = stripLeadingToken(lines[lineIdx]).trim();
         const label = text || translate("commandPalette.emptyActionFallback", undefined);
         const match = fuzzyMatchWithIndices(label, term);
@@ -664,7 +672,8 @@ export async function buildPaletteResults(query: string): Promise<PaletteItem[]>
       });
     }
     await refreshAllNotesCache();
-    for (const filename of sortFilenamesByRecency(Object.keys(get(allNotesCache)))) {
+    const entries = get(notesIndex).entries;
+    for (const filename of nonScratchpadKeysByRecency(entries)) {
       const d = filename.replace(/\.txt$/, "");
       if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) continue;
       if (out.some((i) => i.id === `date-${d}`)) continue;

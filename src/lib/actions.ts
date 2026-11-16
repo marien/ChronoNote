@@ -7,11 +7,13 @@ import {
   actionDrawerDueView,
   actionDrawerScopeRequest,
   actionSnapshot,
-  allNotesCache,
   modal,
   showToast,
   tabs,
 } from "./stores";
+import { notesIndex } from "./notesIndex";
+import { isScratchpadKey } from "./notesIndex/entries";
+import { actionsOf, linesOf } from "./notesIndex/facets";
 import { refreshAllNotesCache, updateNoteOnDisk, writeTabContent } from "./persistence";
 import { openOrCreateDatedFile } from "./tabs";
 import { compareTabsByRecency, sortFilenamesByRecency } from "./tabSort";
@@ -38,9 +40,9 @@ function snapshotItemsForNote(
   base: string,
   tabId: string | undefined,
   filename: string,
-  lines: string[],
+  lines: readonly string[],
+  nodes: readonly ActionNode[],
 ): ActionSnapshotItem[] {
-  const nodes = flattenActionTree(actionTree(lines));
   const parentOf = new Map<ActionNode, ActionNode>();
   for (const node of nodes) for (const child of node.children) parentOf.set(child, node);
   const idOf = new Map<ActionNode, string>();
@@ -54,7 +56,7 @@ function snapshotItemsForNote(
       filename,
       lineIdx: node.lineIdx,
       line: lines[node.lineIdx],
-      header: normalizeHeaderTitle(getSectionHeaderForLine(lines, node.lineIdx)),
+      header: normalizeHeaderTitle(getSectionHeaderForLine(lines as string[], node.lineIdx)),
       kind: node.kind,
       partFrom: node.from,
       partTo: node.to,
@@ -73,19 +75,27 @@ function snapshotItemsForNote(
 export function buildActionSnapshotOpenTabs(): ActionSnapshotItem[] {
   const snapshot: ActionSnapshotItem[] = [];
   for (const tab of [...get(tabs)].sort(compareTabsByRecency)) {
-    snapshot.push(...snapshotItemsForNote(tab.id, tab.id, tab.filename, tab.content.split("\n")));
+    const lines = tab.content.split("\n");
+    snapshot.push(...snapshotItemsForNote(tab.id, tab.id, tab.filename, lines, flattenActionTree(actionTree(lines))));
   }
   return snapshot;
 }
 
 export async function buildActionSnapshotAllFiles(): Promise<ActionSnapshotItem[]> {
   await refreshAllNotesCache();
-  const allSources = get(allNotesCache);
-  const openTabIdByFilename = new Map(get(tabs).filter((t) => !t.isScratchpad).map((t) => [t.filename, t.id]));
+  const entries = get(notesIndex).entries;
+  const filenames = sortFilenamesByRecency(Array.from(entries.keys()).filter((key) => !isScratchpadKey(key)));
   const snapshot: ActionSnapshotItem[] = [];
-  for (const filename of sortFilenamesByRecency(Object.keys(allSources))) {
+  for (const filename of filenames) {
+    const entry = entries.get(filename)!;
     snapshot.push(
-      ...snapshotItemsForNote(filename, openTabIdByFilename.get(filename), filename, allSources[filename].split("\n")),
+      ...snapshotItemsForNote(
+        filename,
+        entry.source === "tab" ? entry.tabId : undefined,
+        filename,
+        linesOf(entry),
+        actionsOf(entry).flat,
+      ),
     );
   }
   return snapshot;

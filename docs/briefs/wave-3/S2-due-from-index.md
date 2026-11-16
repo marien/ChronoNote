@@ -47,6 +47,13 @@ From S1: `notesIndex` (`entries` by key, each `NoteEntry` with `key`, `filename`
 2. Unit-test setup only: in `src/lib/dueOverview.test.ts`, `src/lib/dueOverview.independent.test.ts` and
    `src/lib/editor/dueDates.test.ts`, replace each `allNotesCache.set(x)` with `seedDiskNotesForTest(x)`. Do not
    change any assertion or test title. If a test cannot pass after only that change, stop and report it.
+   One known exception, decided after the first run stopped on it (2026-11-16): the three assertions that read the
+   removed map directly, `dueOverview.test.ts` lines 136 and 138 (`overdueCountMemo.has("2026-10-21.txt")`) and
+   `dueOverview.independent.test.ts` line 83 (`overdueCountMemo.has("2026-10-19.txt")`), are deleted, together with
+   the `overdueCountMemo` / `dueSummaryMemo` imports. They checked that a deleted note's memo slot is dropped; with a
+   `WeakMap` keyed by entry that is no longer observable. Every other assertion in those tests (the counts and the
+   `countOverdue` spy counts) stays exactly as it is. Put this line in your report's "Existing tests changed":
+   `Tests removed: three assertions on the removed overdueCountMemo map (brief S2, exception).` Nothing else changes.
 
 | Before | Action | After |
 | :--- | :--- | :--- |

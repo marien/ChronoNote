@@ -1,6 +1,7 @@
 import { describe, expect, it, beforeEach } from "vitest";
 import { escapeRegExp, parseSearchQuery, removeChipFromQuery, runSearch } from "./search";
-import { allNotesCache, searchResultsStore, tabs } from "./stores";
+import { clearDiskLayer, seedDiskNotesForTest } from "./notesIndex/diskLayer";
+import { searchResultsStore, tabs } from "./stores";
 import type { NoteTab } from "./types";
 
 describe("parseSearchQuery operator parser (Decision 7 / Area 8.2)", () => {
@@ -129,7 +130,8 @@ describe("runSearch 3-line context extraction and operator filtering", () => {
       } as NoteTab,
     ]);
 
-    allNotesCache.set({
+    clearDiskLayer();
+    seedDiskNotesForTest({
       "2026-09-15.txt": note1,
       "2026-09-25.txt": note2,
     });
