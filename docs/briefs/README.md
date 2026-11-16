@@ -58,6 +58,8 @@ handles everything together, as today.
 
 Opus designs and briefs waves 3 and 4 (Marien, 2026-11-15), each brief just before its wave. F3, F5, F6 and F9
 change behaviour Marien has not seen: each gets a short design page with examples and his decisions before its brief.
+Designs for F7, F3, F5, F6, F9 (16 questions): [`docs/design/wave3-designs.html`](../design/wave3-designs.html),
+artifact https://claude.ai/artifact/ApAhovPsvw2oaM7tVFXsXp (2026-11-16, waiting for Marien's answers).
 
 | ID | What | Note |
 | :--- | :--- | :--- |

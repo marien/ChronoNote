@@ -1,0 +1,249 @@
+<title>ChronoNote Wave 3 Designs</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* Layout: one reading column (~1000px): five designs (F7, F3, F5, F6, F9) in the order I would build them, each with examples in note text, then its questions as decision rows with my recommendation first. Same system as the wave 2 page. */
+:root {
+  --bg: #f3f4f6; --surface: #ffffff; --fg: #1a1c20; --muted: #5a606b; --line: #dde0e5;
+  --accent: #0a6fc2; --accent-fg: #ffffff; --ok: #1f8a5b; --warn: #a8650f; --bad: #b8433b;
+  --chip: #eceef2; --pane: #f8f9fb; --mark: #fff1c2; --del: #fbe3e1; --ins: #dff3e8;
+  --ui: "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --display: "Segoe UI Variable Display", "Segoe UI", system-ui, sans-serif;
+  --mono: "Cascadia Code", "Cascadia Mono", Consolas, ui-monospace, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #141518; --surface: #1d1f23; --fg: #e7e8eb; --muted: #a0a6b0; --line: #2f3238;
+  --accent: #4cc2ff; --accent-fg: #06223a; --ok: #4bbf87; --warn: #e0a94e; --bad: #e07b73; --chip: #272a30; --pane: #23262b;
+  --mark: #4a3f17; --del: #4a2422; --ins: #1d3e2d; color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #141518; --surface: #1d1f23; --fg: #e7e8eb; --muted: #a0a6b0; --line: #2f3238;
+  --accent: #4cc2ff; --accent-fg: #06223a; --ok: #4bbf87; --warn: #e0a94e; --bad: #e07b73; --chip: #272a30; --pane: #23262b;
+  --mark: #4a3f17; --del: #4a2422; --ins: #1d3e2d; color-scheme: dark; }
+
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--fg); font: 15px/1.55 var(--ui); }
+.wrap { max-width: 1000px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 32px 96px; }
+h1 { font: 600 32px/1.2 var(--display); margin: 0 0 8px; text-wrap: balance; letter-spacing: -.01em; }
+h2 { font: 600 22px/1.3 var(--display); margin: 56px 0 6px; text-wrap: balance; }
+h3 { font: 600 16px/1.35 var(--display); margin: 22px 0 6px; }
+p { margin: 0 0 10px; max-width: 72ch; }
+.lede { font-size: 16.5px; color: var(--muted); max-width: 70ch; }
+.eyebrow { font: 600 11.5px/1 var(--ui); text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin-bottom: 10px; }
+code, kbd, pre { font-family: var(--mono); font-size: .86em; }
+kbd { background: var(--chip); border-radius: 3px; padding: 1px 4px; }
+ul { margin: 0 0 10px; padding-left: 20px; } li { margin: 3px 0; max-width: 72ch; }
+.st { font-size: 12.5px; color: var(--muted); }
+pre { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; overflow-x: auto; margin: 8px 0 12px; line-height: 1.5; font-size: 13px; }
+pre mark { background: var(--mark); color: inherit; border-radius: 2px; }
+pre del { background: var(--del); text-decoration: line-through; }
+pre ins { background: var(--ins); text-decoration: none; }
+.two { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 12px; }
+.two > div { min-width: 0; }
+.cap { font: 600 11.5px/1 var(--ui); text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 10px 0 4px; }
+
+.tablewrap { overflow-x: auto; margin: 10px 0; }
+table { border-collapse: collapse; width: 100%; font-size: 14px; min-width: 640px; }
+th, td { text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font: 600 11.5px var(--ui); text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+
+/* A suggestion list or pane drawn as it would sit over the note */
+.pop { display: inline-block; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; box-shadow: 0 4px 14px rgba(0,0,0,.12); font: 13px/1.3 var(--ui); min-width: 220px; max-width: 100%; margin: -4px 0 12px 24px; overflow: hidden; }
+.pop div { padding: 5px 10px; display: flex; gap: 12px; justify-content: space-between; }
+.pop div.on { background: var(--accent); color: var(--accent-fg); }
+.pop span { opacity: .7; font-size: 12px; white-space: nowrap; }
+.panel { background: var(--pane); border: 1px solid var(--line); border-radius: 8px; padding: 10px 14px; font: 13.5px/1.45 var(--ui); margin: 8px 0 12px; max-width: 520px; }
+.panel .ph { font: 600 15px var(--display); margin-bottom: 4px; }
+.panel .band { font: 600 11.5px var(--ui); text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin: 10px 0 2px; }
+.panel .r { font: 12.5px/1.6 var(--mono); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.panel .r b { font-weight: 400; color: var(--muted); }
+
+.q { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px 12px; margin: 10px 0; }
+.q .qh { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
+.q .n { font: 600 13px var(--mono); color: var(--muted); }
+.q .qt { font-weight: 600; flex: 1 1 260px; min-width: 0; }
+.q p { font-size: 14px; color: var(--muted); margin: 4px 0 0; }
+.dec { display: flex; flex-wrap: wrap; gap: 8px 10px; align-items: center; margin-top: 10px; }
+.seg { display: inline-flex; flex-wrap: wrap; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+.seg button { font: 500 13px var(--ui); background: transparent; color: var(--fg); border: 0; border-right: 1px solid var(--line); padding: 5px 11px; cursor: pointer; }
+.seg button:last-child { border-right: 0; }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-fg); }
+.seg button .r { font-size: 11px; opacity: .75; margin-left: 4px; }
+button:focus-visible, .dec input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.dec input { flex: 1 1 200px; min-width: 0; font: 13.5px var(--ui); color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 6px 9px; }
+
+.bar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 10; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 10px 14px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-top: 20px; }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--bg); }
+.bar .count { font-size: 13.5px; color: var(--muted); flex: 1 1 200px; font-variant-numeric: tabular-nums; }
+.btn { font: 600 13.5px var(--ui); border: 1px solid var(--line); background: var(--surface); color: var(--fg); border-radius: 6px; padding: 7px 14px; cursor: pointer; }
+.btn.primary { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
+#out { width: 100%; min-height: 120px; font: 12.5px var(--mono); color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 8px; margin-top: 8px; }
+</style>
+
+<div class="wrap">
+  <div class="eyebrow">ChronoNote · 16 November 2026 · forward review, wave 3</div>
+  <h1>Wave 3 designs</h1>
+  <p class="lede">Five designs to confirm before I write their briefs: search for decisions and sections, suggestions while typing, the person view, rename across notes, and a richer calendar file. All of them read the new notes index, so they cost little to compute. Each question has my recommendation first.</p>
+
+  <div class="bar">
+    <span class="count" id="count">0 of 16 answered</span>
+    <button class="btn" id="recs" type="button">Take all recommendations</button>
+    <button class="btn primary" id="copy" type="button">Copy decisions</button>
+  </div>
+  <p class="st">Choices and notes are kept in this browser. "Copy decisions" gives text to paste into the chat.</p>
+  <textarea id="out" hidden readonly aria-label="Decisions as text"></textarea>
+
+  <h2>F7 · Search finds decisions and sections</h2>
+  <p>Four new words for Search (<kbd>Ctrl+Shift+F</kbd>) and the Actions filter, next to today's <code>is:open</code>, <code>has:@dana</code>, <code>tag:</code>, <code>before:</code> and <code>due:</code>. They combine with each other and with plain words.</p>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Word</th><th>Finds</th><th>Example line it finds</th></tr></thead>
+    <tbody>
+      <tr><td><code>section:review</code></td><td>lines inside a section whose title contains the word (quotes for spaces: <code>section:"design review"</code>); times and dates in the title are ignored</td><td><code># send the mock-ups</code> under <code>[10:00 - 10:30] Design review</code></td></tr>
+      <tr><td><code>is:decision</code></td><td>follow-ups that record an outcome: <code>=&gt; text</code></td><td><code>. budget =&gt; we keep the Q1 numbers</code></td></tr>
+      <tr><td><code>is:topic</code></td><td>agenda topics in any state: <code>o</code> <code>.</code> <code>,</code></td><td><code>o coffee rota (@Ruth, @Ben)</code></td></tr>
+      <tr><td><code>is:emphasis</code></td><td>lines marked <code>!</code></td><td><code>! the hall is booked until 22:00</code></td></tr>
+    </tbody>
+  </table></div>
+  <p>"What did we decide about the budget in the board meeting?" becomes <code>section:board is:decision budget</code>.</p>
+  <p><strong>Saved searches.</strong> A star button in the search field saves the query under its own text. Saved searches appear as chips under the field and in the palette (group "Saved searches"); right-click a chip to remove it.</p>
+
+  <div class="q" data-id="7.1" data-opts="Contains the word|Whole title only"><div class="qh"><span class="n">7.1</span><span class="qt">How section: matches a title</span></div><p>"Contains" lets <code>section:review</code> find "Design review" and "Budget review". "Whole title" needs <code>section:"design review"</code> but never catches a neighbour.</p></div>
+  <div class="q" data-id="7.2" data-opts="Plain follow-ups only|Also follow-up actions"><div class="qh"><span class="n">7.2</span><span class="qt">What is:decision includes</span></div><p>Plain follow-ups: <code>=&gt; we keep the Q1 numbers</code>. Follow-up actions (<code>=&gt; # call Sam</code>) are actions and already found by <code>is:open</code>; delegations (<code>=&gt; @dana</code>) by <code>has:@dana</code>.</p></div>
+  <div class="q" data-id="7.3" data-opts="In the notes folder|On this computer only"><div class="qh"><span class="n">7.3</span><span class="qt">Where saved searches are kept</span></div><p>In the notes folder (a small hidden file, <code>.chrononote-searches.json</code>), they follow you to the other laptop and the web app through OneDrive. On this computer only, they stay out of the folder.</p></div>
+
+  <h2>F3 · Suggestions while typing</h2>
+  <p>A small list under the caret offers what your notes already use, most recently used first, at most eight rows. Nothing is inserted unless you take a row; typing on narrows the list, and a space, <kbd>Esc</kbd> or a click elsewhere closes it. The note text never moves: the list floats over it.</p>
+  <div class="two">
+    <div><div class="cap">After @ and a letter</div>
+<pre>o coffee rota (@R|</pre>
+      <div class="pop"><div class="on">@Ruth <span>Thu</span></div><div>@Robin <span>3 Nov</span></div><div>@Rosa <span>12 Oct</span></div></div></div>
+    <div><div class="cap">After ( behind an action</div>
+<pre># (b|</pre>
+      <div class="pop"><div class="on">(budget) <span>yesterday</span></div><div>(building) <span>2 Nov</span></div></div></div>
+  </div>
+  <div class="two">
+    <div><div class="cap">On a section title (the line above ===)</div>
+<pre>Board|
+=====</pre>
+      <div class="pop"><div class="on">Board meeting <span>every month</span></div><div>Board prep <span>4 Nov</span></div></div></div>
+    <div><div class="cap">What a row shows</div>
+      <p class="st">The suggestion, and when you last used it. Names keep the case you wrote them with (<code>@Ruth</code>). If two spellings exist (<code>@Ruth</code>, <code>@ruth</code>), the one used most is offered.</p>
+      <p class="st">With F9, the people invited to the meeting the caret is in come first, even before you have ever written their name.</p></div>
+  </div>
+
+  <div class="q" data-id="3.1" data-opts="Tab, or Enter after an arrow|Tab and Enter"><div class="qh"><span class="n">3.1</span><span class="qt">Which key takes a suggestion</span></div><p>If Enter always took the top row, typing <code>@dan</code> and Enter for a new line would turn it into <code>@daniel</code>. My pick: <kbd>Tab</kbd> takes it; <kbd>Enter</kbd> takes it only once you moved through the list with <kbd>↑</kbd>/<kbd>↓</kbd>, otherwise Enter is a normal Enter.</p></div>
+  <div class="q" data-id="3.2" data-opts="After the first letter|Right after @"><div class="qh"><span class="n">3.2</span><span class="qt">When the list appears for names</span></div><p>After the first letter, a lone <code>@</code> (in an address, a handle) shows nothing. Right after <code>@</code>, you see your recent people at once.</p></div>
+  <div class="q" data-id="3.3" data-opts="Recurring titles and today's meetings|Every title ever used"><div class="qh"><span class="n">3.3</span><span class="qt">Which section titles are offered</span></div><p>Recurring: used at least twice in the last 90 days, plus today's calendar meetings. That is what Section History can follow; one-off titles would fill the list with noise.</p></div>
+  <div class="q" data-id="3.4" data-opts="Desktop and web app first|Phone at the same time"><div class="qh"><span class="n">3.4</span><span class="qt">The phone</span></div><p>On the phone the list would compete with the keyboard and the accessory bar. My pick: build it for desktop and the web app, then decide on the phone once you have used it.</p></div>
+
+  <h2>F5 · Person view</h2>
+  <p>Everything about one person in one place before you meet them, read-only. <kbd>Ctrl+click</kbd> on an <code>@name</code>, the line menu's "Show @Dana", or <code>@dana</code> in the palette (people listed below the dates) opens it. A row jumps to its line; <kbd>Esc</kbd> closes.</p>
+  <div class="panel">
+    <div class="ph">@Dana</div>
+    <div class="band">Your open actions that mention Dana · 2</div>
+    <div class="r"># send Dana the budget sheet by:fri <b>· Mon · Board prep</b></div>
+    <div class="r"># ask @Dana about the hall key <b>· 12 Nov · Church council</b></div>
+    <div class="band">Delegated to Dana · 3</div>
+    <div class="r">rota for December =&gt; @Dana <b>· Thu · Coffee rota</b></div>
+    <div class="r">collect the shirts =&gt; @Dana <b>· 9 Nov · U12 training</b></div>
+    <div class="r">book the minibus =&gt; @Dana <b>· 2 Nov · U12 training</b></div>
+    <div class="band">Last mentions · by meeting</div>
+    <div class="r">Thu · Coffee rota <b>· 2 lines</b></div>
+    <div class="r">12 Nov · Church council <b>· 1 line</b></div>
+    <div class="r">9 Nov · U12 training <b>· 3 lines</b></div>
+  </div>
+  <p class="st">It finds the name however it was written (<code>@dana</code>, <code>@Dana</code>, <code>(@Dana, @Ben)</code>), but not a longer name: <code>@dan</code> is someone else.</p>
+
+  <div class="q" data-id="5.1" data-opts="A pane beside the note|A dialog"><div class="qh"><span class="n">5.1</span><span class="qt">Where it opens</span></div><p>Beside the note on a wide window, like Section History, so you can keep typing while you look; a dialog on a narrow window and the phone. A dialog always is simpler, but covers the note.</p></div>
+  <div class="q" data-id="5.2" data-opts="Last 8 weeks, then Show older|Everything"><div class="qh"><span class="n">5.2</span><span class="qt">How far back delegations and mentions go</span></div><p>Delegations have no done state, so "everything" grows forever. Open actions are always all shown, however old.</p></div>
+  <div class="q" data-id="5.3" data-opts="Ctrl+click, line menu and palette|Line menu and palette only"><div class="qh"><span class="n">5.3</span><span class="qt">How to open it</span></div><p>Ctrl+click is quickest with the mouse. A plain click keeps placing the caret, as now.</p></div>
+
+  <h2>F6 · Rename across all notes</h2>
+  <p>Rename a section title, an <code>@name</code> or a <code>(topic)</code> in every note at once. Start from the line menu on the thing itself ("Rename everywhere…") or the palette. A dialog shows every line that will change before anything is written.</p>
+  <div class="cap">Rename the section "Coffee rota" to "Hospitality rota"</div>
+<pre>From  Coffee rota              To  Hospitality rota
+14 lines in 14 notes
+
+☑ 2026-11-13   [10:00 - 10:30] <del>Coffee rota</del><ins>Hospitality rota</ins>
+☑ 2026-11-06   [10:00 - 10:30] <del>Coffee rota</del><ins>Hospitality rota</ins>
+☑ 2026-10-30   <del>Coffee rota</del><ins>Hospitality rota</ins> - 2026-10-30
+…
+                                     [ Cancel ]  [ Rename in 14 notes ]</pre>
+  <ul>
+    <li>A title matches as Section History matches it: a time in front or a date at the end are kept, only the title itself changes.</li>
+    <li>A name matches the whole name in any case (<code>@dana</code>, <code>@Dana</code>), and a topic only as a tag after an action. The new text is written as you typed it.</li>
+    <li>Before a note changes, it gets an earlier version (Earlier versions… in the tab menu has it). An open note changes in the editor, as one undo step. A note that changed on disk while the dialog was open is skipped and named afterwards.</li>
+  </ul>
+
+  <div class="q" data-id="6.1" data-opts="Yes, a tick per note|No, all or nothing"><div class="qh"><span class="n">6.1</span><span class="qt">Untick single notes in the preview</span></div><p>Useful when one old "Coffee rota" really was a different meeting.</p></div>
+  <div class="q" data-id="6.2" data-opts="Undo in the toast|Earlier versions are enough"><div class="qh"><span class="n">6.2</span><span class="qt">Undo the whole rename at once</span></div><p>"Renamed in 14 notes · Undo" puts every note back from the version saved just before, unless you changed it since. Without it, you restore note by note from Earlier versions.</p></div>
+  <div class="q" data-id="6.3" data-opts="Leave future notes alone|Rename them too"><div class="qh"><span class="n">6.3</span><span class="qt">Section titles in notes dated after today</span></div><p>Calendar sync owns those: it matches sections to meetings by title, so renaming them would make it flag the section as removed and add the meeting again. Names and topics change in every note either way.</p></div>
+
+  <h2>F9 · A richer calendar file</h2>
+  <p>Three optional fields in <code>.agenda.json</code>. A file without them works exactly as today. What is worth building depends on what your exporter can write, so the first question is yours to answer from that side.</p>
+<pre>{ "date": "2026-11-17", "start": "10:00", "end": "10:30", "title": "Design review",
+  <mark>"joinUrl": "https://teams.microsoft.com/l/meetup-join/…",</mark>
+  <mark>"attendees": ["Dana Smith", "Ben de Vries"],</mark>
+  <mark>"seriesId": "AAMkAGI2…"</mark> }</pre>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Field</th><th>What ChronoNote does with it</th></tr></thead>
+    <tbody>
+      <tr><td><code>joinUrl</code></td><td>A Join button on Peek's "on now" chip and in its on-now list (<kbd>Ctrl+G</kbd> in Peek). It opens the link in your browser; ChronoNote watches nothing. Only <code>https:</code> links.</td></tr>
+      <tr><td><code>attendees</code></td><td>The people of the meeting the caret is in come first in the <code>@</code> suggestions (F3).</td></tr>
+      <tr><td><code>seriesId</code></td><td>Section History follows a series through a title change. Needs a small side file that remembers which title belonged to which series.</td></tr>
+    </tbody>
+  </table></div>
+
+  <div class="q" data-id="9.1" data-opts="All three|Join link and attendees|Join link only|None of them"><div class="qh"><span class="n">9.1</span><span class="qt">What your exporter can supply</span></div><p>Answer from what the work-side export (Outlook via your Power App or script) can read. "None" parks F9.</p></div>
+  <div class="q" data-id="9.2" data-opts="First name from the display name|Exporter writes the @name"><div class="qh"><span class="n">9.2</span><span class="qt">How an attendee becomes an @name</span></div><p>"Dana Smith" becomes <code>@Dana</code>; two Danas become <code>@Dana</code> and <code>@Dana-S</code>. Or the exporter writes exactly the name you use in notes, which only it can know.</p></div>
+  <div class="q" data-id="9.3" data-opts="Leave seriesId out for now|Build it"><div class="qh"><span class="n">9.3</span><span class="qt">Series through a title change</span></div><p>F6 already joins a renamed series in one step, by hand, when it happens. The series id would do it by itself, at the cost of a side file to keep in step.</p></div>
+
+  <h2>Order</h2>
+  <p>F7 first (small, no new screens), then F3 and F5 (they share the list of names), then F6 (writes many notes: built by the stronger coder model, and reviewed with extra care), and F9 last, once its fields are settled. Each gets a brief after your answers, with an independent test writer and a review by another model family.</p>
+</div>
+
+<script>
+(function () {
+  var KEY = "chrononote-wave3-designs-v1", state = {};
+  try { state = JSON.parse(localStorage.getItem(KEY) || "{}") || {}; } catch (e) { state = {}; }
+  function save() { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {} }
+  var qs = Array.prototype.slice.call(document.querySelectorAll(".q[data-id]"));
+  function paint(q) {
+    var s = state[q.dataset.id] || {};
+    q.querySelectorAll(".seg button").forEach(function (b) { b.setAttribute("aria-pressed", String(b.dataset.v === s.d)); });
+  }
+  function count() {
+    var n = qs.filter(function (q) { return (state[q.dataset.id] || {}).d; }).length;
+    document.getElementById("count").textContent = n + " of " + qs.length + " answered";
+  }
+  qs.forEach(function (q) {
+    var id = q.dataset.id, opts = q.dataset.opts.split("|"), dec = document.createElement("div"), seg = document.createElement("div"), note = document.createElement("input");
+    dec.className = "dec"; seg.className = "seg"; seg.setAttribute("role", "group"); seg.setAttribute("aria-label", "Answer for " + id);
+    opts.forEach(function (o, i) {
+      var b = document.createElement("button"); b.type = "button"; b.dataset.v = o; b.id = "a-" + id + "-" + i; b.textContent = o;
+      if (i === 0 && id !== "9.1") { var r = document.createElement("span"); r.className = "r"; r.textContent = "recommended"; b.appendChild(r); }
+      b.addEventListener("click", function () { var s = state[id] || (state[id] = {}); s.d = s.d === o ? "" : o; save(); paint(q); count(); });
+      seg.appendChild(b);
+    });
+    note.type = "text"; note.id = "n-" + id; note.placeholder = "Note (optional)"; note.setAttribute("aria-label", "Note for " + id);
+    note.value = (state[id] || {}).n || "";
+    note.addEventListener("input", function () { (state[id] || (state[id] = {})).n = note.value; save(); });
+    dec.appendChild(seg); dec.appendChild(note); q.appendChild(dec); paint(q);
+  });
+  count();
+  document.getElementById("recs").addEventListener("click", function () {
+    qs.forEach(function (q) { if (q.dataset.id === "9.1") return; var s = state[q.dataset.id] || (state[q.dataset.id] = {}); if (!s.d) s.d = q.dataset.opts.split("|")[0]; paint(q); });
+    save(); count();
+  });
+  document.getElementById("copy").addEventListener("click", function () {
+    var lines = ["Wave 3 design decisions (2026-11-16):"];
+    qs.forEach(function (q) {
+      var s = state[q.dataset.id] || {};
+      lines.push(q.dataset.id + " " + q.querySelector(".qt").textContent.trim() + ": " + (s.d || "undecided") + (s.n ? " | " + s.n : ""));
+    });
+    var text = lines.join("\n"), out = document.getElementById("out"), btn = this;
+    function fallback() { out.hidden = false; out.value = text; out.focus(); out.select(); }
+    try {
+      navigator.clipboard.writeText(text).then(function () { btn.textContent = "Copied"; setTimeout(function () { btn.textContent = "Copy decisions"; }, 1500); }, fallback);
+    } catch (e) { fallback(); }
+  });
+})();
+</script>
