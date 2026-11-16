@@ -56,10 +56,11 @@ test.describe("saved searches", () => {
     await expect(searchModal).toBeVisible();
     await expect(searchInput).toHaveValue("is:open");
 
+    // The scope's "all notes" option is labelled "All" since U1 (§482); the brief said "All files".
     const allFilesBtn = searchModal
-      .getByRole("button", { name: /All files/i })
-      .or(searchModal.getByRole("radio", { name: /All files/i }))
-      .or(searchModal.getByRole("tab", { name: /All files/i }))
+      .getByRole("button", { name: /^All( files)?$/i })
+      .or(searchModal.getByRole("radio", { name: /^All( files)?$/i }))
+      .or(searchModal.getByRole("tab", { name: /^All( files)?$/i }))
       .first();
     await expect(allFilesBtn).toBeVisible();
     await expect
