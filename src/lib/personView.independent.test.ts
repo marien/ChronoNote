@@ -10,6 +10,9 @@ const entry = (dateISO: string, text: string): NoteEntry => ({
   source: "disk",
 });
 
+// The functions take the index's entries (a Map by key), as `get(notesIndex).entries` gives them.
+const byKey = (list: NoteEntry[]): ReadonlyMap<string, NoteEntry> => new Map(list.map((e) => [e.key, e]));
+
 describe("personMatches", () => {
   it.each([
     { line: "# send Dana the budget sheet", name: "dana", expected: true },
@@ -24,7 +27,7 @@ describe("personMatches", () => {
 });
 
 describe("buildPersonView", () => {
-  const entries: NoteEntry[] = [
+  const entries = byKey([
     entry("2026-06-01", "# ask Dana about the key"),
     entry("2026-09-01", "# book hall => @dana"),
     entry("2026-11-10", "# shirts => @Dana"),
@@ -39,7 +42,7 @@ describe("buildPersonView", () => {
         "# remind @Dana of the rota",
       ].join("\n"),
     ),
-  ];
+  ]);
 
   it("returns open actions of any age newest first, delegated within 8 weeks, and mentions grouped by meeting when showOlder is false", () => {
     const view = buildPersonView("Dana", entries, "2026-11-16", false);
@@ -91,10 +94,10 @@ describe("buildPersonView", () => {
 
 describe("knownPeople", () => {
   it("orders most recently used first with the most used spelling", () => {
-    const entries: NoteEntry[] = [
+    const entries = byKey([
       entry("2026-11-10", "# ask @Dana\n# ping @dana\n# call @Dana"),
       entry("2026-11-12", "# check with @Ben"),
-    ];
+    ]);
 
     expect(knownPeople(entries)).toEqual(["Ben", "Dana"]);
   });

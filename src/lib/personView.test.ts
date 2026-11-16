@@ -119,6 +119,12 @@ describe("buildPersonView", () => {
     expect(view.delegated).toHaveLength(1);
     expect(view.delegated[0].dateISO).toBe("2026-11-23");
   });
+
+  it("shows a delegation step with the action it belongs to", () => {
+    const entries = makeEntries({ "2026-11-10.txt": "# shirts => @Dana\n" });
+    const view = buildPersonView("Dana", entries, "2026-11-16", false);
+    expect(view.delegated.map((r) => r.text)).toEqual(["shirts => @Dana"]);
+  });
 });
 
 describe("knownPeople", () => {

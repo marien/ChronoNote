@@ -58,8 +58,16 @@ export function personMatches(line: string, name: string): boolean {
     }
   }
 
-  const wordRe = new RegExp(String.raw`(?<!${NAME_CHAR})${escapeRegExp(target)}(?!${NAME_CHAR})`, "iu");
-  return wordRe.test(line);
+  return wordRegExp(target).test(line);
+}
+
+// buildPersonView calls personMatches for every line of every note with the same name: compile its pattern once.
+let cachedWordRe: { target: string; re: RegExp } | null = null;
+function wordRegExp(target: string): RegExp {
+  if (cachedWordRe?.target !== target) {
+    cachedWordRe = { target, re: new RegExp(String.raw`(?<!${NAME_CHAR})${escapeRegExp(target)}(?!${NAME_CHAR})`, "iu") };
+  }
+  return cachedWordRe.re;
 }
 
 interface SpellingStats {
@@ -281,14 +289,17 @@ export function buildPersonView(
         if (hasAssignee) {
           if (inWindow || showOlder) {
             const section = sectionForLine(sections, node.lineIdx).title;
+            // A `=> @name` step alone would read "@Dana"; this list is flat, so the row starts at the line's start
+            // ("shirts => @Dana") the way the Actions pane shows the step under its parent.
+            const from = node.kind === "step" && !node.whole ? 0 : node.from;
             delegated.push({
               filename: entry.filename,
               dateISO,
               lineIdx: node.lineIdx,
-              text: rowTextForNode(entry.filename, line, section, node),
+              text: rowTextForNode(entry.filename, line, section, { ...node, from }),
               section,
               line,
-              partFrom: node.from,
+              partFrom: from,
               partTo: node.to,
               whole: node.whole,
               state: node.state,
