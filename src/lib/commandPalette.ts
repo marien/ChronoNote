@@ -557,13 +557,13 @@ export function fuzzyMatch(haystack: string, needle: string): boolean {
   return fuzzyMatchWithIndices(haystack, needle) !== null;
 }
 
-/** Build the visible result list for `query`. Async because the `!`/`#`
- * and `@` modes need the notes cache. */
 /** Non-scratchpad index keys ordered most-recent-first. */
 function nonScratchpadKeysByRecency(entries: ReadonlyMap<string, NoteEntry>): string[] {
   return sortFilenamesByRecency(Array.from(entries.keys()).filter((key) => !isScratchpadKey(key)));
 }
 
+/** Build the visible result list for `query`. Async because the `!`/`#`
+ * and `@` modes need the notes index. */
 export async function buildPaletteResults(query: string): Promise<PaletteItem[]> {
   const q = query.trim();
   const translate = get(t);
