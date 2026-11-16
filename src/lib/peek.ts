@@ -20,7 +20,6 @@ import * as api from "./tauriApi";
 import type { PeekConfig, PeekHeader } from "./types";
 import {
   activeTabId,
-  allNotesCache,
   backendKind,
   editorApi,
   fontSize,

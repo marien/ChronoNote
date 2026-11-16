@@ -2,7 +2,9 @@
   import { get } from "svelte/store";
   import { onMount, tick, untrack } from "svelte";
   import * as controller from "../../controller";
-  import { activeTabId, allNotesCache, copyForwardPending, editorApi, isMobile, tabs } from "../../controller";
+  import { activeTabId, copyForwardPending, editorApi, isMobile, tabs } from "../../controller";
+  import { dayHeatOf } from "../../dayHeat";
+  import { notesIndex } from "../../notesIndex";
   import * as api from "../../tauriApi";
   import { agendaFileExists, calendarSyncEnabled } from "../../stores";
   import { focusTrap } from "../../actions/focusTrap";
@@ -10,7 +12,6 @@
   import {
     addDaysISO,
     addMonths,
-    computeDayHeat,
     type CalCell,
     type DayHeatState,
     formatISO,
@@ -86,7 +87,7 @@
    * visible month's dots/bold appear immediately instead of waiting on
    * however much note history exists. Stops re-firing once that full
    * read lands (`loadingAll` flips false) — nothing left to gain by
-   * re-fetching days `allNotesCache` already has. */
+   * re-fetching days the index already has. */
   let loadingAll = $state(true);
   $effect(() => {
     if (loadingAll) {
@@ -133,15 +134,14 @@
     const noteByIso = new Set<string>();
     const openByIso = new Set<string>();
     const heatByIso = new Map<string, DayHeatState>();
-    for (const [fn, content] of Object.entries($allNotesCache)) {
-      const d = fn.replace(/\.txt$/, "");
-      if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) continue;
-      if (content.trim() === "") continue;
-      noteByIso.add(d);
-      const heat = computeDayHeat(content);
+    for (const entry of $notesIndex.entries.values()) {
+      if (!entry.dateISO) continue;
+      if (entry.text.trim() === "") continue;
+      noteByIso.add(entry.dateISO);
+      const heat = dayHeatOf(entry);
       if (heat) {
-        heatByIso.set(d, heat);
-        if (heat === "pending") openByIso.add(d);
+        heatByIso.set(entry.dateISO, heat);
+        if (heat === "pending") openByIso.add(entry.dateISO);
       }
     }
     return { noteByIso, openByIso, heatByIso };

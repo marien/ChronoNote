@@ -1,7 +1,6 @@
 import { get } from "svelte/store";
 import * as api from "./tauriApi";
 import {
-  allNotesCache,
   appVersion,
   backendKind,
   calendarSyncEnabled,
@@ -13,6 +12,8 @@ import {
   toastMessage,
   wordWrap,
 } from "./stores";
+import { notesIndex } from "./notesIndex";
+import { isScratchpadKey } from "./notesIndex/entries";
 import { locale, t } from "./i18n";
 
 export function logInfo(msg: string): void {
@@ -106,7 +107,10 @@ export async function buildDiagnostics(): Promise<string> {
   const wrap = get(wordWrap);
   const font = get(fontSize);
   const openTabsCount = get(tabs).length;
-  const notesCount = Object.keys(get(allNotesCache)).length;
+  let notesCount = 0;
+  for (const key of get(notesIndex).entries.keys()) {
+    if (!isScratchpadKey(key)) notesCount++;
+  }
   const calSync = get(calendarSyncEnabled) ? "on" : "off";
 
   // §404: write the flight recorder (the last few hundred detailed docked-Peek lines, kept in memory) into the log

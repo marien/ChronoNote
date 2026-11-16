@@ -3,7 +3,6 @@
   import * as controller from "../../controller";
   import {
     activeTabId,
-    allNotesCache,
     backendKind,
     oneDriveAccount,
     isZenMode,
@@ -11,6 +10,7 @@
     statusCounts,
     tabs,
   } from "../../controller";
+  import { notesIndex } from "../../notesIndex";
   import Icon from "../../icons/Icon.svelte";
   import CloudStatusButton from "../CloudStatusButton.svelte";
   import { parseISODateLocal, todayISO } from "../../date";
@@ -34,11 +34,13 @@
       : todayISO()
   );
 
-  const contentDates = $derived(
-    Object.entries($allNotesCache)
-      .filter(([filename, content]) => /^\d{4}-\d{2}-\d{2}\.txt$/.test(filename) && content.trim().length > 0)
-      .map(([filename]) => filename.slice(0, 10))
-  );
+  const contentDates = $derived.by(() => {
+    const dates: string[] = [];
+    for (const entry of $notesIndex.entries.values()) {
+      if (entry.dateISO && entry.text.trim().length > 0) dates.push(entry.dateISO);
+    }
+    return dates;
+  });
 
   const prevDate = $derived(adjacentNoteDate(currentDate, contentDates, -1));
   const nextDate = $derived(adjacentNoteDate(currentDate, contentDates, 1));

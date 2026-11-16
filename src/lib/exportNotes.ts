@@ -1,6 +1,7 @@
 import { get, writable } from "svelte/store";
 import { save } from "@tauri-apps/plugin-dialog";
-import { activeTabId, allNotesCache, backendKind, showToast, tabs } from "./stores";
+import { notesIndex } from "./notesIndex";
+import { activeTabId, backendKind, showToast, tabs } from "./stores";
 import { exportModalOpen } from "./overlays";
 import { refreshAllNotesCache } from "./persistence";
 import { writeExportFile } from "./tauriApi";
@@ -29,16 +30,11 @@ function getActiveOrTargetTab(target?: NoteTab | null): NoteTab | undefined {
 
 async function getRangeNotes(from: string, to: string): Promise<{ date: string; text: string }[]> {
   await refreshAllNotesCache();
-  const cache = get(allNotesCache);
   const out: { date: string; text: string }[] = [];
 
-  for (const [filename, content] of Object.entries(cache)) {
-    const match = filename.match(/^(\d{4}-\d{2}-\d{2})\.txt$/);
-    if (match) {
-      const date = match[1];
-      if (date >= from && date <= to) {
-        out.push({ date, text: content });
-      }
+  for (const entry of get(notesIndex).entries.values()) {
+    if (entry.dateISO && entry.dateISO >= from && entry.dateISO <= to) {
+      out.push({ date: entry.dateISO, text: entry.text });
     }
   }
 
