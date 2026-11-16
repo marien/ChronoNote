@@ -3,7 +3,15 @@
 import type { ActionSnapshotItem } from "./types";
 import { groupByDue, itemDueDate, type DueGroupKey } from "./dueOverview";
 import { dueItems, innermostActionSymbol, stripLeadingToken } from "./tokens";
-import { escapeRegExp, parseSearchQuery, type ParsedSearchQuery } from "./search";
+import {
+  escapeRegExp,
+  isDecisionLine,
+  isEmphasisLine,
+  isTopicLine,
+  matchesSectionTitle,
+  parseSearchQuery,
+  type ParsedSearchQuery,
+} from "./search";
 
 export interface DrawerRow<T extends ActionSnapshotItem = ActionSnapshotItem> {
   item: T;
@@ -140,6 +148,10 @@ export function hasActiveFilter(parsed: ParsedSearchQuery): boolean {
   return Boolean(
     ops.isOpen ||
     ops.isDone ||
+    ops.isDecision ||
+    ops.isTopic ||
+    ops.isEmphasis ||
+    ops.section ||
     ops.tag ||
     (ops.tags && ops.tags.length > 0) ||
     ops.hasAssignee ||
@@ -172,8 +184,12 @@ export function nodeMatchesQuery(
       if (ops.before && iso > ops.before) return false;
     }
 
+    if (ops.section && !matchesSectionTitle(item.header, ops.section.toLowerCase(), true)) return false;
     if (ops.isOpen && nodeState(item) !== "#") return false;
     if (ops.isDone && nodeState(item) !== "v") return false;
+    if (ops.isDecision && !isDecisionLine(item.line)) return false;
+    if (ops.isTopic && !isTopicLine(item.line)) return false;
+    if (ops.isEmphasis && !isEmphasisLine(item.line)) return false;
 
     if (ops.due) {
       const delegatedActive = Boolean(showDelegated) || Boolean(ops.hasAssignee);

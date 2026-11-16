@@ -512,3 +512,4 @@ line, and this index is regenerated with `node scripts/changelog-index.mjs`.
 - §490 Search, Section History, occurrences and copy forward read the notes index (R1, slice S4)
 - §491 Date picker, phone companion, export, phone tab bar and Peek read the notes index (R1, slice S5)
 - §492 The old map of all notes is gone (R1, slice S6)
+- §493 Search finds decisions, topics, emphasis and sections (F7a)

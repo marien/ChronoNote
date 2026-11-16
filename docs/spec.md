@@ -652,16 +652,22 @@ reachable from the top bar, a shortcut, or the command palette:
   on the phone), Section History's selection (grey, semibold); no meeting
   headings.
   The filter understands Search's operators (§431, feature review B3):
-  `is:open`, `is:done`, `tag:<topic>`, `has:@<name>`, `since:YYYY-MM-DD`,
-  `before:YYYY-MM-DD`, `due:<day>` (§449: open own action parts due that
-  day, delegated ones too while delegated parts are shown; the day as
-  `by:` takes it, `due:fri`, `due:+3`, resolved from today, the chip
-  showing the date), shown as removable chips under the filter; the
-  rest is a substring as before. They test a row's own part (dates: its
-  note's date; undated files never match a date), a match on a parent
-  shows its group and a match on a child shows it with its ancestors,
-  `has:@name` shows delegated parts, and `is:` decides open/done while it
-  is there (the "Only open" toggle is then disabled). Also in the due view.
+  `is:open`, `is:done`, `is:decision` (lines with a `=>` arrow not
+  starting a consequence action, topic or delegate and with text after it),
+  `is:topic` (lines with an agenda topic `o`, `.` or `,`), `is:emphasis`
+  (lines with a `!` emphasis marker), `section:<name>` (or
+  `section:"..."` with spaces: items inside a section whose matching
+  title contains `<name>`), `tag:<topic>`, `has:@<name>`,
+  `since:YYYY-MM-DD`, `before:YYYY-MM-DD`, `due:<day>` (§449: open own
+  action parts due that day, delegated ones too while delegated parts
+  are shown; the day as `by:` takes it, `due:fri`, `due:+3`, resolved
+  from today, the chip showing the date), shown as removable chips under
+  the filter; the rest is a substring as before. They test a row's own
+  part (dates: its note's date; undated files never match a date), a
+  match on a parent shows its group and a match on a child shows it with
+  its ancestors, `has:@name` shows delegated parts, and `is:` decides
+  open/done while it is there (the "Only open" toggle is then disabled).
+  Also in the due view.
   `Ctrl+Space` on a focused row cycles its state in place; `Enter` jumps
   to it; `Shift+Enter` forwards it to today (source becomes `> `,
   today's note gets a fresh `# ` copy on top). Opens focused on whatever
@@ -803,10 +809,15 @@ reachable from the top bar, a shortcut, or the command palette:
   either the open tabs or every file, same open-tabs/all-files toggle as
   the Action Drawer, results glyph-rendered like the drawer's own rows,
   each with the line before and after the match. Operators narrow the
-  results and appear as removable chips: `is:open`, `is:done`, `tag:<topic>`,
-  `has:@<name>`, `since:YYYY-MM-DD`, `before:YYYY-MM-DD`, `due:<day>` (a
-  line with an open own action part due that day, §449). Opening a result
-  briefly pulses the target line.
+  results and appear as removable chips: `is:open`, `is:done`,
+  `is:decision` (lines with a `=>` arrow not starting a consequence
+  action, topic or delegate and with text after it), `is:topic` (lines
+  with an agenda topic `o`, `.` or `,`), `is:emphasis` (lines with a `!`
+  emphasis marker), `section:<name>` (or `section:"..."` with spaces:
+  non-blank body lines inside a section whose matching title contains
+  `<name>`), `tag:<topic>`, `has:@<name>`, `since:YYYY-MM-DD`,
+  `before:YYYY-MM-DD`, `due:<day>` (a line with an open own action part
+  due that day, §449). Opening a result briefly pulses the target line.
 - **Sync Calendar for This Day** (`Ctrl/Cmd+Shift+C`, see tenet 4) — an
   opt-in feature (Settings → Notes & Sync → Calendar, §3.4; hidden entirely until turned
   on) that reads a `.agenda.json` file from the root of the notes folder
