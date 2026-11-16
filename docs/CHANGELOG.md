@@ -506,3 +506,4 @@ line, and this index is regenerated with `node scripts/changelog-index.mjs`.
 - §484 No clipped text: a wider audit and three fixes
 - §485 Calendar sync adds new meetings by itself
 - §486 Copy the Actions list as shown
+- §487 One index of all notes: the core (R1, slice S1)
