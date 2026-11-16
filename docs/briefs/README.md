@@ -59,13 +59,14 @@ handles everything together, as today.
 Opus designs and briefs waves 3 and 4 (Marien, 2026-11-15), each brief just before its wave. F3, F5, F6 and F9
 change behaviour Marien has not seen: each gets a short design page with examples and his decisions before its brief.
 Designs for F7, F3, F5, F6, F9 (16 questions): [`docs/design/wave3-designs.html`](../design/wave3-designs.html),
-artifact https://claude.ai/artifact/ApAhovPsvw2oaM7tVFXsXp (2026-11-16, waiting for Marien's answers).
+artifact https://claude.ai/artifact/ApAhovPsvw2oaM7tVFXsXp (2026-11-16). Marien's decisions the same day: the recommended option on all 16; 9.1 "All three" (his exporter can
+supply joinUrl, attendees and seriesId; seriesId not used for now).
 
 | ID | What | Note |
 | :--- | :--- | :--- |
 | R1 | One index of all notes | Design complete 2026-11-16: [`docs/design/notes-index-design.md`](../design/notes-index-design.md) (started by Fable, finished by Opus; section 8 records how each open point was settled). Six slices below. |
 | F3 | Suggestions for @names, (topics), section titles | After R1 |
-| F7 | Search: `section:`, `is:decision`, `is:topic`, `is:emphasis`, saved searches | After R1 |
+| F7 | Search: `section:`, `is:decision`, `is:topic`, `is:emphasis`, saved searches | Two briefs: [wave-3/F7a-search-words.md](wave-3/F7a-search-words.md) (Hydrogen, running 2026-11-16, with an independent test writer); F7b saved searches after it |
 | F5 | Person view | After R1; short design |
 | F6 | Rename across all notes | After R1; writes many notes: Google-Sonnet, earlier versions kept |
 | F9 | Agenda file: join link, attendees, series | Starts with the file format (`docs/agenda-file-guide.md`), which Marien's exporter must be able to fill |
