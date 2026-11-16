@@ -65,11 +65,14 @@ supply joinUrl, attendees and seriesId; seriesId not used for now).
 | ID | What | Note |
 | :--- | :--- | :--- |
 | R1 | One index of all notes | Design complete 2026-11-16: [`docs/design/notes-index-design.md`](../design/notes-index-design.md) (started by Fable, finished by Opus; section 8 records how each open point was settled). Six slices below. |
-| F3 | Suggestions for @names, (topics), section titles | After R1 |
-| F7 | Search: `section:`, `is:decision`, `is:topic`, `is:emphasis`, saved searches | Two briefs: [wave-3/F7a-search-words.md](wave-3/F7a-search-words.md) (Hydrogen, running 2026-11-16, with an independent test writer); F7b saved searches after it |
-| F5 | Person view | After R1; short design |
-| F6 | Rename across all notes | After R1; writes many notes: Google-Sonnet, earlier versions kept |
-| F9 | Agenda file: join link, attendees, series | Starts with the file format (`docs/agenda-file-guide.md`), which Marien's exporter must be able to fill |
+| F7 | Search: `section:`, `is:decision`, `is:topic`, `is:emphasis`, saved searches | [wave-3/F7a-search-words.md](wave-3/F7a-search-words.md) (Hydrogen, + independent tests); [wave-3/F7b-saved-searches.md](wave-3/F7b-saved-searches.md) after F7a (Google-Sonnet; file `.chrononote-searches.txt`, one search per line, so the web app's line merge joins two laptops' saves) |
+| F3 | Suggestions for @names, (topics), section titles | [wave-3/F3-suggestions.md](wave-3/F3-suggestions.md) (Google-Sonnet; own tooltip, no new dependency), beside F7 |
+| F5 | Person view | [wave-3/F5-person-view.md](wave-3/F5-person-view.md) after F3 (Hydrogen) |
+| F6 | Rename across all notes | [wave-3/F6-rename-everywhere.md](wave-3/F6-rename-everywhere.md) after F5 (Google-Sonnet, extra review) |
+| F9 | Agenda file: join link, attendees (seriesId not read, 9.3) | [wave-3/F9-agenda-join-attendees.md](wave-3/F9-agenda-join-attendees.md) after F3 (Hydrogen) |
+
+Order: F7a and F3 side by side; then F7b, F5 and F9 (F5 and F9 both touch the F3 suggestions source: one after the
+other); F6 last. Each behaviour brief gets an independent test writer and a cross-family review.
 
 R1 in six slices, each a refactor with no change a user sees (the two allowed differences are in the design's
 section 8). S1 first; S2-S5 side by side once S1 is merged (they touch different files and none of `notesIndex/`);
