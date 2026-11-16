@@ -70,7 +70,8 @@ thread. One command renames the thing in every note, after showing every line it
    | `# (budget) send` | topic budget → finance | `# (finance) send` |
    | `plain (budget) text` | topic budget → finance | unchanged (not a topic tag) |
 
-   - **Validation:** `validTarget(target)`.
+   - **Validation:** `validTarget(target): TranslationKey | null`: `null` when valid, otherwise the key of the reason
+     shown under the To field (one key per rule below).
      - A name must be one or more `NAME_CHAR`s (`src/lib/grammar/symbols.ts`). A leading `@` typed by the user is
        dropped first.
      - A topic must be non-empty, with no whitespace and no `(` or `)`.
