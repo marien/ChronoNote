@@ -516,3 +516,4 @@ line, and this index is regenerated with `node scripts/changelog-index.mjs`.
 - §494 Suggestions while typing @names, (topics) and section titles (F3)
 - §495 Saved searches (F7b)
 - §496 Person view (F5)
+- §497 Agenda file: join link and attendees (F9)
