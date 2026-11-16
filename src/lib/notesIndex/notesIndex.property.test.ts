@@ -22,15 +22,25 @@ const { disk, flags, apiMock } = vi.hoisted(() => {
       oneDriveSyncNow: vi.fn(),
       oneDriveGetConflicts: vi.fn(async () => []),
       saveScratchpadDrafts: vi.fn(async () => {}),
+      // what `promoteScratchpad` writes lands on the fake disk
+      writeNote: vi.fn(async (fn: string, content: string, _expectedHash?: string) => {
+        disk.set(fn, content);
+        return { exists: true, contentHash: `h:${content.length}`, sizeBytes: content.length, modifiedMs: 0 };
+      }),
     },
   };
 });
 
 vi.mock("../tauriApi", () => apiMock);
-vi.mock("../drift", () => ({ checkActiveTabForDrift: vi.fn(async () => {}) }));
+// the real `sha256Hex` and the rest of `drift.ts` stay (the real `promoteScratchpad` hashes the merged text)
+vi.mock("../drift", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../drift")>()),
+  checkActiveTabForDrift: vi.fn(async () => {}),
+}));
 vi.mock("../calendarSyncActions", () => ({ refreshAgendaFileExists: vi.fn(async () => {}) }));
 
 import { actionTree, flattenActionTree } from "../actionGroups";
+import { todayISO } from "../date";
 import { allNotesCache, tabs } from "../stores";
 import {
   deleteNoteAndInvalidateCache,
@@ -40,9 +50,11 @@ import {
   refreshAllNotesCache,
   updateNotesInCache,
 } from "../persistence";
+import { promoteScratchpad, renameScratchpad } from "../tabs";
 import { dueItems, listSections, normalizeHeaderTitle } from "../tokens";
 import type { NoteTab } from "../types";
-import { clearDiskLayer } from "./diskLayer";
+import { clearDiskLayer, setDiskNote, shownNotes } from "./diskLayer";
+import { rebuildEntries } from "./entries";
 import { actionsOf, dueOf, linesOf, sectionsOf } from "./facets";
 import { notesIndex, noteTexts, type NoteEntry, type NotesIndex } from "./index";
 
@@ -86,6 +98,8 @@ const eventNameArb = fc.oneof(
   { weight: 1, arbitrary: nameArb },
 );
 const pick = fc.nat(1000);
+const scratchNameArb = fc.constantFrom("Scratchpad 9", "Project Brainstorm", "2026-11-03.txt");
+const changeArb = fc.record({ name: eventNameArb, text: fc.option(textArb, { nil: null, freq: 5 }) });
 
 type Ev =
   | { k: "edit"; pick: number; text: string }
@@ -93,11 +107,15 @@ type Ev =
   | { k: "openScratch"; text: string }
   | { k: "close"; pick: number }
   | { k: "diskChange"; name: string; text: string | null }
+  | { k: "syncMulti"; changes: { name: string; text: string | null }[] }
   | { k: "delete"; name: string; conflict: boolean }
   | { k: "invalidate" }
   | { k: "refresh" }
   | { k: "prefetch"; names: string[] }
-  | { k: "switch" };
+  | { k: "switch" }
+  | { k: "rename"; pick: number; name: string }
+  | { k: "promote"; pick: number; text: string }
+  | { k: "swap"; a: number; b: number };
 
 const eventArb: fc.Arbitrary<Ev> = fc.oneof(
   { weight: 4, arbitrary: fc.record({ k: fc.constant("edit" as const), pick, text: textArb }) },
@@ -112,11 +130,21 @@ const eventArb: fc.Arbitrary<Ev> = fc.oneof(
       text: fc.option(textArb, { nil: null, freq: 5 }),
     }),
   },
+  {
+    weight: 1,
+    arbitrary: fc.record({
+      k: fc.constant("syncMulti" as const),
+      changes: fc.uniqueArray(changeArb, { minLength: 2, maxLength: 2, selector: (c) => c.name }),
+    }),
+  },
   { weight: 1, arbitrary: fc.record({ k: fc.constant("delete" as const), name: eventNameArb, conflict: fc.boolean() }) },
   { weight: 1, arbitrary: fc.constant({ k: "invalidate" as const }) },
   { weight: 3, arbitrary: fc.constant({ k: "refresh" as const }) },
   { weight: 2, arbitrary: fc.record({ k: fc.constant("prefetch" as const), names: fc.array(eventNameArb, { maxLength: 5 }) }) },
   { weight: 1, arbitrary: fc.constant({ k: "switch" as const }) },
+  { weight: 2, arbitrary: fc.record({ k: fc.constant("rename" as const), pick, name: scratchNameArb }) },
+  { weight: 2, arbitrary: fc.record({ k: fc.constant("promote" as const), pick, text: textArb }) },
+  { weight: 2, arbitrary: fc.record({ k: fc.constant("swap" as const), a: pick, b: pick }) },
 );
 
 const scenarioArb = fc.record({
@@ -143,21 +171,40 @@ function fullRead(model: Model) {
   model.loaded = true;
 }
 
-function expectedEntries(model: Model): Map<string, { text: string; source: "disk" | "tab"; tabId?: string }> {
-  const out = new Map<string, { text: string; source: "disk" | "tab"; tabId?: string }>();
+interface Want {
+  filename: string;
+  dateISO: string | null;
+  text: string;
+  source: "disk" | "tab";
+  tabId?: string;
+}
+
+/** The date of a `YYYY-MM-DD.txt` filename, else null (written here from the spec, not taken from the code). */
+function dateOf(filename: string): string | null {
+  if (!filename.endsWith(".txt")) return null;
+  const stem = filename.slice(0, -4);
+  return /^\d{4}-\d{2}-\d{2}$/.test(stem) ? stem : null;
+}
+
+function expectedEntries(model: Model): Map<string, Want> {
+  const out = new Map<string, Want>();
   const list = get(tabs);
   const open = new Map<string, NoteTab>();
   for (const t of list) if (!t.isScratchpad) open.set(t.filename, t); // the old loop: the last tab of a name wins
-  for (const [fn, text] of Object.entries(model.shown)) if (!open.has(fn)) out.set(fn, { text, source: "disk" });
-  for (const [fn, t] of open) out.set(fn, { text: t.content, source: "tab", tabId: t.id });
+  for (const [fn, text] of Object.entries(model.shown)) {
+    if (!open.has(fn)) out.set(fn, { filename: fn, dateISO: dateOf(fn), text, source: "disk" });
+  }
+  for (const [fn, t] of open) out.set(fn, { filename: fn, dateISO: dateOf(fn), text: t.content, source: "tab", tabId: t.id });
   for (const t of list) {
-    if (t.isScratchpad) out.set(`scratchpad:${t.id}`, { text: t.content, source: "tab", tabId: t.id });
+    if (t.isScratchpad) {
+      out.set(`scratchpad:${t.id}`, { filename: t.filename, dateISO: null, text: t.content, source: "tab", tabId: t.id });
+    }
   }
   return out;
 }
 
 function checkIndex(index: NotesIndex, model: Model, where: string) {
-  // (a) the text of each entry is the old rule's
+  // (a) each entry is the old rule's: its text, source, tabId, and also its filename and date
   const expected = expectedEntries(model);
   expect([...index.entries.keys()].sort(), `${where}: keys`).toEqual([...expected.keys()].sort());
   for (const [key, want] of expected) {
@@ -165,6 +212,8 @@ function checkIndex(index: NotesIndex, model: Model, where: string) {
     expect(e.text, `${where}: text of ${key}`).toBe(want.text);
     expect(e.source, `${where}: source of ${key}`).toBe(want.source);
     expect(e.tabId, `${where}: tabId of ${key}`).toBe(want.tabId);
+    expect(e.filename, `${where}: filename of ${key}`).toBe(want.filename);
+    expect(e.dateISO, `${where}: dateISO of ${key}`).toBe(want.dateISO);
     expect(e.key).toBe(key);
   }
   // `loaded` follows full reads: true after the first, through invalidation, false after a folder switch
@@ -199,6 +248,11 @@ describe("the notes index equals today's rule after every event", { timeout: 30_
 
         let latest!: NotesIndex;
         const unsubscribe = notesIndex.subscribe((v) => (latest = v));
+        let listening = true;
+        const stopListening = () => {
+          if (listening) unsubscribe();
+          listening = false;
+        };
         try {
           checkIndex(latest, model, "start");
 
@@ -297,6 +351,52 @@ describe("the notes index equals today's rule after every event", { timeout: 30_
                 model.mustRead = true;
                 model.loaded = false;
                 break;
+              case "syncMulti": {
+                // a sync that changed two files: one updateNotesInCache([f1, f2])
+                const cachedBefore = Object.keys(get(allNotesCache)).length > 0;
+                for (const c of ev.changes) {
+                  if (c.text === null) disk.delete(c.name);
+                  else disk.set(c.name, c.text);
+                }
+                await updateNotesInCache(ev.changes.map((c) => c.name));
+                if (!model.mustRead) {
+                  for (const c of ev.changes) {
+                    if (c.text === null) delete model.shown[c.name];
+                    else model.shown[c.name] = c.text;
+                  }
+                }
+                if (model.mustRead && cachedBefore) fullRead(model);
+                break;
+              }
+              case "rename": {
+                // the real renameScratchpad: it changes the tab object in place, then sets a new array
+                const scratchpads = get(tabs).filter((t) => t.isScratchpad);
+                if (scratchpads.length === 0) break;
+                renameScratchpad(scratchpads[ev.pick % scratchpads.length].id, ev.name);
+                break;
+              }
+              case "promote": {
+                // the real promoteScratchpad, with today's note open: it changes today's tab in place
+                const today = `${todayISO()}.txt`;
+                const scratchpads = get(tabs).filter((t) => t.isScratchpad && t.content.trim() !== "");
+                if (scratchpads.length === 0) break;
+                if (!get(tabs).some((t) => !t.isScratchpad && t.filename === today)) {
+                  tabs.update((l) => [...l, { id: `t${nextTab++}`, filename: today, isScratchpad: false, content: ev.text }]);
+                }
+                await promoteScratchpad(scratchpads[ev.pick % scratchpads.length].id);
+                break;
+              }
+              case "swap": {
+                const list = get(tabs);
+                if (list.length < 2) break;
+                const i = ev.a % list.length;
+                let j = ev.b % list.length;
+                if (j === i) j = (j + 1) % list.length;
+                const next = [...list];
+                [next[i], next[j]] = [next[j], next[i]];
+                tabs.set(next);
+                break;
+              }
             }
 
             checkIndex(latest, model, where);
@@ -315,8 +415,24 @@ describe("the notes index equals today's rule after every event", { timeout: 30_
               }
             }
           }
+
+          // nobody listens: one more change of `tabs` and one of the disk layer, then a fresh subscription must
+          // see exactly what a rebuild from scratch gives, entry by entry (all fields), with the right `loaded`
+          stopListening();
+          const list = get(tabs);
+          if (list.length > 0) tabs.set(list.map((t, i) => (i === 0 ? { ...t, content: `${t.content}\n# typed unheard` } : t)));
+          else tabs.set([{ id: `t${nextTab++}`, filename: "ideas.txt", isScratchpad: false, content: "# opened unheard" }]);
+          disk.set("plan.txt", "# disk change unheard");
+          setDiskNote("plan.txt", "# disk change unheard");
+          model.shown["plan.txt"] = "# disk change unheard";
+          const got = get(notesIndex);
+          const want = rebuildEntries(new Map(), shownNotes(), get(tabs));
+          expect([...got.entries.keys()].sort(), "no subscriber: keys").toEqual([...want.keys()].sort());
+          for (const [key, entry] of want) expect(got.entries.get(key), `no subscriber: ${key}`).toEqual(entry);
+          expect(got.loaded, "no subscriber: loaded").toBe(model.loaded);
+          checkIndex(got, model, "no subscriber");
         } finally {
-          unsubscribe();
+          stopListening();
           msTotal += performance.now() - started;
           runs++;
         }

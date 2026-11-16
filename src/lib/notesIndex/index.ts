@@ -29,26 +29,34 @@ export { ensureLoaded } from "./diskLayer";
 export { noteTexts } from "./entries";
 
 let current: NotesIndex = { entries: new Map(), loaded: false, revision: 0 };
+/** A copy of each tab's fields, not the tab objects: `tabs.ts` and `exportImport.ts` change a tab object in place
+ * (`renameScratchpad`, `promoteScratchpad`, an import) and then set a new array holding the same objects, so
+ * the objects themselves would show no difference between "before" and "after". */
 let lastTabs: readonly NoteTab[] | null = null;
 let lastVersion = -1;
 
 /** Built from `tabs` and the disk layer's version. A change of `tabs` alone patches the previous map (typing in
  * one note replaces one entry); a change of the disk layer rebuilds it, reusing every unchanged entry. Runs only
- * while something subscribes; the state it keeps survives between subscribers. */
-export const notesIndex: Readable<NotesIndex> = derived([tabs, diskVersion], ([$tabs, $version]) => {
-  const shown = shownNotes();
-  const entries =
-    lastTabs === null || $version !== lastVersion
-      ? rebuildEntries(current.entries, shown, $tabs)
-      : patchTabs(current.entries, lastTabs, $tabs, shown);
-  lastTabs = $tabs;
-  lastVersion = $version;
-  const loaded = isShownLoaded();
-  if (entries === current.entries && loaded === current.loaded) return current;
-  current = {
-    entries,
-    loaded,
-    revision: entries === current.entries ? current.revision : current.revision + 1,
-  };
-  return current;
-});
+ * while something subscribes; the state it keeps survives between subscribers. Subscribers are told only when
+ * `entries` or `loaded` changed (the two-argument form of `derived` calls `set` only when asked to). */
+export const notesIndex: Readable<NotesIndex> = derived(
+  [tabs, diskVersion],
+  ([$tabs, $version], set) => {
+    const shown = shownNotes();
+    const entries =
+      lastTabs === null || $version !== lastVersion
+        ? rebuildEntries(current.entries, shown, $tabs)
+        : patchTabs(current.entries, lastTabs, $tabs, shown);
+    lastTabs = $tabs.map((t) => ({ ...t }));
+    lastVersion = $version;
+    const loaded = isShownLoaded();
+    if (entries === current.entries && loaded === current.loaded) return;
+    current = {
+      entries,
+      loaded,
+      revision: entries === current.entries ? current.revision : current.revision + 1,
+    };
+    set(current);
+  },
+  current,
+);

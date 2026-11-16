@@ -109,6 +109,13 @@ function resolveKey(
   return undefined;
 }
 
+/** True when both lists hold the same tab ids in the same order. */
+function sameIdSequence(a: readonly NoteTab[], b: readonly NoteTab[]): boolean {
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) if (a[i].id !== b[i].id) return false;
+  return true;
+}
+
 /** Only `tabs` changed: copy `prev` and replace the entries of the tabs that were added, removed or changed
  * (`content`, `filename` or `isScratchpad`). A removed tab's note falls back to `shown`, or is dropped. Every
  * other entry stays the same object. Returns `prev` itself when nothing differs. */
@@ -133,6 +140,12 @@ export function patchTabs(
     }
   }
   for (const p of prevTabs) if (!currentIds.has(p.id)) affected.add(keyOfTab(p));
+  // Two tabs on one filename: the last one wins, so a change of order (not only of the set) can change which
+  // text a note has. Then every tab's key, old and new, is looked at again. Typing keeps the order.
+  if (!sameIdSequence(prevTabs, tabs)) {
+    for (const p of prevTabs) affected.add(keyOfTab(p));
+    for (const t of tabs) affected.add(keyOfTab(t));
+  }
   if (affected.size === 0) return prev;
 
   const next = new Map(prev);

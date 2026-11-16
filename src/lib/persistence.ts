@@ -26,6 +26,7 @@ import { EMPTY_CONTENT_HASH, sha256Hex } from "./hash";
 import { t } from "./i18n";
 import {
   addPrefetched,
+  diskEpoch,
   diskSnapshot,
   ensureLoaded,
   invalidateDiskLayer,
@@ -303,6 +304,8 @@ export async function prefetchNotesForDates(filenames: string[]): Promise<void> 
       .map((t) => [t.filename, t.content] as const),
   );
   const toFetch = filenames.filter((fn) => !(fn in known) && !openContent.has(fn));
+  // The notes index takes what was read only if no folder switch, invalidation or full read happened meanwhile.
+  const epoch = diskEpoch();
   const fetched = toFetch.length
     ? await Promise.all(toFetch.map(async (fn) => [fn, await api.readNote(fn)] as const))
     : [];
@@ -313,7 +316,7 @@ export async function prefetchNotesForDates(filenames: string[]): Promise<void> 
     for (const [fn, content] of fetched) {
       if (content !== null) {
         next[fn] = content;
-        addPrefetched(fn, content);
+        if (diskEpoch() === epoch) addPrefetched(fn, content);
       }
     }
     return next;

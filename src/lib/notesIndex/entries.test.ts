@@ -163,6 +163,29 @@ describe("patchTabs", () => {
     expect(next.get("2026-11-09.txt")).toMatchObject({ source: "tab", tabId: "t1" });
   });
 
+  it("two tabs on one filename that swap places: the last tab's text wins, as a rebuild says", () => {
+    const first = tab("t1", "ideas.txt", "# from t1\n");
+    const second = tab("t2", "ideas.txt", "# from t2\n");
+    const before = [first, second];
+    const after = [second, first];
+    const entries = rebuildEntries(new Map(), SHOWN, before);
+    expect(entries.get("ideas.txt")).toMatchObject({ text: "# from t2\n", tabId: "t2" });
+    const patched = patchTabs(entries, before, after, SHOWN);
+    expect(patched.get("ideas.txt")).toMatchObject({ text: "# from t1\n", tabId: "t1" });
+    expect(patched.get("2026-11-09.txt")).toBe(entries.get("2026-11-09.txt"));
+    for (const [key, entry] of rebuildEntries(new Map(), SHOWN, after)) expect(patched.get(key)).toEqual(entry);
+  });
+
+  it("typing does not change the order of the tabs: the other tabs' entries stay the same objects", () => {
+    const before = [tab("t1", "ideas.txt", "a"), tab("t2", "plan.txt", "b"), tab("s1", "Scratchpad", "c", true)];
+    const entries = rebuildEntries(new Map(), SHOWN, before);
+    const after = [{ ...before[0], content: "a more" }, before[1], before[2]];
+    const next = patchTabs(entries, before, after, SHOWN);
+    expect(next.get("ideas.txt")!.text).toBe("a more");
+    expect(next.get("plan.txt")).toBe(entries.get("plan.txt"));
+    expect(next.get("scratchpad:s1")).toBe(entries.get("scratchpad:s1"));
+  });
+
   it("gives what a rebuild from scratch gives", () => {
     const before = [tab("t1", "ideas.txt", "# mine\n"), tab("s1", "Scratchpad", "a", true)];
     const after = [tab("t1", "ideas.txt", "# mine, more\n"), tab("t2", "2026-11-09.txt", "# open\n")];

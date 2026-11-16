@@ -249,4 +249,80 @@ describe("the disk layer", () => {
       expect(isDiskLoaded()).toBe(false);
     });
   });
+
+  describe("a full read that is overtaken", () => {
+    type Entries = [string, string][];
+    const deferred = () => {
+      let resolve!: (v: Entries) => void;
+      const promise = new Promise<Entries>((r) => (resolve = r));
+      return { promise, resolve };
+    };
+    const settle = () => new Promise((r) => setTimeout(r, 0));
+
+    beforeEach(() => {
+      apiMock.readAllNotes.mockReset();
+      apiMock.readAllNotes.mockImplementation(async () => [...disk.entries()] as Entries);
+    });
+
+    it("a folder switch while the read runs: the old folder's notes never land, a second read does", async () => {
+      const first = deferred();
+      const second = deferred();
+      apiMock.readAllNotes.mockImplementationOnce(() => first.promise).mockImplementationOnce(() => second.promise);
+
+      const loading = ensureLoaded();
+      expect(apiMock.readAllNotes).toHaveBeenCalledTimes(1);
+      clearDiskLayer(); // the folder switch
+      first.resolve([["a-only.txt", "folder A"]]);
+      await settle();
+
+      expect(shown()).toEqual({});
+      expect(isShownLoaded()).toBe(false);
+      expect(isDiskLoaded()).toBe(false);
+      expect(diskSnapshot()).toBeNull();
+      expect(apiMock.readAllNotes).toHaveBeenCalledTimes(2); // ensureLoaded started a second read
+
+      second.resolve([["b-only.txt", "folder B"]]);
+      await loading;
+      expect(shown()).toEqual({ "b-only.txt": "folder B" });
+      expect(diskSnapshot()).toEqual({ "b-only.txt": "folder B" });
+      expect(isShownLoaded()).toBe(true);
+    });
+
+    it("an invalidation while the read runs: the stale result is dropped, a second read does land", async () => {
+      const first = deferred();
+      const second = deferred();
+      apiMock.readAllNotes.mockImplementationOnce(() => first.promise).mockImplementationOnce(() => second.promise);
+
+      const loading = ensureLoaded();
+      invalidateDiskLayer(); // a sync or a write says the folder has changed
+      first.resolve([["old.txt", "read before the change"]]);
+      await settle();
+
+      expect(shown()).toEqual({});
+      expect(isDiskLoaded()).toBe(false);
+      expect(apiMock.readAllNotes).toHaveBeenCalledTimes(2);
+
+      second.resolve([["new.txt", "read after the change"]]);
+      await loading;
+      expect(shown()).toEqual({ "new.txt": "read after the change" });
+      expect(diskSnapshot()).toEqual({ "new.txt": "read after the change" });
+    });
+
+    it("a caller that arrives after the switch does not join the old read", async () => {
+      const first = deferred();
+      const second = deferred();
+      apiMock.readAllNotes.mockImplementationOnce(() => first.promise).mockImplementationOnce(() => second.promise);
+
+      const early = ensureLoaded();
+      clearDiskLayer();
+      const late = ensureLoaded();
+      expect(apiMock.readAllNotes).toHaveBeenCalledTimes(2); // not joined: its own read
+
+      first.resolve([["a-only.txt", "folder A"]]);
+      second.resolve([["b-only.txt", "folder B"]]);
+      await Promise.all([early, late]);
+      expect(apiMock.readAllNotes).toHaveBeenCalledTimes(2); // the early caller joined the second read
+      expect(shown()).toEqual({ "b-only.txt": "folder B" });
+    });
+  });
 });

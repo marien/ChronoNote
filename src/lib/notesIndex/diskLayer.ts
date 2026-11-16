@@ -16,6 +16,16 @@ let raw: Record<string, string> | null = null;
 let shown: Record<string, string> = {};
 /** True from the first full read until a folder switch (`clearDiskLayer`); `invalidateDiskLayer` keeps it. */
 let shownLoaded = false;
+/** Goes up when `invalidateDiskLayer()`, `clearDiskLayer()` or `readAllIntoDiskLayer()` runs. A read that started
+ * under an older epoch has been overtaken: what it brings is out of date (a folder switch, an invalidation, a
+ * newer full read) and must not land. */
+let epoch = 0;
+
+/** The current epoch, for a reader that must tell whether the layer was invalidated, cleared or read in full
+ * while it waited (`prefetchNotesForDates`). */
+export function diskEpoch(): number {
+  return epoch;
+}
 
 /** Goes up on every change of `shown` (and of `shownLoaded`). The notes index listens to it. */
 export const diskVersion = writable<number>(0);
@@ -50,6 +60,7 @@ export function readAllIntoDiskLayer(entries: Iterable<readonly [string, string]
   raw = nextRaw;
   shown = nextShown;
   shownLoaded = true;
+  epoch++;
   bump();
 }
 
@@ -77,6 +88,7 @@ export function addPrefetched(filename: string, content: string): void {
 /** The next `ensureLoaded()` reads the folder again. The old texts stay `shown` until then. */
 export function invalidateDiskLayer(): void {
   raw = null;
+  epoch++;
 }
 
 /** A folder switch: nothing is known about the new folder. */
@@ -84,6 +96,7 @@ export function clearDiskLayer(): void {
   raw = null;
   shown = {};
   shownLoaded = false;
+  epoch++;
   bump();
 }
 
@@ -99,24 +112,32 @@ export function seedDiskNotesForTest(notes: Record<string, string>): void {
 
 /** #62: `boot.ts` fires a background `refreshAllNotesCache()` right at startup, which can race a user opening
  * History/Actions/Search before it resolves. Without this guard both callers would see `raw` still null and each
- * start their own `api.readAllNotes()`. Only one read runs at a time. */
-let diskReadInFlight: Promise<void> | null = null;
+ * start their own `api.readAllNotes()`: callers that ask at the same time join the read in flight. A read started
+ * under an older `epoch` is not joined (see `ensureLoaded`). */
+let diskReadInFlight: { epoch: number; promise: Promise<void> } | null = null;
 
-/** Resolves when the disk layer has been read: at once when it holds a read, else after the one read in flight. */
+/** Resolves when the disk layer has been read: at once when it holds a read, else after the read in flight.
+ * A read that was overtaken (an invalidation, a folder switch or another full read came while it ran) is
+ * dropped when it resolves, and this starts a new one, so a result of the old folder never lands. A failed read
+ * rejects. */
 export async function ensureLoaded(): Promise<void> {
-  if (raw !== null) return;
-  if (!diskReadInFlight) {
-    diskReadInFlight = (async () => {
-      const entries = await api.readAllNotes();
-      readAllIntoDiskLayer(entries);
-    })().finally(() => {
-      diskReadInFlight = null;
-    });
+  while (raw === null) {
+    if (diskReadInFlight === null || diskReadInFlight.epoch !== epoch) {
+      const startedAt = epoch;
+      const read: { epoch: number; promise: Promise<void> } = { epoch: startedAt, promise: Promise.resolve() };
+      read.promise = (async () => {
+        const entries = await api.readAllNotes();
+        if (epoch === startedAt) readAllIntoDiskLayer(entries);
+      })().finally(() => {
+        if (diskReadInFlight === read) diskReadInFlight = null;
+      });
+      diskReadInFlight = read;
+    }
+    await diskReadInFlight.promise;
   }
-  await diskReadInFlight;
 }
 
 /** Resolves when the read in flight (if any) is over, whether it worked or not. */
 export async function whenDiskReadSettled(): Promise<void> {
-  if (diskReadInFlight) await diskReadInFlight.catch(() => {});
+  if (diskReadInFlight) await diskReadInFlight.promise.catch(() => {});
 }
