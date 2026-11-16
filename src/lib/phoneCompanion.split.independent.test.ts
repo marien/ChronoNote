@@ -21,7 +21,7 @@ const apiMock = vi.hoisted(() => ({
 }));
 
 vi.mock("./tauriApi", () => apiMock);
-vi.mock("./persistence", () => ({ refreshAllNotesCache: vi.fn(async () => {}) }));
+vi.mock("./persistence", () => ({}));
 
 import {
   buildMeetings,

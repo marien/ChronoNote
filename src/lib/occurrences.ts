@@ -7,11 +7,10 @@
  * Peek (`peek.ts`) steps with the same functions. */
 import { get, writable } from "svelte/store";
 import { extractSectionBody } from "./history";
-import { refreshAllNotesCache } from "./persistence";
 import { jumpToFileLine } from "./tabs";
 import * as api from "./tauriApi";
 import { activeTabId, editorApi, showToast, tabs } from "./stores";
-import { notesIndex, noteTexts } from "./notesIndex";
+import { ensureLoaded, notesIndex, noteTexts } from "./notesIndex";
 import { linesOf } from "./notesIndex/facets";
 import { t } from "./i18n";
 import { getSectionHeaderForLine, normalizeHeaderTitle, titleForMatching } from "./tokens";
@@ -49,7 +48,7 @@ function filesWithSection(all: Record<string, string>, target: string): string[]
 
 /** Dated notes that contain the section, oldest first: disk notes overlaid with what the open tabs hold. */
 export async function occurrenceFiles(target: string): Promise<string[]> {
-  await refreshAllNotesCache();
+  await ensureLoaded();
   return filesWithSection(sources(), target);
 }
 

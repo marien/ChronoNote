@@ -1,9 +1,8 @@
 import { get, writable } from "svelte/store";
 import { save } from "@tauri-apps/plugin-dialog";
-import { notesIndex } from "./notesIndex";
+import { ensureLoaded, notesIndex } from "./notesIndex";
 import { activeTabId, backendKind, showToast, tabs } from "./stores";
 import { exportModalOpen } from "./overlays";
-import { refreshAllNotesCache } from "./persistence";
 import { writeExportFile } from "./tauriApi";
 import { noteToHtml, noteToMarkdown, notesToHtml, notesToMarkdown } from "./exportFormats";
 import { t } from "./i18n";
@@ -29,7 +28,7 @@ function getActiveOrTargetTab(target?: NoteTab | null): NoteTab | undefined {
 }
 
 async function getRangeNotes(from: string, to: string): Promise<{ date: string; text: string }[]> {
-  await refreshAllNotesCache();
+  await ensureLoaded();
   const out: { date: string; text: string }[] = [];
 
   for (const entry of get(notesIndex).entries.values()) {

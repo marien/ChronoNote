@@ -10,7 +10,7 @@
     statusCounts,
     tabs,
   } from "../../controller";
-  import { notesIndex } from "../../notesIndex";
+  import { ensureLoaded, notesIndex } from "../../notesIndex";
   import Icon from "../../icons/Icon.svelte";
   import CloudStatusButton from "../CloudStatusButton.svelte";
   import { parseISODateLocal, todayISO } from "../../date";
@@ -23,7 +23,7 @@
   let menuStyle = $state("visibility: hidden;");
 
   onMount(() => {
-    void controller.refreshAllNotesCache();
+    void ensureLoaded();
   });
 
   const activeTab = $derived($tabs.find((t) => t.id === $activeTabId));

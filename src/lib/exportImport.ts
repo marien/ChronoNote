@@ -23,7 +23,8 @@ import {
 } from "./stores";
 import { checkActiveTabForDrift, sha256Hex } from "./drift";
 import type { DroppedNoteConflict } from "./stores";
-import { cancelScheduledSave, invalidateDiskNotesCache, refreshAllNotesCache } from "./persistence";
+import { cancelScheduledSave, invalidateDiskNotesCache } from "./persistence";
+import { ensureLoaded } from "./notesIndex";
 import { todayISO } from "./date";
 import { isValidNoteFilename } from "./noteFilename";
 import {
@@ -76,7 +77,7 @@ export async function readImportFile(file: File): Promise<ImportPreview> {
 export async function applyImport(bundle: ExportBundle, mode: "merge" | "replace"): Promise<void> {
   const result = await api.importNotesBundle(bundle.notes, mode);
   invalidateDiskNotesCache();
-  await refreshAllNotesCache();
+  await ensureLoaded();
   const translate = get(t);
   const parts = [translate("toast.exportImport.importedNoteCount", { count: result.imported })];
   if (result.skipped > 0) parts.push(translate("toast.exportImport.skippedCount", { count: result.skipped }));
@@ -125,7 +126,7 @@ export async function handleDroppedNotes(files: File[]): Promise<void> {
   }
 
   invalidateDiskNotesCache();
-  await refreshAllNotesCache();
+  await ensureLoaded();
 
   const translate = get(t);
   const parts: string[] = [];
@@ -179,7 +180,7 @@ ${item.dropped}`;
       }
     }
     invalidateDiskNotesCache();
-    await refreshAllNotesCache();
+    await ensureLoaded();
     // The note may be open in a tab: pick the new text up (silent reload if it has no unsaved edits).
     void checkActiveTabForDrift();
   }

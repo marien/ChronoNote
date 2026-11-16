@@ -28,6 +28,7 @@
  */
 export * from "./stores";
 export * from "./persistence";
+export { ensureLoaded } from "./notesIndex";
 export * from "./tabSort";
 export * from "./paste";
 export * from "./drift";

@@ -12,7 +12,6 @@ import * as api from "./tauriApi";
 import {
   actionSnapshot,
   activeTabId,
-  allNotesCache,
   calendarSyncEnabled,
   clearAllEditorViewState,
   clearAllTabCleanHashes,
@@ -132,7 +131,6 @@ export async function performDirectorySwitch(path: string) {
   recentNotesDirs.set(cfg.recentNotesDirs);
 
   clearDiskLayer();
-  allNotesCache.set({});
   actionSnapshot.set([]);
   historyOccurrences.set([]);
   historyDestinations.set([]);

@@ -31,11 +31,10 @@ import {
   tabs,
   wordWrap,
 } from "./stores";
-import { notesIndex, type NoteEntry } from "./notesIndex";
+import { ensureLoaded, notesIndex, type NoteEntry } from "./notesIndex";
 import { isScratchpadKey } from "./notesIndex/entries";
 import { linesOf } from "./notesIndex/facets";
 import { sortFilenamesByRecency } from "./tabSort";
-import { refreshAllNotesCache } from "./persistence";
 import { listSections, openActionLineIndices, stripLeadingToken } from "./tokens";
 import { parseDateQuery } from "./date";
 import { navigateBack, navigateForward } from "./dateLinks";
@@ -631,7 +630,7 @@ export async function buildPaletteResults(query: string): Promise<PaletteItem[]>
 
   if (q.startsWith("!")) {
     const term = q.slice(1).trim();
-    await refreshAllNotesCache();
+    await ensureLoaded();
     const entries = get(notesIndex).entries;
     const out: PaletteItem[] = [];
     for (const filename of nonScratchpadKeysByRecency(entries)) {
@@ -671,7 +670,7 @@ export async function buildPaletteResults(query: string): Promise<PaletteItem[]>
         run: () => commitDatePick(parsed),
       });
     }
-    await refreshAllNotesCache();
+    await ensureLoaded();
     const entries = get(notesIndex).entries;
     for (const filename of nonScratchpadKeysByRecency(entries)) {
       const d = filename.replace(/\.txt$/, "");

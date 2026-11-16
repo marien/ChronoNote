@@ -7,7 +7,6 @@ import { get } from "svelte/store";
 import * as api from "./tauriApi";
 import { editorChanges } from "./editor/editorChanges";
 import {
-  allNotesCache,
   backendKind,
   editorApi,
   activeTabId,
@@ -24,10 +23,10 @@ import type { NoteTab } from "./types";
 import { registerSyncHooks, syncOneDriveNow } from "./oneDriveSync";
 import { EMPTY_CONTENT_HASH, sha256Hex } from "./hash";
 import { t } from "./i18n";
+import { notesIndex } from "./notesIndex";
 import {
   addPrefetched,
   diskEpoch,
-  diskSnapshot,
   ensureLoaded,
   invalidateDiskLayer,
   isDiskLoaded,
@@ -237,15 +236,15 @@ export async function flushAllPendingSaves(): Promise<void> {
  * switch. (§38 — this used to unconditionally re-read every file on every
  * single Action Drawer / Search / Date-picker / History open.) */
 
-/** Force the next `refreshAllNotesCache()` to re-read from disk. */
+/** Force the next `ensureLoaded()` to re-read from disk. */
 export function invalidateDiskNotesCache() {
   invalidateDiskLayer();
 }
 
-/** §451: a sync wrote or deleted these notes in local storage. Re-reads just those into the disk layer and
- * republishes `allNotesCache`, so everything built on it (the status bar's due item, an open Actions view)
- * catches up without a full read. If the disk layer was never read, the next full read sees them anyway; if it
- * was dropped while the visible list still holds older content, read it all again. */
+/** §451: a sync wrote or deleted these notes in local storage. Re-reads just those into the disk layer so
+ * `notesIndex` (and views built on it, like the status bar's due item or Actions view) catches up without a
+ * full read. If the disk layer was never read, the next full read sees them anyway; if it was invalidated
+ * while the index already holds a previous full read, read it all again. */
 export async function updateNotesInCache(filenames: string[]): Promise<void> {
   await whenDiskReadSettled();
   if (isDiskLoaded() && filenames.length > 0) {
@@ -265,7 +264,7 @@ export async function updateNotesInCache(filenames: string[]): Promise<void> {
       }
     }
   }
-  if (isDiskLoaded() || Object.keys(get(allNotesCache)).length > 0) await refreshAllNotesCache();
+  if (!isDiskLoaded() && get(notesIndex).loaded) await ensureLoaded();
   if (filenames.length > 0) notesChangedBySync.update((n) => n + 1);
 }
 
@@ -275,59 +274,34 @@ registerSyncHooks({
   notesChanged: updateNotesInCache,
 });
 
-export async function refreshAllNotesCache() {
-  await ensureLoaded();
-  const map: Record<string, string> = diskSnapshot() ?? {};
-  for (const t of get(tabs)) if (!t.isScratchpad) map[t.filename] = t.content;
-  allNotesCache.set(map);
-}
-
-/** A fast, small-batch alternative to the full read above — reads just
+/** A fast, small-batch alternative to `ensureLoaded()` — reads just
  * the given filenames (the date picker's currently visible ~42-cell
  * month grid, typically) via individual `readNote` calls in parallel,
  * so a handful of days' dots/bold show immediately instead of waiting
- * on `refreshAllNotesCache()`'s full read of however much history lives
+ * on `ensureLoaded()`'s full read of however much history lives
  * in the notes folder (only slow the very first time anything asks for
  * it each session — the disk layer is cached after that). Skips
- * anything already in `allNotesCache` (nothing to gain re-reading it) or
- * belonging to an open, non-scratchpad tab — that tab's live (possibly
- * unsaved) content always wins over whatever's on disk for it, the same
- * rule `refreshAllNotesCache()` follows, so this can't reintroduce the
- * stale-dot bug #46/§129 fixed for the full-cache path. Merges into the
- * same `allNotesCache` store, so it's superseded harmlessly once the
- * full background read (always kicked off alongside this) catches up. */
+ * anything the index already has an entry for or belonging to an open,
+ * non-scratchpad tab. */
 export async function prefetchNotesForDates(filenames: string[]): Promise<void> {
-  const known = get(allNotesCache);
-  const openContent = new Map(
-    get(tabs)
-      .filter((t) => !t.isScratchpad)
-      .map((t) => [t.filename, t.content] as const),
-  );
-  const toFetch = filenames.filter((fn) => !(fn in known) && !openContent.has(fn));
+  const known = get(notesIndex).entries;
+  const openNames = new Set(get(tabs).filter((t) => !t.isScratchpad).map((t) => t.filename));
+  const toFetch = filenames.filter((fn) => !known.has(fn) && !openNames.has(fn));
+  if (toFetch.length === 0) return;
   // The notes index takes what was read only if no folder switch, invalidation or full read happened meanwhile.
   const epoch = diskEpoch();
-  const fetched = toFetch.length
-    ? await Promise.all(toFetch.map(async (fn) => [fn, await api.readNote(fn)] as const))
-    : [];
-  if (openContent.size === 0 && fetched.length === 0) return;
-  allNotesCache.update((map) => {
-    const next = { ...map };
-    for (const [fn, content] of openContent) next[fn] = content;
-    for (const [fn, content] of fetched) {
-      if (content !== null) {
-        next[fn] = content;
-        if (diskEpoch() === epoch) addPrefetched(fn, content);
-      }
-    }
-    return next;
-  });
+  const fetched = await Promise.all(toFetch.map(async (fn) => [fn, await api.readNote(fn)] as const));
+  if (diskEpoch() !== epoch) return;
+  for (const [fn, content] of fetched) {
+    if (content !== null) addPrefetched(fn, content);
+  }
 }
 
 /** All disk writes should go through this rather than calling
  * `api.writeNote()` directly, so the disk-read cache above knows when it
  * might be stale. Skips invalidation when the written filename already
  * has an open, non-scratchpad tab — that case is always correctly
- * reflected by `refreshAllNotesCache()`'s live-tab overlay regardless of
+ * reflected by `notesIndex`'s live-tab overlay regardless of
  * the disk layer's staleness, so ordinary autosave (the overwhelming
  * majority of writes) doesn't pay for a refetch. Only a write for a
  * filename with *no* open tab — `promoteScratchpad`'s brand-new today
@@ -384,12 +358,6 @@ export function deleteNoteAndInvalidateCache(filename: string, expectedHash: str
   return api.deleteNote(filename, expectedHash).then(
     () => {
       removeDiskNote(filename);
-      allNotesCache.update((map) => {
-        if (!(filename in map)) return map;
-        const next = { ...map };
-        delete next[filename];
-        return next;
-      });
       scheduleCloudPush();
     },
     (err) => {
@@ -405,7 +373,7 @@ export function deleteNoteAndInvalidateCache(filename: string, expectedHash: str
 /** #46: a tab is about to close with content that may not yet be reflected
  * in the disk-read cache above. `writeNoteAndInvalidateCache` deliberately
  * skips invalidating while a tab is open — relying on the live-tab overlay
- * in `refreshAllNotesCache()` instead — but `closeTab()` flushes the save
+ * in `notesIndex` instead — but `closeTab()` flushes the save
  * *before* removing the tab from the `tabs` store, so at that exact moment
  * `hasOpenTab` is still `true` and no invalidation happens. The live
  * overlay then disappears the instant the tab is actually gone, and

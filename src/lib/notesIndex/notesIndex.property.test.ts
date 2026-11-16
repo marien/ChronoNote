@@ -41,13 +41,12 @@ vi.mock("../calendarSyncActions", () => ({ refreshAgendaFileExists: vi.fn(async 
 
 import { actionTree, flattenActionTree } from "../actionGroups";
 import { todayISO } from "../date";
-import { allNotesCache, tabs } from "../stores";
+import { tabs } from "../stores";
 import {
   deleteNoteAndInvalidateCache,
   invalidateDiskNotesCache,
   noteClosingWithContent,
   prefetchNotesForDates,
-  refreshAllNotesCache,
   updateNotesInCache,
 } from "../persistence";
 import { promoteScratchpad, renameScratchpad } from "../tabs";
@@ -56,7 +55,7 @@ import type { NoteTab } from "../types";
 import { clearDiskLayer, setDiskNote, shownNotes } from "./diskLayer";
 import { rebuildEntries } from "./entries";
 import { actionsOf, dueOf, linesOf, sectionsOf } from "./facets";
-import { notesIndex, noteTexts, type NoteEntry, type NotesIndex } from "./index";
+import { ensureLoaded, notesIndex, type NoteEntry, type NotesIndex } from "./index";
 
 const NAMES = [
   "2026-11-01.txt",
@@ -239,7 +238,6 @@ describe("the notes index equals today's rule after every event", { timeout: 30_
         // a fresh session
         flags.deleteConflict = false;
         tabs.set([]);
-        allNotesCache.set({});
         clearDiskLayer();
         disk.clear();
         for (const [fn, text] of Object.entries(initial)) disk.set(fn, text);
@@ -300,7 +298,6 @@ describe("the notes index equals today's rule after every event", { timeout: 30_
                 break;
               }
               case "diskChange": {
-                const cachedBefore = Object.keys(get(allNotesCache)).length > 0;
                 if (ev.text === null) disk.delete(ev.name);
                 else disk.set(ev.name, ev.text);
                 await updateNotesInCache([ev.name]);
@@ -308,7 +305,7 @@ describe("the notes index equals today's rule after every event", { timeout: 30_
                   if (ev.text === null) delete model.shown[ev.name];
                   else model.shown[ev.name] = ev.text;
                 }
-                if (model.mustRead && cachedBefore) fullRead(model); // updateNotesInCache then refreshes
+                if (model.mustRead && model.loaded) fullRead(model); // updateNotesInCache then refreshes
                 break;
               }
               case "delete":
@@ -326,11 +323,11 @@ describe("the notes index equals today's rule after every event", { timeout: 30_
                 model.mustRead = true;
                 break;
               case "refresh":
-                await refreshAllNotesCache();
+                await ensureLoaded();
                 if (model.mustRead) fullRead(model);
                 break;
               case "prefetch": {
-                const known = new Set(Object.keys(get(allNotesCache)));
+                const known = new Set(get(notesIndex).entries.keys());
                 const open = new Set(
                   get(tabs)
                     .filter((t) => !t.isScratchpad)
@@ -346,14 +343,12 @@ describe("the notes index equals today's rule after every event", { timeout: 30_
               }
               case "switch":
                 clearDiskLayer();
-                allNotesCache.set({});
                 model.shown = {};
                 model.mustRead = true;
                 model.loaded = false;
                 break;
               case "syncMulti": {
                 // a sync that changed two files: one updateNotesInCache([f1, f2])
-                const cachedBefore = Object.keys(get(allNotesCache)).length > 0;
                 for (const c of ev.changes) {
                   if (c.text === null) disk.delete(c.name);
                   else disk.set(c.name, c.text);
@@ -365,7 +360,7 @@ describe("the notes index equals today's rule after every event", { timeout: 30_
                     else model.shown[c.name] = c.text;
                   }
                 }
-                if (model.mustRead && cachedBefore) fullRead(model);
+                if (model.mustRead && model.loaded) fullRead(model);
                 break;
               }
               case "rename": {
@@ -403,10 +398,6 @@ describe("the notes index equals today's rule after every event", { timeout: 30_
             // the same answer when the store is read on its own, with no standing subscriber involved
             expect([...get(notesIndex).entries.keys()].sort(), where).toEqual([...latest.entries.keys()].sort());
 
-            if (ev.k === "refresh") {
-              // (c) allNotesCache is the index's non-scratchpad key -> text map, exactly
-              expect(get(allNotesCache), `${where}: allNotesCache`).toEqual(noteTexts(latest));
-            }
             if (ev.k === "edit" && editedKey !== null) {
               // (d) every entry other than the edited one is the same object as before
               for (const [key, entry] of latest.entries) {

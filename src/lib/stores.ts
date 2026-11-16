@@ -427,7 +427,6 @@ export interface DueDatePending {
 }
 export const dueDatePending = writable<DueDatePending | null>(null);
 
-export const allNotesCache = writable<Record<string, string>>({});
 /** §451: counts syncs that changed notes in local storage, so a view holding its own snapshot of all notes (the
  * Actions view on Other notes / All files) can rebuild it. */
 export const notesChangedBySync = writable(0);

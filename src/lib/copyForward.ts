@@ -41,11 +41,10 @@ import {
   tabs,
   type CopyForwardPending,
 } from "./stores";
-import { notesIndex, noteTexts } from "./notesIndex";
+import { ensureLoaded, notesIndex, noteTexts } from "./notesIndex";
 import * as api from "./tauriApi";
 import {
   isWriteConflictError,
-  refreshAllNotesCache,
   updateNoteOnDisk,
   writeNoteAndInvalidateCache,
   writeTabContent,
@@ -87,7 +86,7 @@ export async function findNextOccurrenceTarget(
     const match = pairs.find(([, title]) => matchKey(title) === targetHeader.toLowerCase());
     return match ? { date: match[0], headerText: match[1] } : null; // the calendar's own title, verbatim
   }
-  await refreshAllNotesCache();
+  await ensureLoaded();
   const found = findNextSectionOccurrenceOnDisk(noteTexts(get(notesIndex)), targetHeader, anchorFilename);
   return found ? { date: found.date, headerText: sourceHeaderDisplay } : null;
 }

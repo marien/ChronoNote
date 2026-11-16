@@ -13,7 +13,7 @@ describe("runSearch('all') via notesIndex", () => {
     searchResultsStore.set([]);
   });
 
-  it("matches the old allNotesCache reference in order and tabIds, and skips scratchpads", () => {
+  it("matches the reference implementation in order and tabIds, and skips scratchpads", () => {
     const diskNotes: Record<string, string> = {
       "2026-09-10.txt": "intro\n# deploy api\nafter",
       "2026-09-20.txt": "disk version without match",

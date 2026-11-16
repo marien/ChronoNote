@@ -25,7 +25,7 @@ import {
   actionDrawerShowOnlyOpen,
   actionDrawerDueView,
 } from "./stores";
-import { refreshAllNotesCache } from "./persistence";
+import { ensureLoaded } from "./notesIndex";
 import { openActionDrawer } from "./actions";
 
 // Actions only (#184): topics and `=>` decisions are not part of the week review.
@@ -486,7 +486,7 @@ export function formatWeekRange(locale: string, mondayISO: string, sundayISO: st
 
 /** Open Week review. If target week is omitted, opens default week (decision 1b). */
 export async function openWeekReview(target?: { year: number; week: number }) {
-  await refreshAllNotesCache();
+  await ensureLoaded();
   if (target) {
     weekReviewYear.set(target.year);
     weekReviewWeek.set(target.week);

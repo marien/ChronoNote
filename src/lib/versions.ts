@@ -12,9 +12,9 @@ import {
 import {
   cancelScheduledSave,
   invalidateDiskNotesCache,
-  refreshAllNotesCache,
   scheduleCloudPush,
 } from "./persistence";
+import { ensureLoaded } from "./notesIndex";
 import { t } from "./i18n";
 
 export const versionsTargetFilename = writable<string | null>(null);
@@ -67,7 +67,7 @@ export async function restoreVersion(filename: string, name: string): Promise<vo
 
   invalidateDiskNotesCache();
   scheduleCloudPush();
-  void refreshAllNotesCache();
+  void ensureLoaded();
 
   modal.set("none");
   showToast(get(t)("toast.versions.restored", { filename }));

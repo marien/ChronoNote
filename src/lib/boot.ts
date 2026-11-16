@@ -66,9 +66,9 @@ import { computeEffectiveSpellLanguages, languagesChanged } from "./editor/spell
 import {
   flushAllPendingSaves,
   recomputeSaveState,
-  refreshAllNotesCache,
   setWriteConflictHandler,
 } from "./persistence";
+import { ensureLoaded } from "./notesIndex";
 import { checkActiveTabForDrift, handleWriteConflict } from "./drift";
 import { initCalendarSyncDiffTracking, maybeSilentSyncEmptyNote, refreshAgendaFileExists } from "./calendarSyncActions";
 import { refreshSyncConflicts, syncOneDriveNow } from "./oneDriveSync";
@@ -699,7 +699,7 @@ export async function initApp() {
   // Deferred a moment past app-ready (not just un-awaited): the read itself is
   // off the UI thread, but on a big OneDrive folder it still competes with the
   // editor's first paint for disk and CPU.
-  setTimeout(() => void refreshAllNotesCache(), 1500);
+  setTimeout(() => void ensureLoaded(), 1500);
   tabs.subscribe(() => scheduleTabSessionSave());
   activeTabId.subscribe(() => scheduleTabSessionSave());
   const version = await api.getAppVersion();

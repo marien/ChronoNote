@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { get } from "svelte/store";
 
-/** §451: after a OneDrive sync the list of all notes (`allNotesCache`, which the status bar's due item and the
+/** §451: after a OneDrive sync the list of all notes (`notesIndex`, which the status bar's due item and the
  * Actions view are built on) takes in the notes the sync changed, without a full re-read. */
 const { disk, apiMock } = vi.hoisted(() => {
   const disk = new Map<string, string>();
@@ -21,8 +21,10 @@ vi.mock("./tauriApi", () => apiMock);
 vi.mock("./drift", () => ({ checkActiveTabForDrift: vi.fn(async () => {}) }));
 vi.mock("./calendarSyncActions", () => ({ refreshAgendaFileExists: vi.fn(async () => {}) }));
 
-import { allNotesCache, currentDateISO, notesChangedBySync, oneDriveFolder, tabs } from "./stores";
-import { invalidateDiskNotesCache, refreshAllNotesCache } from "./persistence";
+import { currentDateISO, notesChangedBySync, oneDriveFolder, tabs } from "./stores";
+import "./persistence"; // registers sync hooks with oneDriveSync
+import { ensureLoaded, notesIndex, noteTexts } from "./notesIndex";
+import { clearDiskLayer } from "./notesIndex/diskLayer";
 import { syncOneDriveNow } from "./oneDriveSync";
 import { dueSummary } from "./dueOverview";
 
@@ -32,12 +34,11 @@ describe("the list of all notes after a sync (§451)", () => {
     disk.clear();
     disk.set("2026-11-05.txt", "# older action\n");
     tabs.set([]);
-    allNotesCache.set({});
-    invalidateDiskNotesCache();
+    clearDiskLayer();
     oneDriveFolder.set({ folderId: "f", folderPath: "/Notes" });
     apiMock.readAllNotes.mockClear();
     apiMock.readNote.mockClear();
-    await refreshAllNotesCache();
+    await ensureLoaded();
     expect(apiMock.readAllNotes).toHaveBeenCalledTimes(1);
   });
 
@@ -48,8 +49,8 @@ describe("the list of all notes after a sync (§451)", () => {
 
     await syncOneDriveNow();
 
-    expect(get(allNotesCache)["2026-11-07.txt"]).toBe("# written yesterday by:2026-11-10\n");
-    expect(get(allNotesCache)["2026-11-05.txt"]).toBe("# older action\n");
+    expect(noteTexts(get(notesIndex))["2026-11-07.txt"]).toBe("# written yesterday by:2026-11-10\n");
+    expect(noteTexts(get(notesIndex))["2026-11-05.txt"]).toBe("# older action\n");
     expect(apiMock.readAllNotes).toHaveBeenCalledTimes(1);
     expect(apiMock.readNote).toHaveBeenCalledWith("2026-11-07.txt");
     expect(get(notesChangedBySync)).toBe(before + 1);
@@ -60,7 +61,7 @@ describe("the list of all notes after a sync (§451)", () => {
     disk.delete("2026-11-05.txt");
     apiMock.oneDriveSyncNow.mockResolvedValueOnce({ success: true, changedFiles: ["2026-11-05.txt"] });
     await syncOneDriveNow();
-    expect("2026-11-05.txt" in get(allNotesCache)).toBe(false);
+    expect("2026-11-05.txt" in noteTexts(get(notesIndex))).toBe(false);
   });
 
   it("a sync that changed nothing reads nothing and leaves the list as it is", async () => {
@@ -69,7 +70,7 @@ describe("the list of all notes after a sync (§451)", () => {
     await syncOneDriveNow();
     expect(apiMock.readNote).not.toHaveBeenCalled();
     expect(get(notesChangedBySync)).toBe(before);
-    await refreshAllNotesCache();
+    await ensureLoaded();
     expect(apiMock.readAllNotes).toHaveBeenCalledTimes(1);
   });
 
@@ -81,7 +82,7 @@ describe("the list of all notes after a sync (§451)", () => {
       changedFiles: ["2026-11-07.txt"],
     });
     await syncOneDriveNow();
-    expect(get(allNotesCache)["2026-11-07.txt"]).toBe("# came down\n");
+    expect(noteTexts(get(notesIndex))["2026-11-07.txt"]).toBe("# came down\n");
   });
 
   it("a result without the list falls back to a full re-read on the next request", async () => {
@@ -89,8 +90,8 @@ describe("the list of all notes after a sync (§451)", () => {
     apiMock.oneDriveSyncNow.mockResolvedValueOnce({ success: false, message: { code: "other", detail: "x" } });
     await syncOneDriveNow();
     expect(apiMock.readNote).not.toHaveBeenCalled();
-    await refreshAllNotesCache();
+    await ensureLoaded();
     expect(apiMock.readAllNotes).toHaveBeenCalledTimes(2);
-    expect(get(allNotesCache)["2026-11-07.txt"]).toBe("# other backend\n");
+    expect(noteTexts(get(notesIndex))["2026-11-07.txt"]).toBe("# other backend\n");
   });
 });

@@ -1,8 +1,7 @@
-/** One index of all notes (R1 / S1; design in `docs/design/notes-index-design.md`).
+/** One index of all notes (R1; design in `docs/design/notes-index-design.md`).
  *
  * Decides, in one place, which text of a note is current (an open tab's, else the disk layer's), counts every
- * scratchpad as an entry of its own, and remembers what is derived from a note's text (`facets.ts`). S1 only
- * builds it; no view reads it yet, and `allNotesCache` keeps being written by `persistence.ts` as before. */
+ * scratchpad as an entry of its own, and remembers what is derived from a note's text (`facets.ts`). */
 import { derived, type Readable } from "svelte/store";
 import { tabs } from "../stores";
 import type { NoteTab } from "../types";

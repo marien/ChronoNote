@@ -3,11 +3,10 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { get } from "svelte/store";
 import { actionTree, flattenActionTree, type ActionNode } from "./actionGroups";
 import { buildActionSnapshotAllFiles, buildActionSnapshotOtherNotes } from "./actions";
-import { notesIndex } from "./notesIndex";
+import { ensureLoaded, notesIndex, noteTexts } from "./notesIndex";
 import { clearDiskLayer, seedDiskNotesForTest } from "./notesIndex/diskLayer";
 import { _facetRuns } from "./notesIndex/facets";
-import { refreshAllNotesCache } from "./persistence";
-import { allNotesCache, tabs } from "./stores";
+import { tabs } from "./stores";
 import { sortFilenamesByRecency } from "./tabSort";
 import { getSectionHeaderForLine, normalizeHeaderTitle } from "./tokens";
 import type { ActionSnapshotItem } from "./types";
@@ -48,8 +47,8 @@ function oldSnapshotItemsForNote(
 }
 
 async function oldBuildActionSnapshotAllFiles(): Promise<ActionSnapshotItem[]> {
-  await refreshAllNotesCache();
-  const allSources = get(allNotesCache);
+  await ensureLoaded();
+  const allSources = noteTexts(get(notesIndex));
   const openTabIdByFilename = new Map(get(tabs).filter((t) => !t.isScratchpad).map((t) => [t.filename, t.id]));
   const snapshot: ActionSnapshotItem[] = [];
   for (const filename of sortFilenamesByRecency(Object.keys(allSources))) {
@@ -64,7 +63,6 @@ describe("actions view reading notesIndex (S3)", () => {
   beforeEach(() => {
     clearDiskLayer();
     tabs.set([]);
-    allNotesCache.set({});
     get(notesIndex);
   });
 

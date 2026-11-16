@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount, tick } from "svelte";
   import * as controller from "../../controller";
+  import { ensureLoaded } from "../../notesIndex";
   import { focusTrap } from "../../actions/focusTrap";
   import { sheetSwipe } from "../../actions/sheetSwipe";
   import { searchResultsStore } from "../../controller";
@@ -65,7 +66,7 @@
       // warm (`boot.ts`'s background prefetch), but reuse the existing
       // "searching" spinner for whenever it genuinely isn't.
       searching = true;
-      await controller.refreshAllNotesCache();
+      await ensureLoaded();
       searching = false;
     }
     scope = next; // triggers the search effect below
