@@ -17,4 +17,5 @@ then gets a line in its CHANGELOG section) or found broken (it then becomes a fi
 | 2026-11-16 | Person view: Ctrl+click an `@name`, line menu "Show @name", palette `@da`; pane beside the note, rows jump and keep the pane | dev build | §496 |
 | 2026-11-16 | Join button in Peek for a meeting with a `joinUrl` in `.agenda.json` (your exporter's file) | dev build, Peek during a meeting | §497 |
 | 2026-11-16 | Rename everywhere: a meeting title, a name and a topic; untick a note; Ctrl+Z in the open note; the toast's undo; Earlier versions hold the old text | dev build, on a copy of real notes first | §498 |
+| 2026-11-16 | No suggestion when the caret is in a title that already reads exactly like today's meeting (#252) | dev build or next beta, `.agenda.json` with a meeting today | §499 |
 | 2026-11-16 | New strings of §493-§498 in German, French, Polish, Spanish and Italian need a native speaker's look | `src/lib/i18n/locales/` | §493-§498 |

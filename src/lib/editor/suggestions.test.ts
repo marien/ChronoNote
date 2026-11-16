@@ -201,6 +201,22 @@ describe("suggestionsExtension", () => {
     expect(ed.view.dom.querySelector('[role="listbox"]')).toBeNull();
   });
 
+  it("leaves out a title suggestion equal to the title already on the line (#252)", () => {
+    const complete = openEditor("Board meetin|\n=============", FIXED_SOURCE);
+    complete.type("g");
+    expect(complete.view.dom.querySelector('[role="listbox"]')).toBeNull();
+
+    const middle = openEditor("Boar| meeting\n=============", FIXED_SOURCE);
+    middle.type("d");
+    const labels = [...middle.view.dom.querySelectorAll('[role="option"]')].map((o) => o.textContent);
+    expect(labels).toHaveLength(1);
+    expect(labels[0]).toContain("Board review");
+
+    const partial = openEditor("Board meet|\n=============", FIXED_SOURCE);
+    partial.type("i");
+    expect(partial.view.dom.querySelectorAll('[role="option"]')).toHaveLength(1);
+  });
+
   it("ArrowDown then Enter takes the second row", () => {
     const ed = openEditor("# ask @|", FIXED_SOURCE);
     ed.type("R");

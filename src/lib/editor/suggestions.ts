@@ -329,7 +329,11 @@ export function suggestionsExtension(
         ctx.kind === "name"
           ? getSectionHeaderForLine(tr.state.doc.toString().split("\n"), line.number - 1)
           : "";
-      const rows = source(ctx.kind, ctx.prefix, sectionHeader).slice(0, 8);
+      // #252: a title suggestion that equals the title already on the line would change nothing; leave it out.
+      const current = ctx.kind === "title" ? line.text.slice(ctx.from, ctx.to) : null;
+      const rows = source(ctx.kind, ctx.prefix, sectionHeader)
+        .filter((row) => row.insert !== current)
+        .slice(0, 8);
       if (rows.length === 0) {
         return { ...CLOSED_STATE, context: ctx };
       }

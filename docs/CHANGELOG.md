@@ -518,3 +518,4 @@ line, and this index is regenerated with `node scripts/changelog-index.mjs`.
 - §496 Person view (F5)
 - §497 Agenda file: join link and attendees (F9)
 - §498 Rename everywhere (F6)
+- §499 No title suggestion that changes nothing (#252)
