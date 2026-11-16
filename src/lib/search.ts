@@ -1,7 +1,7 @@
 /** Cross-tab search (Ctrl/Cmd+Shift+F). Split out of `controller.ts` in the
  * v0.5.0 refactor. "Open" scope scans the live tab contents; "all" scope
- * scans `allNotesCache` (populated by whichever drawer last refreshed it —
- * the Search modal refreshes it before switching scope).
+ * scans `notesIndex` (the Search modal refreshes the disk layer before
+ * switching scope).
  *
  * Supports search syntax operators (Area 8.2 / Decision 7):
  *   is:open       restricts results to open action lines (#)
@@ -12,7 +12,10 @@
  *   before:YYYY-MM-DD
  */
 import { get } from "svelte/store";
-import { allNotesCache, modal, searchResultsStore, tabs } from "./stores";
+import { modal, searchResultsStore, tabs } from "./stores";
+import { notesIndex } from "./notesIndex";
+import { isScratchpadKey } from "./notesIndex/entries";
+import { linesOf } from "./notesIndex/facets";
 import { compareTabsByRecency, sortFilenamesByRecency } from "./tabSort";
 import { dueItems, innermostActionSymbol } from "./tokens";
 import { isValidCalendarDate, parseDueWord } from "./date";
@@ -323,14 +326,19 @@ export function runSearch(query: string, scope: "open" | "all" = "open", ctx?: S
       });
     }
   } else {
-    const allSources = get(allNotesCache);
-    const openTabIdByFilename = new Map(get(tabs).filter((t) => !t.isScratchpad).map((t) => [t.filename, t.id]));
-    for (const filename of sortFilenamesByRecency(Object.keys(allSources))) {
-      const lines = allSources[filename].split("\n");
+    const { entries } = get(notesIndex);
+    const filenames: string[] = [];
+    for (const key of entries.keys()) {
+      if (!isScratchpadKey(key)) filenames.push(key);
+    }
+    for (const filename of sortFilenamesByRecency(filenames)) {
+      const entry = entries.get(filename)!;
+      const lines = linesOf(entry);
+      const tabId = entry.source === "tab" ? entry.tabId : undefined;
       lines.forEach((line, lineIdx) => {
         if (matchesLine(filename, line)) {
           results.push({
-            tabId: openTabIdByFilename.get(filename),
+            tabId,
             tabFilename: filename,
             lineIdx,
             line,

@@ -30,7 +30,6 @@ import { get } from "svelte/store";
 import {
   activeTabId,
   agendaFileExists,
-  allNotesCache,
   backendKind,
   calendarSyncEnabled,
   copyForwardPending,
@@ -42,6 +41,7 @@ import {
   tabs,
   type CopyForwardPending,
 } from "./stores";
+import { notesIndex, noteTexts } from "./notesIndex";
 import * as api from "./tauriApi";
 import {
   isWriteConflictError,
@@ -88,7 +88,7 @@ export async function findNextOccurrenceTarget(
     return match ? { date: match[0], headerText: match[1] } : null; // the calendar's own title, verbatim
   }
   await refreshAllNotesCache();
-  const found = findNextSectionOccurrenceOnDisk(get(allNotesCache), targetHeader, anchorFilename);
+  const found = findNextSectionOccurrenceOnDisk(noteTexts(get(notesIndex)), targetHeader, anchorFilename);
   return found ? { date: found.date, headerText: sourceHeaderDisplay } : null;
 }
 
