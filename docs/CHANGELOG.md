@@ -515,3 +515,4 @@ line, and this index is regenerated with `node scripts/changelog-index.mjs`.
 - §493 Search finds decisions, topics, emphasis and sections (F7a)
 - §494 Suggestions while typing @names, (topics) and section titles (F3)
 - §495 Saved searches (F7b)
+- §496 Person view (F5)
