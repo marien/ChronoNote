@@ -83,9 +83,10 @@ S6 last. Each gets the full browser suite and the perf project before and after.
 
 Progress: S1 merged (#243, §487; plus S1b, the six fixes from Gemini's review,
 [wave-3/S1b-review-fixes.md](wave-3/S1b-review-fixes.md)). S2-S5 in one PR (§488-§491, one combined browser suite;
-separate PRs would each have added to the end of the same changelog file), merged as #244. S6 (§492): R1 complete.
+separate PRs would each have added to the end of the same changelog file), merged as #244. S6 (§492, #245): R1
+complete.
 
-After S6: ask Marien once whether open views (the Actions pane first) should follow edits live (design 8.4).
+Live views (design 8.4), Marien 2026-11-16: the Actions pane keeps its snapshot. Settled.
 
 ## Wave 4 · depth
 

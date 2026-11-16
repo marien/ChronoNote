@@ -177,7 +177,8 @@ Each point was open in the first draft. How it was settled, and where that shows
    notes, three runs, median) and puts it in the pull request. More than 25 MB extra: `linesOf` is then computed
    without remembering it for entries with `source: "disk"`.
 4. **Open views live or snapshot.** Unchanged through S6: the Actions view stays a snapshot, the week review stays
-   live. After S6 merges, ask Marien once, with the Actions pane as the example.
+   live. After S6 merged, Marien decided (2026-11-16): the Actions pane keeps its snapshot (rows don't move while
+   you work through them). Settled; don't ask again.
 5. **The sync hooks and the phone companion.** Read for this: the web app's OneDrive sync calls the two hooks
    `registerSyncHooks` gives it (`invalidateCache` = `invalidateDiskNotesCache`, `notesChanged` =
    `updateNotesInCache`, `persistence.ts:270`, used in `oneDriveSync.ts:97-100`). Both act on the disk layer only, so
