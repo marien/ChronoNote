@@ -4,27 +4,20 @@
  * `setWordWrap`) and the maximize/fullscreen chrome watcher. Split out of
  * `controller.ts` in the v0.5.0 refactor. `directory.ts` reuses
  * `restoreOrBootstrapTabs` for the workspace re-load on a folder switch. */
-import { loadBaseline } from "./hash";
 import { get } from "svelte/store";
-import { getCurrentWindow } from "@tauri-apps/api/window";
 import * as api from "./tauriApi";
 import { installErrorReporting, logError, logInfo, logWarn } from "./appLog";
-import { countActions, countWords } from "./tokens";
 import { todayISO } from "./date";
 import {
   activeTabId,
-  agendaFileExists,
   appVersion,
   autoAddedMeetings,
   autoCheckUpdates,
   backendKind,
-  devBuild,
   earlyUpdates,
   calendarAutoAdd,
   calendarSyncEnabled,
-  chromeExpanded,
   colorMode,
-  currentDateISO,
   fontSize,
   languageMode,
   lineHeight,
@@ -32,55 +25,34 @@ import {
   pureBlack,
   isMobile,
   justUpdatedToVersion,
-  markTabClean,
-  modal,
   notesDir,
   oneDriveAccount,
-  oneDriveSignInExpired,
-  oneDriveConnecting,
-  oneDriveFolder,
-  oneDriveFolderPickerOpen,
-  oneDriveSyncStatus,
   readableLineLength,
   recentNotesDirs,
-  scratchpadGateContext,
   showToast,
-  statusCounts,
-  statusPos,
-  statusSelection,
-  statusWordCount,
   statusBarVisible,
   tabLabelStyle,
   historyPaneShare,
   actionsPaneShare,
   startupTabMode,
-  syncHealth,
   tabs,
   themeMode,
-  unsavedScratchpadNames,
   wordWrap,
   spellCheck,
   spellLanguages,
 } from "./stores";
-import { computeEffectiveSpellLanguages, languagesChanged } from "./editor/spellcheck";
-import {
-  flushAllPendingSaves,
-  recomputeSaveState,
-  setWriteConflictHandler,
-} from "./persistence";
+import { setWriteConflictHandler } from "./persistence";
 import { ensureLoaded } from "./notesIndex";
-import { checkActiveTabForDrift, handleWriteConflict } from "./drift";
-import { initCalendarSyncDiffTracking, maybeSilentSyncEmptyNote, refreshAgendaFileExists } from "./calendarSyncActions";
-import { refreshSyncConflicts, syncOneDriveNow } from "./oneDriveSync";
+import { handleWriteConflict } from "./drift";
+import { initCalendarSyncDiffTracking, refreshAgendaFileExists } from "./calendarSyncActions";
 import { checkForUpdatesOnLaunch } from "./updates";
 import { applyPeekConfig } from "./peek";
 import { wireMica } from "./mica";
 import { occurrenceHint } from "./occurrences";
-import { phoneCompanionEnabled, phoneCompanionOnFocus, wirePhoneCompanion } from "./phoneCompanion";
+import { phoneCompanionEnabled, wirePhoneCompanion } from "./phoneCompanion";
 import { wirePhoneInboxUi } from "./phoneInboxUi";
 import { locale, t } from "./i18n";
 import { isFromNewerApp } from "./configSchema";
-import { describeApiError } from "./apiError";
 import { getOnboardingTemplate } from "./onboardingTemplate";
 import { normalizeAutoAddedMeetings } from "./sessionMeetings";
 import {
@@ -89,487 +61,62 @@ import {
   shouldApplyMobileDefaults,
   writeMobileDefaultsApplied,
 } from "./webappLaunch";
-import type { ColorMode, LanguageMode, NoteTab, StartupTabMode, ThemeMode } from "./types";
-import type { TabLabelStyle } from "./generated/tauri-types";
+import {
+  bringToFrontAfterUpdate,
+  wireCloseBarrier,
+  wireDateRollover,
+  wireDriftDetection,
+  wireStatusBarSync,
+  wireWindowTitleSync,
+} from "./boot/subscriptions";
+import {
+  applyColorModeToDom,
+  applyLocaleToDom,
+  applyPureBlackToDom,
+  applyThemeModeToDom,
+} from "./boot/dom";
+import { restoreOrBootstrapTabs, scheduleTabSessionSave } from "./boot/tabSession";
+import { initOneDriveSync } from "./boot/oneDrive";
+import { setFontSize, setWordWrap, syncSpellLanguages } from "./boot/settings";
 
-// --- Standing subscriptions (wired once, from initApp) -----------------
-
-/** Keep the status bar's action counts in sync with whichever tab is
- * active, including edits made through the drawers/modals rather than
- * typing. `latestTabs` is a plain cache of the last `tabs` value so the
- * `activeTabId` subscription can read it without a `get()`. */
-let latestTabs: NoteTab[] = [];
-let statusSyncWired = false;
-function wireStatusBarSync() {
-  if (statusSyncWired) return;
-  statusSyncWired = true;
-  tabs.subscribe((v) => {
-    latestTabs = v;
-    syncActiveStatus();
-  });
-  activeTabId.subscribe(() => {
-    syncActiveStatus();
-    statusPos.set({ line: 1, col: 1 });
-    statusSelection.set(null); // #37: a fresh tab starts with no selection
-  });
-}
-function syncActiveStatus() {
-  const t = latestTabs.find((x) => x.id === get(activeTabId));
-  if (t) {
-    statusCounts.set(countActions(t.content));
-    statusWordCount.set(countWords(t.content));
-  }
-  // §102: the ambient save indicator describes the active tab, so it
-  // re-derives whenever the active tab or the tab list changes.
-  recomputeSaveState();
-}
-
-/** The folder's own last path segment, not the full path — shared by the
- * window-title sync below and (§merged-titlebar) the status bar's own
- * folder-name display, so the two can never disagree about what "the
- * folder name" means. Fires on every `notesDir` change regardless of
- * which code path caused it (initial boot, or a directory switch),
- * rather than needing a call at each call site. */
-export function folderNameFromPath(path: string): string {
-  const segments = path.split(/[\\/]/).filter(Boolean);
-  return segments.length > 0 ? segments[segments.length - 1] : path;
-}
-let titleSyncWired = false;
-function wireWindowTitleSync() {
-  if (titleSyncWired) return;
-  titleSyncWired = true;
-  notesDir.subscribe((dir) => {
-    if (!dir) return;
-    getCurrentWindow()
-      .setTitle(`ChronoNote${get(devBuild) ? " (dev)" : ""} - ${folderNameFromPath(dir)}`)
-      .catch(() => {});
-  });
-}
-
-/** After an in-app update the installer starts the app, and Windows keeps a process started that way from taking
- * the foreground: the window opened behind whatever was on top. Being topmost for a moment puts it at the top of the
- * window stack (Windows allows that), then the normal order resumes with this window first. Desktop app only. */
-async function bringToFrontAfterUpdate(version: string): Promise<void> {
-  // §415: once per update. The "Updated to" notice now stays until it is clicked or closed (the version is not marked
-  // as seen at start-up any more), so this remembers on its own that the window was raised for this version.
-  const KEY = "chrononote.raisedAfterUpdate";
-  try {
-    if (localStorage.getItem(KEY) === version) return;
-    localStorage.setItem(KEY, version);
-  } catch {
-    // No storage: raising again at the next start is harmless.
-  }
-  try {
-    const win = getCurrentWindow();
-    await win.setAlwaysOnTop(true);
-    await win.setAlwaysOnTop(false);
-    await win.setFocus();
-  } catch {
-    // Cosmetic: a window that stays behind is no worse than before.
-  }
-}
-
-// --- §93: zero-loss exit barrier -------------------------------------
-//
-// The autosave debounce (400ms) means the last burst of typing before an
-// OS window close (X button, Alt+F4) could be lost. Intercept the close:
-// flush every pending + in-flight disk write first, then destroy the
-// window. A non-empty scratchpad has no disk file, so it goes through the
-// same unsaved-scratchpads gate a notes-folder switch uses (§39) —
-// close is cancelled until the user promotes or discards it.
-
-let closeBarrierWired = false;
-function wireCloseBarrier() {
-  if (closeBarrierWired) return;
-  closeBarrierWired = true;
-  const win = getCurrentWindow();
-  win
-    .onCloseRequested(async (event) => {
-      // Take the close off Tauri's hands; we decide when the window dies.
-      event.preventDefault();
-      const unsaved = get(tabs).filter((t) => t.isScratchpad && t.content.trim() !== "");
-      if (unsaved.length > 0) {
-        unsavedScratchpadNames.set(unsaved.map((t) => t.filename));
-        scratchpadGateContext.set("close");
-        modal.set("unsavedScratchpads");
-        return; // stay open; the modal's buttons resolve it
-      }
-      await flushThenDestroy();
-    })
-    .catch(() => {
-      // No window handle (tests without the mock event plumbing, or a
-      // non-Tauri context) — the barrier just isn't active there.
-    });
-}
-
-async function flushThenDestroy() {
-  try {
-    await flushAllPendingSaves();
-  } finally {
-    await getCurrentWindow().destroy();
-  }
-}
-
-// --- §94: external-modification detection triggers -------------------
-//
-// Check the active tab for drift whenever it becomes active, and whenever
-// the OS window regains focus (the "I edited the file in another app and
-// alt-tabbed back" case). The check itself is in `drift.ts` and is a
-// cheap no-op when nothing changed.
-
-let driftWired = false;
-function wireDriftDetection() {
-  if (driftWired) return;
-  driftWired = true;
-  activeTabId.subscribe(() => {
-    void checkActiveTabForDrift();
-  });
-  if (typeof window !== "undefined") {
-    window.addEventListener("focus", () => {
-      void checkActiveTabForDrift();
-      refreshCurrentDate();
-    });
-  }
-  getCurrentWindow()
-    .onFocusChanged(({ payload: focused }) => {
-      // §B1: Windows 11 dims an inactive window's title bar; 02-top-bar.css reads this class.
-      document.body.classList.toggle("window-inactive", !focused);
-      if (!focused) return;
-      void checkActiveTabForDrift();
-      // Same "regained focus" moment covers the sync button's gray-out
-      // state too — `.agenda.json` is written by an external process,
-      // which realistically only happens while ChronoNote itself is
-      // unfocused. Skip the check entirely when the feature's off or
-      // unavailable, rather than a wasted read every single focus.
-      if (get(calendarSyncEnabled) && (get(backendKind) !== "web" || !!get(oneDriveAccount))) {
-        void refreshAgendaFileExists();
-      }
-      // The agenda feed and OneDrive change files while ChronoNote is in the background: apply the phone's requests, then
-      // rebuild the phone index with the window's notes re-read from disk.
-      phoneCompanionOnFocus();
-      // #72: also the fastest way to notice a midnight rollover that
-      // happened while the app sat unfocused — no need to wait out the
-      // rollover interval's own delay once the app is actually looked at
-      // again.
-      refreshCurrentDate();
-    })
-    .catch(() => {
-      // No window handle — focus trigger just isn't active here.
-    });
-}
-
-// --- #72: keep `currentDateISO` live across a midnight rollover --------
-//
-// A plain `todayISO()` call inside a template expression (the top bar's
-// past/today/future tab colouring, before this fix) only re-evaluates
-// when something else Svelte is already watching changes — usually not
-// true right at midnight, so a tab left open overnight kept showing
-// yesterday's colours until some unrelated interaction (switching tabs,
-// resizing) happened to force a re-render. A cheap interval catches the
-// rollover on its own; a window-focus check (piggybacking on the same
-// hook §94's drift detection already uses) also catches it the moment the
-// app is looked at again after being away, without waiting up to the
-// interval's own delay.
-
-const DATE_ROLLOVER_CHECK_MS = 30_000;
-let dateRolloverWired = false;
-
-function refreshCurrentDate() {
-  const today = todayISO();
-  if (get(currentDateISO) !== today) currentDateISO.set(today);
-}
-
-function wireDateRollover() {
-  if (dateRolloverWired) return;
-  dateRolloverWired = true;
-  // `currentDateISO`'s initial value (`stores.ts`) is only as fresh as
-  // whenever that module happened to load — normally the same instant as
-  // boot, but re-syncing explicitly here means `initApp()` never depends
-  // on that coincidence.
-  refreshCurrentDate();
-  setInterval(refreshCurrentDate, DATE_ROLLOVER_CHECK_MS);
-}
-
-/** Unsaved-scratchpads gate, "close" context: Cancel — stay in the app. */
-export function cancelAppClose() {
-  unsavedScratchpadNames.set([]);
-  scratchpadGateContext.set(null);
-  modal.set("none");
-}
-
-/** Unsaved-scratchpads gate, "close" context: Discard & Quit — drop the
- * scratchpads, flush the real notes, then close. */
-export async function confirmDiscardAndClose() {
-  unsavedScratchpadNames.set([]);
-  scratchpadGateContext.set(null);
-  modal.set("none");
-  await flushThenDestroy();
-}
+export { cancelAppClose, confirmDiscardAndClose, folderNameFromPath } from "./boot/subscriptions";
+export {
+  applyColorModeToDom,
+  applyLocaleToDom,
+  applyPureBlackToDom,
+  applyThemeModeToDom,
+} from "./boot/dom";
+export { restoreOrBootstrapTabs, writeTabSessionNow } from "./boot/tabSession";
+export {
+  initOneDriveSync,
+  initWindowChromeWatcher,
+  refreshSyncHealth,
+} from "./boot/oneDrive";
+export {
+  setActionsPaneShare,
+  setAutoCheckUpdates,
+  setCalendarAutoAdd,
+  setCalendarSyncEnabled,
+  setColorMode,
+  setEarlyUpdates,
+  setFontSize,
+  setHistoryPaneShare,
+  setLanguageMode,
+  setLineHeight,
+  setMinutesName,
+  setPureBlack,
+  setReadableLineLength,
+  setSpellCheck,
+  setSpellLanguages,
+  setStartupTabMode,
+  setStatusBarVisible,
+  setTabLabelStyle,
+  setThemeMode,
+  setWordWrap,
+  syncSpellLanguages,
+} from "./boot/settings";
 
 // --- Boot ---
-
-export function applyColorModeToDom(mode: ColorMode) {
-  document.documentElement.dataset.colorMode = mode;
-}
-
-/** #48: `system` means "no override" — `app.css`'s `prefers-color-scheme`
- * query alone decides, exactly like before this setting existed — so the
- * `data-theme` attribute is removed rather than set to `"system"` (no CSS
- * selector matches that value; the attribute's mere *absence* is what the
- * bare `:root` / media-query blocks are written against). */
-const THEME_CHROME_COLORS: Record<"dark" | "light", string> = {
-  dark: "#252526",
-  light: "#f3f3f3",
-};
-
-export function applyThemeModeToDom(mode: ThemeMode) {
-  if (mode === "system") delete document.documentElement.dataset.theme;
-  else document.documentElement.dataset.theme = mode;
-
-  // §D7: update web app theme-color meta tags if present (desktop has none)
-  if (typeof document !== "undefined") {
-    const darkMeta = document.querySelector<HTMLMetaElement>(
-      'meta[name="theme-color"][media="(prefers-color-scheme: dark)"]',
-    );
-    const lightMeta = document.querySelector<HTMLMetaElement>(
-      'meta[name="theme-color"][media="(prefers-color-scheme: light)"]',
-    );
-    if (darkMeta && lightMeta) {
-      if (mode === "system") {
-        darkMeta.content = THEME_CHROME_COLORS.dark;
-        lightMeta.content = THEME_CHROME_COLORS.light;
-      } else {
-        const color = THEME_CHROME_COLORS[mode];
-        darkMeta.content = color;
-        lightMeta.content = color;
-      }
-    }
-  }
-}
-
-export function applyPureBlackToDom(pureBlack: boolean) {
-  if (pureBlack) document.documentElement.setAttribute("data-pure-black", "");
-  else document.documentElement.removeAttribute("data-pure-black");
-}
-
-/** i18n roadmap: reflects the *resolved* display language (never
- * `"system"` itself — `./i18n`'s `locale` store already resolved that)
- * onto `<html lang>`, a real accessibility/correctness fix (screen
- * readers and the browser's own spell-checker pick the right language)
- * that falls out of having a resolved locale at all. Called once at
- * boot and again on every `setLanguageMode`, mirroring
- * `applyThemeModeToDom`'s call sites below. */
-export function applyLocaleToDom(resolvedLocale: string) {
-  document.documentElement.lang = resolvedLocale;
-}
-
-/** Set while a session restore (or a directory switch's fresh restore) is
- * rebuilding the `tabs`/`activeTabId` stores step by step, so the
- * persistence subscribers below don't write a half-built intermediate
- * state to disk (§34). */
-let restoringTabs = false;
-
-/** A read that fails is retried a couple of times: OneDrive or a virus scanner can hold a file for a moment. */
-async function readWithRetry<T>(read: () => Promise<T>, attempts = 3): Promise<T> {
-  for (let i = 1; ; i++) {
-    try {
-      return await read();
-    } catch (e) {
-      if (i >= attempts) throw e;
-      await new Promise((r) => setTimeout(r, 300 * i));
-    }
-  }
-}
-
-/** Spec §34: restores the tabs and active tab this specific notes folder
- * had open last time (skipping any that no longer exist on disk), and
- * always force-opens today's dated tab as well — confirmed design
- * decisions: today's tab is always present, and it's also the fallback
- * active tab whenever the previously-active one can't be restored (its
- * file was deleted, or it was a scratchpad, which never persists). A
- * folder with no saved session yet (first time it's opened) just gets
- * today's tab, same as before this feature existed. */
-export async function restoreOrBootstrapTabs() {
-  restoringTabs = true;
-  // A save from just before this call (e.g. performDirectorySwitch clearing
-  // `tabs`/`activeTabId` ahead of the restore) may already be pending —
-  // cancel it so it can't fire mid-restore and persist a half-built state.
-  if (sessionSaveTimer) {
-    clearTimeout(sessionSaveTimer);
-    sessionSaveTimer = null;
-  }
-  try {
-    const todayFilename = todayISO() + ".txt";
-    const session = await api.readTabSession();
-    autoAddedMeetings.set(normalizeAutoAddedMeetings(session?.autoAddedMeetings));
-    const otherFilenames = (session?.openTabs ?? []).filter((f) => f !== todayFilename);
-
-    // Fire every read concurrently (one IPC round-trip in flight per file,
-    // all in parallel) rather than one-at-a-time — with several tabs open,
-    // a sequential await-per-file loop was adding a full extra round-trip
-    // of latency per tab before the editor became typable. §94:
-    // `read_note_with_metadata` so each tab starts with a clean-hash
-    // baseline for external-modification detection.
-    const [otherResults, todayRead] = await Promise.all([
-      Promise.allSettled(otherFilenames.map((f) => readWithRetry(() => api.readNoteWithMetadata(f)))),
-      // Today's tab must open with the real content, so a failure there still stops startup.
-      readWithRetry(() => api.readNoteWithMetadata(todayFilename)),
-    ]);
-
-    const restored: NoteTab[] = [];
-    const cleanHashes: Array<[string, string | null]> = [];
-    const unreadable: string[] = [];
-    otherFilenames.forEach((filename, i) => {
-      const result = otherResults[i];
-      if (result.status === "rejected") {
-        unreadable.push(filename);
-        return;
-      }
-      const { content, metadata } = result.value;
-      if (content === null) return; // file no longer exists — silently skip
-      const id = `tab-${Date.now()}-${filename}`;
-      restored.push({ id, filename, isScratchpad: false, content });
-      cleanHashes.push([id, loadBaseline(metadata)]);
-    });
-
-    const todayId = `tab-${Date.now()}-${todayFilename}`;
-    const todayTab: NoteTab = {
-      id: todayId,
-      filename: todayFilename,
-      isScratchpad: false,
-      content: todayRead.content ?? "",
-    };
-    restored.push(todayTab);
-    cleanHashes.push([todayId, loadBaseline(todayRead.metadata)]);
-
-    // Restore preserved scratchpad drafts (e.g. mobile process termination survival)
-    try {
-      const drafts = await api.loadScratchpadDrafts();
-      if (drafts && typeof drafts === "object") {
-        for (const [name, draftContent] of Object.entries(drafts)) {
-          if (typeof draftContent === "string" && draftContent.trim().length > 0) {
-            const scratchId = `tab-${Date.now()}-${name}`;
-            restored.push({
-              id: scratchId,
-              filename: name,
-              isScratchpad: true,
-              content: draftContent,
-            });
-          }
-        }
-      }
-    } catch {
-      // Backend may not support scratchpad draft persistence (e.g. demo mock)
-    }
-
-    tabs.set(restored);
-    for (const [id, hash] of cleanHashes) markTabClean(id, hash);
-    if (unreadable.length > 0) {
-      showToast(get(t)("toast.boot.couldntOpenNotes", { filenames: unreadable.join(", ") }));
-    }
-    // #23: on the first launch of a new day (and the very first launch
-    // after install, where `session` is null), open with today's note
-    // active regardless of which tab was last active — the point of a
-    // daily-notes app is to land you on today when the day turns over.
-    // Later launches the same day restore the last-active tab as before.
-    const isFirstOpenToday = (session?.lastOpenedDate ?? null) !== todayISO();
-    let finalActive: NoteTab = todayTab;
-    let dropTodayTab = false;
-
-    if (!isFirstOpenToday && session?.activeTab) {
-      finalActive = restored.find((t) => t.filename === session.activeTab) ?? todayTab;
-      // §430: with "Last note", a later start the same day (an update's restart, reopening the app, a web-app reload)
-      // restores exactly the saved tabs: today's tab only comes back if it was open.
-      if (get(startupTabMode) === "smart_last_active" && finalActive !== todayTab) {
-        dropTodayTab = !(session.openTabs ?? []).includes(todayFilename);
-      }
-    } else if (isFirstOpenToday && session?.activeTab && get(startupTabMode) === "smart_last_active") {
-      // Smart decision logic (§spec 5.3):
-      // 1. Check Today's Note: If today's note has non-whitespace content, open Today.
-      // 2. Check Today's Agenda: If Calendar Sync is enabled and today has agenda meetings, open Today.
-      // 3. Otherwise (Today is clean & clear): restore session.activeTab.
-      const todayHasContent = (todayRead.content ?? "").trim().length > 0;
-      let todayHasMeetings = false;
-      if (get(calendarSyncEnabled) && get(agendaFileExists)) {
-        try {
-          const meetings = await api.readAgendaForDate(todayISO());
-          todayHasMeetings = meetings.filter((m) => m.trim().length > 0).length > 0;
-        } catch {
-          todayHasMeetings = false;
-        }
-      }
-
-      if (!todayHasContent && !todayHasMeetings) {
-        const lastActiveMatch = restored.find((t) => t.filename === session.activeTab);
-        if (lastActiveMatch) {
-          finalActive = lastActiveMatch;
-          // #125: today's tab is only opened here when it gets the focus (or was already open last time). Today is
-          // empty, so there is nothing to lose by not opening it; it is created when it is opened on purpose.
-          dropTodayTab = !(session.openTabs ?? []).includes(todayFilename);
-        }
-      }
-    }
-
-    activeTabId.set(finalActive.id);
-    if (dropTodayTab) tabs.update((list) => list.filter((x) => x.id !== todayTab.id));
-    void maybeSilentSyncEmptyNote(finalActive);
-  } finally {
-    restoringTabs = false;
-  }
-  scheduleTabSessionSave();
-}
-
-let sessionSaveTimer: ReturnType<typeof setTimeout> | null = null;
-let lastPersistedSessionKey = "";
-
-function scheduleTabSessionSave() {
-  if (restoringTabs) return;
-  if (sessionSaveTimer) clearTimeout(sessionSaveTimer);
-  sessionSaveTimer = setTimeout(persistTabSession, 150);
-}
-
-function currentTabSessionSnapshot() {
-  const list = get(tabs);
-  const activeId = get(activeTabId);
-  const openTabs = list
-    .filter((t) => !t.isScratchpad)
-    .map((t) => t.filename)
-    .sort();
-  const activeTab = list.find((t) => t.id === activeId);
-  const activeFilename = activeTab && !activeTab.isScratchpad ? activeTab.filename : null;
-
-  // #23: stamp the session with today's date so the next boot can tell
-  // whether it's the first launch of a new day. Part of the dedup key so
-  // the day rolling over always forces a fresh write, even if the open
-  // tabs and active tab are unchanged from yesterday.
-  const today = todayISO();
-  const autoAdded = get(autoAddedMeetings);
-  return {
-    openTabs,
-    activeFilename,
-    today,
-    autoAdded,
-    key: JSON.stringify({ openTabs, activeFilename, today, autoAdded }),
-  };
-}
-
-export function writeTabSessionNow(snap = currentTabSessionSnapshot()): void {
-  if (sessionSaveTimer) {
-    clearTimeout(sessionSaveTimer);
-    sessionSaveTimer = null;
-  }
-  lastPersistedSessionKey = snap.key;
-  api.writeTabSession(snap.openTabs, snap.activeFilename, snap.today, snap.autoAdded).catch(() => {
-    // Best-effort bookkeeping, not user note content — fail silently.
-  });
-}
-
-function persistTabSession() {
-  sessionSaveTimer = null;
-  const snap = currentTabSessionSnapshot();
-  if (snap.key === lastPersistedSessionKey) return;
-  writeTabSessionNow(snap);
-}
 
 export async function initApp() {
   const bootStart = typeof performance !== "undefined" ? performance.now() : Date.now();
@@ -742,352 +289,4 @@ export async function initApp() {
   }
   const elapsed = Math.round((typeof performance !== "undefined" ? performance.now() : Date.now()) - bootStart);
   logInfo(`boot done in ${elapsed} ms, ${get(tabs).length} tabs`);
-}
-
-let oneDriveSyncWired = false;
-let lastAutoSyncTime = 0;
-
-export async function initOneDriveSync() {
-  if (get(backendKind) !== "web") return;
-  if (oneDriveSyncWired) return;
-  oneDriveSyncWired = true;
-
-  if (typeof window !== "undefined") {
-    const urlParams = new URLSearchParams(window.location.search);
-    const code = urlParams.get("code");
-    const returnedState = urlParams.get("state") ?? undefined;
-    const error = urlParams.get("error");
-    const errorDescription = urlParams.get("error_description");
-
-    if (code) {
-      const cleanUrl = `${window.location.origin}${window.location.pathname}${window.location.hash}`;
-      window.history.replaceState({}, document.title, cleanUrl);
-
-      oneDriveConnecting.set(true);
-      void api
-        .oneDriveExchangeCode(code, returnedState)
-        .then(async (result) => {
-          oneDriveConnecting.set(false);
-          if (result.success && result.account) {
-            oneDriveAccount.set(result.account);
-        oneDriveSignInExpired.set(false);
-            const folder = await api.oneDriveGetFolder();
-            if (folder) {
-              oneDriveFolder.set(folder);
-              void syncOneDriveNow();
-            } else {
-              // Signed in but no folder yet: ask for it right away rather than
-              // leaving a "Choose a folder" label for the user to find.
-              oneDriveFolderPickerOpen.set(true);
-            }
-            showToast(
-              folder ? get(t)("toast.boot.oneDrive.connected", undefined) : get(t)("toast.boot.oneDrive.connectedChooseFolder", undefined),
-            );
-          } else if (result.error) {
-            showToast(`${get(t)("toast.boot.oneDrive.signInFailedPrefix", undefined)} ${describeApiError(result.error)}`);
-          }
-        })
-        .catch((err) => {
-          oneDriveConnecting.set(false);
-          showToast(`${get(t)("toast.boot.oneDrive.signInFailedPrefix", undefined)} ${describeApiError(err)}`);
-        });
-    } else if (error) {
-      const cleanUrl = `${window.location.origin}${window.location.pathname}${window.location.hash}`;
-      window.history.replaceState({}, document.title, cleanUrl);
-      showToast(`${get(t)("toast.boot.oneDrive.signInErrorPrefix", undefined)} ${errorDescription || error}`);
-    }
-  }
-
-  try {
-    const account = await api.oneDriveGetAccount();
-    if (account) {
-      oneDriveAccount.set(account);
-      const folder = await api.oneDriveGetFolder();
-      if (folder) oneDriveFolder.set(folder);
-      void syncOneDriveNow();
-    }
-  } catch {
-    // Fail silently
-  }
-
-  // Periodic status polling (every 6 seconds). Also picks up sync conflicts
-  // the engine has just held back, since the sync itself is fire-and-forget.
-  setInterval(async () => {
-    if (get(oneDriveAccount)) {
-      try {
-        const status = await api.oneDriveGetSyncStatus();
-        oneDriveSyncStatus.set(status);
-      } catch {}
-      void refreshSyncConflicts();
-      void refreshSyncHealth();
-    }
-  }, 6000);
-
-  const triggerResumeSync = () => {
-    if (!get(oneDriveAccount)) return;
-    const now = Date.now();
-    if (now - lastAutoSyncTime < 15000) return;
-    lastAutoSyncTime = now;
-    void syncOneDriveNow();
-  };
-
-  if (typeof document !== "undefined") {
-    document.addEventListener("visibilitychange", () => {
-      if (document.visibilityState === "visible") triggerResumeSync();
-    });
-  }
-  if (typeof window !== "undefined") {
-    window.addEventListener("focus", triggerResumeSync);
-    window.addEventListener("online", triggerResumeSync);
-  }
-}
-
-export async function refreshSyncHealth(): Promise<void> {
-  if (get(backendKind) !== "web") return;
-  try {
-    const health = await api.getSyncHealth();
-    syncHealth.set(health);
-    // Same engine status `onedrive_get_sync_status` reports; keep the one store the UI reads current.
-    oneDriveSyncStatus.set(health.status);
-  } catch (err) {
-    console.error("Failed to fetch sync health:", err);
-    logError(`Failed to fetch sync health: ${err}`);
-  }
-}
-
-/** Tracks whether the OS window is maximized or fullscreen, so the top bar
- * can show icon+label when there's room and icon-only when there isn't. */
-export async function initWindowChromeWatcher() {
-  const win = getCurrentWindow();
-  async function refresh() {
-    try {
-      const [fullscreen, maximized] = await Promise.all([win.isFullscreen(), win.isMaximized()]);
-      chromeExpanded.set(fullscreen || maximized);
-    } catch {
-      // Window introspection unavailable — keep the icon-only default.
-    }
-  }
-  await refresh();
-  await win.onResized(() => {
-    refresh();
-  });
-}
-
-export async function setColorMode(mode: ColorMode) {
-  colorMode.set(mode);
-  applyColorModeToDom(mode);
-  try {
-    await api.setColorMode(mode);
-  } catch {
-    showToast(get(t)("toast.boot.failedToSave.theme", undefined));
-  }
-}
-
-/** #48 — light / dark / system. Distinct from `setColorMode` above (the
- * glyph palette); this is the chrome's own light-vs-dark rendering. */
-export async function setThemeMode(mode: ThemeMode) {
-  themeMode.set(mode);
-  applyThemeModeToDom(mode);
-  try {
-    await api.setThemeMode(mode);
-  } catch {
-    showToast(get(t)("toast.boot.failedToSave.lightDark", undefined));
-  }
-}
-
-/** i18n roadmap — UI display language override, independent of theme. */
-export async function setLanguageMode(mode: LanguageMode) {
-  languageMode.set(mode);
-  applyLocaleToDom(get(locale));
-  try {
-    await api.setLanguageMode(mode);
-  } catch {
-    showToast(get(t)("toast.boot.failedToSave.language", undefined));
-  }
-}
-
-export async function setWordWrap(enabled: boolean) {
-  wordWrap.set(enabled);
-  try {
-    await api.setWordWrap(enabled);
-  } catch {
-    showToast(get(t)("toast.boot.failedToSave.wordWrap", undefined));
-  }
-}
-
-export async function setSpellCheck(enabled: boolean) {
-  spellCheck.set(enabled);
-  try {
-    await api.setSpellCheck(enabled);
-  } catch {
-    showToast(get(t)("toast.boot.failedToSave.spellCheck", undefined));
-  }
-}
-
-let isSyncingSpellLanguages = false;
-export async function syncSpellLanguages(): Promise<void> {
-  if (get(backendKind) === "web") return;
-  if (isSyncingSpellLanguages) return;
-  isSyncingSpellLanguages = true;
-  try {
-    const [avail, win] = await Promise.all([
-      api.spellAvailableLanguages(),
-      api.spellWindowsLanguages(),
-    ]);
-    const stored = get(spellLanguages);
-    const effective = computeEffectiveSpellLanguages(stored, win, avail);
-    await api.spellSetLanguages(effective);
-    await languagesChanged();
-  } catch (err) {
-    console.error("Failed to sync spell languages", err);
-  } finally {
-    isSyncingSpellLanguages = false;
-  }
-}
-
-export async function setSpellLanguages(languages: string[] | null) {
-  spellLanguages.set(languages);
-  try {
-    await api.setSpellLanguagesConfig(languages);
-  } catch {
-    showToast(get(t)("toast.boot.failedToSave.spellLanguages", undefined));
-  }
-}
-
-export async function setReadableLineLength(enabled: boolean) {
-  readableLineLength.set(enabled);
-  // §110: "limit line width" owns word-wrap while it's on — turning it on
-  // force-enables wrap; the Settings wrap toggle is disabled meanwhile.
-  if (enabled && !get(wordWrap)) await setWordWrap(true);
-  try {
-    await api.setReadableLineLength(enabled);
-  } catch {
-    showToast(get(t)("toast.boot.failedToSave.readingWidth", undefined));
-  }
-}
-
-export async function setAutoCheckUpdates(enabled: boolean) {
-  autoCheckUpdates.set(enabled);
-  try {
-    await api.setAutoCheckUpdates(enabled);
-  } catch {
-    showToast(get(t)("toast.boot.failedToSave.updateCheck", undefined));
-  }
-}
-
-export async function setEarlyUpdates(enabled: boolean) {
-  earlyUpdates.set(enabled);
-  try {
-    await api.setEarlyUpdates(enabled);
-  } catch {
-    showToast(get(t)("toast.boot.failedToSave.updateCheck", undefined));
-  }
-}
-
-export async function setCalendarSyncEnabled(enabled: boolean) {
-  calendarSyncEnabled.set(enabled);
-  // Turning it on shouldn't show a stale/default "gray" state until the
-  // next window-focus check happens to fire — check right away.
-  if (enabled) void refreshAgendaFileExists();
-  try {
-    await api.setCalendarSyncEnabled(enabled);
-  } catch {
-    showToast(get(t)("toast.boot.failedToSave.calendarSync", undefined));
-  }
-}
-
-export async function setCalendarAutoAdd(enabled: boolean) {
-  calendarAutoAdd.set(enabled);
-  try {
-    await api.setCalendarAutoAdd(enabled);
-  } catch {
-    showToast(get(t)("toast.boot.failedToSave.calendarAutoAdd", undefined));
-  }
-}
-
-export async function setMinutesName(name: string) {
-  const clamped = Array.from(name.trim()).slice(0, 60).join("");
-  minutesName.set(clamped);
-  try {
-    await api.setMinutesName(clamped);
-  } catch {
-    showToast(get(t)("toast.boot.failedToSave.minutesName", undefined));
-  }
-}
-
-export async function setFontSize(size: number) {
-  const clamped = Math.min(18, Math.max(12, size));
-  fontSize.set(clamped);
-  try {
-    await api.setFontSize(clamped);
-  } catch {
-    showToast(get(t)("toast.boot.failedToSave.fontSize", undefined));
-  }
-}
-
-export async function setLineHeight(height: number) {
-  const clamped = Math.min(1.8, Math.max(1.3, height));
-  lineHeight.set(clamped);
-  try {
-    await api.setLineHeight(clamped);
-  } catch {
-    showToast(get(t)("toast.boot.failedToSave.lineHeight", undefined));
-  }
-}
-
-export async function setPureBlack(enabled: boolean) {
-  pureBlack.set(enabled);
-  applyPureBlackToDom(enabled);
-  try {
-    await api.setPureBlack(enabled);
-  } catch {
-    showToast(get(t)("toast.boot.failedToSave.pureBlack", undefined));
-  }
-}
-
-export async function setStartupTabMode(mode: StartupTabMode) {
-  startupTabMode.set(mode);
-  try {
-    await api.setStartupTabMode(mode);
-  } catch {
-    showToast(get(t)("toast.boot.failedToSave.startup", undefined));
-  }
-}
-
-export async function setStatusBarVisible(enabled: boolean) {
-  statusBarVisible.set(enabled);
-  try {
-    await api.setStatusBarVisible(enabled);
-  } catch {
-    showToast(get(t)("toast.boot.failedToSave.statusBarVisible", undefined));
-  }
-}
-
-export async function setTabLabelStyle(style: TabLabelStyle) {
-  tabLabelStyle.set(style);
-  try {
-    await api.setTabLabelStyle(style);
-  } catch {
-    showToast(get(t)("toast.boot.failedToSave.tabLabelStyle", undefined));
-  }
-}
-
-export async function setHistoryPaneShare(share: number) {
-  const clamped = Math.min(0.60, Math.max(0.18, share));
-  historyPaneShare.set(clamped);
-  try {
-    await api.setHistoryPaneShare(clamped);
-  } catch {
-    // Best-effort persistence
-  }
-}
-
-export async function setActionsPaneShare(share: number) {
-  const clamped = Math.min(0.60, Math.max(0.18, share));
-  actionsPaneShare.set(clamped);
-  try {
-    await api.setActionsPaneShare(clamped);
-  } catch {
-    // Best-effort persistence
-  }
 }
