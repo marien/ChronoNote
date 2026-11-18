@@ -93,7 +93,7 @@ export function attendeeNames(displayNames: string[], ownName: string): string[]
   const seenOut = new Set<string>();
   for (const p of uniquePeople) {
     const needsInitial = (firstCounts.get(p.firstLower) ?? 0) > 1 && p.lastInitial !== "";
-    const name = needsInitial ? `${p.first}-${p.lastInitial}` : p.first;
+    const name = needsInitial ? `${p.first}${p.lastInitial}` : p.first;
     const key = name.toLowerCase();
     if (seenOut.has(key)) continue;
     seenOut.add(key);

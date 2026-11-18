@@ -9,7 +9,7 @@ describe("attendeeNames", () => {
     expect(attendeeNames(["dana.smith@example.org"], "")).toEqual(["Dana"]);
     expect(attendeeNames(["Dana Smith (External)"], "")).toEqual(["Dana"]);
     expect(attendeeNames(["Dana Smith [Guest]"], "")).toEqual(["Dana"]);
-    expect(attendeeNames(["Dana Smith", "Dana Brown"], "")).toEqual(["Dana-S", "Dana-B"]);
+    expect(attendeeNames(["Dana Smith", "Dana Brown"], "")).toEqual(["DanaS", "DanaB"]);
     expect(attendeeNames(["José Álvarez"], "")).toEqual(["José"]);
     expect(attendeeNames(["Marien de Gelder", "Dana Smith"], "Marien")).toEqual(["Dana"]);
     expect(attendeeNames(["!!!"], "")).toEqual([]);

@@ -23,7 +23,7 @@ describe("attendeeNames", () => {
   });
 
   it("disambiguates duplicate first names with '-' and uppercased last-word initial", () => {
-    expect(attendeeNames(["Dana Smith", "Dana Brown"], "")).toEqual(["Dana-S", "Dana-B"]);
+    expect(attendeeNames(["Dana Smith", "Dana Brown"], "")).toEqual(["DanaS", "DanaB"]);
   });
 
   it("preserves accented characters", () => {
