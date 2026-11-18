@@ -293,6 +293,8 @@ On Windows 11 the desktop app puts Mica behind the title bar and status bar
 (tinted by the app's own theme; the note area stays solid). It is off in the
 web app, before Windows 11, with pure black, and while Peek is on (§337).
 
+Every design token lives in `src/styles/01-tokens.css` and is shown visually in [docs/design/tokens.html](design/tokens.html).
+
 ### 3.1 Iconography
 
 Every UI icon — the top bar, every modal header, the tab strip, the find

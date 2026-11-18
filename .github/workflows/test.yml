@@ -38,6 +38,8 @@ jobs:
           TEST_GUARD_PR_BODY: ${{ github.event.pull_request.body }}
       - run: npm ci
       - run: node scripts/type-escapes.mjs
+      - run: node scripts/css-literals.mjs
+      - run: node scripts/tokens-page.mjs --check
       - run: npm run check
       - run: npm test
 

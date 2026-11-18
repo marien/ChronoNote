@@ -34,6 +34,7 @@ TypeScript + CodeMirror 6 in `src/`. Three backends implement one contract (`src
 - Do not edit `docs/CHANGELOG.md`, `docs/changelog/`, `website/`, `CLAUDE.local.md` or files under `docs/` unless the
   brief names them. Never commit rebuilt bundles under `website/webapp` or `website/demo-app`.
 - Do not add `any`, `@ts-ignore` or `@ts-expect-error`. `npm run type-escapes` fails when their number rises (R4).
+- Use the tokens in `src/styles/01-tokens.css` (see `docs/design/tokens.html`); `npm run css-literals` fails when raw colours or font sizes grow (U4).
 
 ## Rules of the product (they apply to every change)
 
