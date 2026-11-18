@@ -1,5 +1,5 @@
 /**
- * Must equal the Rust `CONFIG_SCHEMA_VERSION` constant in `src-tauri/src/storage.rs`.
+ * Must equal the Rust `CONFIG_SCHEMA_VERSION` constant in `src-tauri/src/storage/config.rs`.
  * Bump when a migration is added.
  */
 export const CONFIG_SCHEMA_VERSION = 1;

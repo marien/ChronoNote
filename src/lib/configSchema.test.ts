@@ -7,7 +7,7 @@ import { CONFIG_SCHEMA_VERSION, isFromNewerApp } from "./configSchema";
 
 describe("configSchema", () => {
   it("Rust constant CONFIG_SCHEMA_VERSION equals the TypeScript constant", () => {
-    const storageRsPath = path.resolve("src-tauri/src/storage.rs");
+    const storageRsPath = path.resolve("src-tauri/src/storage/config.rs");
     const contents = fs.readFileSync(storageRsPath, "utf-8");
     const match = contents.match(/CONFIG_SCHEMA_VERSION:\s*u32\s*=\s*(\d+)/);
     expect(match).not.toBeNull();
