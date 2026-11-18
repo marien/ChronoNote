@@ -15,6 +15,7 @@
     "test:guard": "node scripts/test-guard.mjs",
     "type-escapes": "node scripts/type-escapes.mjs",
     "seen-check": "node scripts/seen-check.mjs",
+    "npm-audit": "node scripts/npm-audit.mjs",
     "css-literals": "node scripts/css-literals.mjs",
     "test:watch": "vitest",
     "test:e2e": "playwright test",

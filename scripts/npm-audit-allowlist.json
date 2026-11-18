@@ -1,0 +1,11 @@
+{
+  "_comment": "Advisories the npm audit gate (scripts/npm-audit.mjs) lets through: only ones with no fixed version that reach dev tools alone. Each entry needs a reason and a review date; the gate fails once a fix is published or the date has passed. §507.",
+  "advisories": [
+    {
+      "id": "GHSA-fc5q-39xc-vjpf",
+      "package": "picomatch",
+      "reason": "ReDoS in picomatch <= 4.0.7, no fixed version (2026-11-18). Reaches only dev tools (vite, vitest, svelte-check via tinyglobby/fdir); not shipped, and the patterns come from our own config. Dependabot alert #9 auto-dismissed as dev-only.",
+      "review": "2027-01-31"
+    }
+  ]
+}

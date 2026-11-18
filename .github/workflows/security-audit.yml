@@ -13,6 +13,8 @@ on:
       - "src-tauri/Cargo.toml"
       - "src-tauri/Cargo.lock"
       - ".github/workflows/security-audit.yml"
+      - "scripts/npm-audit.mjs"
+      - "scripts/npm-audit-allowlist.json"
   pull_request:
     paths:
       - "package.json"
@@ -20,6 +22,8 @@ on:
       - "src-tauri/Cargo.toml"
       - "src-tauri/Cargo.lock"
       - ".github/workflows/security-audit.yml"
+      - "scripts/npm-audit.mjs"
+      - "scripts/npm-audit-allowlist.json"
   schedule:
     # Daily at 04:00 UTC
     - cron: "0 4 * * *"
@@ -40,7 +44,9 @@ jobs:
         with:
           node-version: 24
       - name: Run npm audit
-        run: npm audit --audit-level=high
+        # §507: high/critical fails, except advisories in scripts/npm-audit-allowlist.json (no fix, dev tools only);
+        # those fail again once a fix is published or their review date passes.
+        run: node scripts/npm-audit.mjs
 
   cargo-audit:
     name: Cargo Audit
