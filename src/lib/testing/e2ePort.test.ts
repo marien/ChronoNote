@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { e2ePort, e2eReuse } from "./e2ePort";
+import { CHROMIUM_UNSAFE_PORTS, e2ePort, e2eReuse } from "./e2ePort";
 
 describe("e2ePort and e2eReuse", () => {
   it("uses explicit E2E_PORT in 1024..65535 without reusing a server", () => {
@@ -28,6 +28,13 @@ describe("e2ePort and e2eReuse", () => {
     expect(first).toBeLessThanOrEqual(1899);
     expect(second).toBe(first);
     expect(e2eReuse({})).toBe(false);
+  });
+
+  it("never derives a port Chromium blocks as unsafe (§513)", () => {
+    const seen = new Set<number>();
+    for (let i = 0; i < 4000; i++) seen.add(e2ePort(`C:\\Gemini\\agy-worktrees\\run-${i}`, {}));
+    for (const port of CHROMIUM_UNSAFE_PORTS) expect(seen.has(port)).toBe(false);
+    expect(seen.has(1729) || seen.has(1730) || seen.has(1733)).toBe(true);
   });
 
   it("treats case and slash style identically when deriving a port", () => {

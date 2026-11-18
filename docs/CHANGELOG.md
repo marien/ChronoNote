@@ -535,3 +535,4 @@ line, and this index is regenerated with `node scripts/changelog-index.mjs`.
 - §510 Lists on the clipboard as tables that run (T1, step 3)
 - §511 `storage.rs` split into modules (R2, step 1)
 - §512 Mutation testing, local and monthly (T5)
+- §513 Per-checkout test ports skip the ones Chromium blocks
