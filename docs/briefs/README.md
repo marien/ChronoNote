@@ -98,14 +98,14 @@ Live views (design 8.4), Marien 2026-11-16: the Actions pane keeps its snapshot.
 
 | ID | What | Note |
 | :--- | :--- | :--- |
-| T1 | The spec as tables that run | Lists and editing keys first, from `src/lib/editor/editing.*.table.test.ts` |
-| T2 | Random typing against the real editor | Uses `src/lib/testing/testEditor.ts` and fast-check |
+| T1 | The spec as tables that run | Step 1, numbered lists: [wave-4/T1-spec-tables-lists.md](wave-4/T1-spec-tables-lists.md) · Hydrogen · started 2026-11-18 |
+| T2 | Random typing against the real editor | [wave-4/T2-random-typing.md](wave-4/T2-random-typing.md) · Hydrogen · started 2026-11-18 |
 | U5 | Design pass on the screenshot gallery | Parked 2026-11-15 (Marien) |
 | R2 | Split the six largest files | One brief per file, moves only; after waves 2 and 3 so open branches do not conflict |
 | R3 | Load dialogs when they open | Measure start time on the phone first |
 | T5 | Do the tests notice a broken rule? | Local, monthly; needs a tool as a dev dependency (Marien's OK on the package) |
 | U4 | Token reference and a check | |
-| R4 | A ceiling on type escapes | Count today: 102 |
+| R4 | A ceiling on type escapes | [wave-4/R4-type-escape-ceiling.md](wave-4/R4-type-escape-ceiling.md) · Hydrogen · started 2026-11-18 |
 | P4 | "Not yet seen by Marien" kept by the tooling | After P2 (it reads the changelog) |
 
 ## Later (decided 2026-11-15)
