@@ -28,254 +28,119 @@
  *   - `read_note` returns `null` (not an error) for a missing file.
  *   - the session file lives *inside* the notes dir and is never returned
  */
-import {
-  activeAgendaDates,
-  activeDetailsForDate,
-  activeEntriesForDate,
-  activeTitlesAfterDate,
-  activeTitlesForDate,
-  parseAgendaMeetings,
-  removedTitlesForDate as removedTitlesForDateShared,
-} from "../agendaTitles";
-import type { AppConfig, AppError, ColorMode, FileMetadata, LanguageMode, PeekConfig, StartupTabMode, TabSession, ThemeMode } from "../types";
-import type { TabLabelStyle, TrashItem, NoteVersion } from "../generated/tauri-types";
-import { PEEK_DEFAULTS, clampPeek } from "../peekDefaults";
+import type { AppConfig, ColorMode, LanguageMode, PeekConfig, StartupTabMode, TabSession, ThemeMode } from "../types";
+import type { TabLabelStyle } from "../generated/tauri-types";
+import { PEEK_DEFAULTS } from "../peekDefaults";
 import type { ToastOptions } from "../stores";
-import type { CommandArgs, CommandReturn, OneDriveAdvancedConfig, TauriCommand, TauriCommands } from "../tauriCommands";
+import type { OneDriveAdvancedConfig, TauriCommand } from "../tauriCommands";
 import { isValidNoteFilename } from "../noteFilename";
 import { normalizeNoteText } from "../noteText";
-import { pruneAutoAddedMeetings } from "../sessionMeetings";
+import {
+  MAX_RECENT,
+  MUTATING_COMMANDS,
+  toTabSession,
+  type CommandHandlers,
+  type InvokeLogEntry,
+  type MockDir,
+  type MockSeed,
+  type MockTrashEntry,
+  type MockVersionEntry,
+  type SeedTabSession,
+} from "./mock/seed";
+import { getConfig, setNotesDir, updateConfig } from "./mock/commands/config";
+import {
+  agendaFileExists,
+  appendLog,
+  checkUpdate,
+  getSyncHealth,
+  installUpdate,
+  onedriveCreateFolder,
+  onedriveExchangeCode,
+  onedriveGetAccount,
+  onedriveGetAdvancedConfig,
+  onedriveGetConflicts,
+  onedriveGetFolder,
+  onedriveGetSyncStatus,
+  onedriveListFolders,
+  onedriveLogin,
+  onedriveLogout,
+  onedrivePrepareFolderSwitch,
+  onedriveResolveConflict,
+  onedriveSetAdvancedConfig,
+  onedriveSetFolder,
+  onedriveSyncNow,
+  openLogFolder,
+  pathExists,
+  peekDockBottom,
+  peekDockState,
+  peekLog,
+  peekSetBounds,
+  peekSetTransparent,
+  peekUndock,
+  readAgendaAfter,
+  readAgendaDates,
+  readAgendaDetailsForDate,
+  readAgendaEntriesForDate,
+  readAgendaForDate,
+  readAgendaRemovedForDate,
+  readLogTail,
+  snapOverlaySetRect,
+  spellAdd,
+  spellAvailableLanguages,
+  spellCheckLines,
+  spellIgnore,
+  spellLanguages,
+  spellSetLanguages,
+  spellSuggest,
+  spellWindowsLanguages,
+  webCheckBrowserNotes,
+  webMigrateBrowserNotes,
+  writeExportFile,
+  zenCoverMonitor,
+  zenPrepareLeave,
+} from "./mock/commands/misc";
+import {
+  deleteNote,
+  getFileMetadata,
+  importNotesBundle,
+  listNoteFiles,
+  readAllNotes,
+  readNote,
+  readNoteWithMetadata,
+  writeConflictCopy,
+  writeNote,
+} from "./mock/commands/notes";
+import {
+  readPhoneInbox,
+  readPhoneLedger,
+  readSavedSearches,
+  writePhoneLedger,
+  writePhoneMeetings,
+  writePhoneOutbox,
+  writeSavedSearches,
+} from "./mock/commands/phone";
+import {
+  loadScratchpadDrafts,
+  readTabSession,
+  saveScratchpadDrafts,
+  writeTabSession,
+} from "./mock/commands/session";
+import {
+  cleanUpVersionsAndTrash,
+  listTrash,
+  listVersions,
+  readVersion,
+  restoreFromTrash,
+  restoreVersion,
+} from "./mock/commands/versions";
 
-export type SeedTabSession = Omit<TabSession, "schemaVersion"> & { schemaVersion?: number };
-
-function toTabSession(s: SeedTabSession | null | undefined): TabSession | null {
-  if (!s) return null;
-  const session: TabSession = {
-    schemaVersion: s.schemaVersion ?? 1,
-    openTabs: s.openTabs,
-    activeTab: s.activeTab,
-    lastOpenedDate: s.lastOpenedDate,
-  };
-  if (s.autoAddedMeetings) {
-    session.autoAddedMeetings = s.autoAddedMeetings;
-  }
-  return session;
-}
-
-export interface MockSeed {
-  /** Identifies one `seedApp()` call. State saved to `sessionStorage` under
-   * a different id belongs to an earlier seed on the same page and is not
-   * hydrated (a late write from the old page can land after the helper
-   * cleared the storage). Absent = hydrate whatever is saved. */
-  seedId?: string;
-  /** Path used as the active notes directory. Default `/notes`. */
-  notesDir?: string;
-  schemaVersion?: number;
-  /** `filename -> contents` for the active notes directory. */
-  notes?: Record<string, string>;
-  /** Saved tab session for the active directory, or `null` for none. */
-  session?: SeedTabSession | null;
-  colorMode?: ColorMode;
-  themeMode?: ThemeMode;
-  languageMode?: LanguageMode;
-  wordWrap?: boolean;
-  spellCheck?: boolean;
-  spellLanguages?: string[] | null;
-  readableLineLength?: boolean;
-  autoCheckUpdates?: boolean;
-  earlyUpdates?: boolean;
-  phoneCompanion?: boolean;
-  /** Seeds `.chrononote-mobile/inbox.json` (the phone's requests) as text. */
-  phoneInbox?: string;
-  /** #50: the version this config last recorded seeing — seed a value
-   * different from `appVersion` to simulate "first launch after an
-   * update" in a test. `undefined`/omitted mirrors a fresh install or a
-   * pre-#50 config (no update notice). */
-  lastSeenVersion?: string | null;
-  /** Whether the opt-in "Sync calendar for this day" button is shown at
-   * all — mirrors `AppConfig.calendarSyncEnabled`, off by default. */
-  calendarSyncEnabled?: boolean;
-  /** Mirrors `AppConfig.calendarAutoAdd`, on by default. */
-  calendarAutoAdd?: boolean;
-  /** Mirrors `AppConfig.minutesName`, empty by default. */
-  minutesName?: string;
-  fontSize?: number;
-  lineHeight?: number;
-  pureBlack?: boolean;
-  startupTabMode?: StartupTabMode;
-  peek?: Partial<PeekConfig>;
-  /** Mirrors `AppConfig.occurrenceHint`, off by default. */
-  occurrenceHint?: boolean;
-  /** Mirrors `AppConfig.statusBarVisible`, on by default. */
-  statusBarVisible?: boolean;
-  /** Mirrors `AppConfig.tabLabelStyle`, ISO by default. */
-  tabLabelStyle?: TabLabelStyle;
-  historyPaneShare?: number;
-  actionsPaneShare?: number;
-  onboardingCompleted?: boolean;
-  lastSyncSuccessMs?: number | null;
-  backendKind?: "desktop" | "demo" | "web";
-  /** Notes in browser storage for web app tests. Defaults to `notes` when `backendKind === "web"` and no OneDrive folder is chosen. */
-  browserNotes?: Record<string, string>;
-  /** Notes in cloud storage for web app tests. */
-  cloudNotes?: Record<string, string>;
-  /** Seeds `recent_notes_dirs` directly (normally only `set_notes_dir`
-   * writes it). */
-  recentNotesDirs?: string[];
-  /** Extra directories the user can switch into, `path -> (filename ->
-   * contents)`. Their session, if any, is under `sessions`. */
-  otherDirs?: Record<string, Record<string, string>>;
-  sessions?: Record<string, SeedTabSession>;
-  /** Reported by `plugin:app|version` / the About drawer. Default `0.3.0`. */
-  appVersion?: string;
-  /** Invoke commands that should reject with an error, for testing
-   * degraded-boot / failure paths (e.g. `["get_config"]`), or a failed
-   * update check/download (`["plugin:updater|check"]` /
-   * `["plugin:updater|download_and_install"]`). */
-  throwOnCommands?: string[];
-  /** Artificially delay specific commands by N ms before they resolve —
-   * for deterministically testing a loading state that's otherwise too
-   * fast to observe under the mock's instant in-memory reads (e.g.
-   * `read_all_notes`, so a test can assert on the date picker's loading
-   * spinner and its fast-path prefetch actually landing before the full
-   * read does). */
-  delayCommands?: Record<string, number>;
-  /** §update-check: what `plugin:updater|check` resolves to. `"none"`
-   * (default) = no update; `"available"` = a fake newer release exists,
-   * version `updateCheckVersion`. A failed check is seeded via
-   * `throwOnCommands: ["plugin:updater|check"]` instead of a third value
-   * here — one mechanism for every "this command fails" case. */
-  updateCheck?: "none" | "available";
-  updateCheckVersion?: string;
-  /** Raw `.agenda.json` file content for the active notes directory —
-   * mirrors `src-tauri/src/agenda.rs`'s `read_agenda_for_date` exactly
-   * (see `titlesForDate` below): missing/omitted, blank, `"[]"`, or
-   * malformed content all reject with the same error rather than
-   * resolving to an empty calendar — none of those states are ever
-   * produced by a genuine successful sync, so none can be trusted as "no
-   * meetings today." */
-  agendaJson?: string;
-  /** OneDrive sync conflicts waiting on the user: the note's name plus the
-   * cloud's version of it (the "local" side is whatever the note holds). */
-  oneDriveConflicts?: { name: string; remote: string }[];
-  /** Makes every `onedrive_sync_now` fail with this message until a new sign-in (`onedrive_login`). */
-  oneDriveSyncError?: string;
-  /** The chosen OneDrive folder. Omitted = a folder is already chosen
-   * (`/Notes`); `null` = signed in but no folder chosen yet (the state right
-   * after "Connect Microsoft Account" on a fresh install). */
-  oneDriveFolder?: { folderId: string; folderPath: string } | null;
-  /** Whether the mock window reports being minimized. Defaults to false. */
-  isMinimized?: boolean;
-  trash?: MockTrashEntry[];
-  versions?: Record<string, MockVersionEntry[]>;
-}
-
-export interface MockTrashEntry {
-  name: string;
-  originalFilename: string;
-  deletedMs: number;
-  preview: string;
-  content: string;
-}
-
-export interface MockVersionEntry {
-  name: string;
-  savedMs: number;
-  sizeBytes: number;
-  content: string;
-}
-
-interface MockDir {
-  notes: Map<string, string>;
-  session: TabSession | null;
-  /** `.chrononote-conflicts/<name>` copies written by `write_conflict_copy`
-   * (§94). Kept separate from `notes` so they never surface as note files. */
-  conflictCopies: Map<string, string>;
-  versions: Map<string, MockVersionEntry[]>;
-  savedSearches: string | null;
-}
-
-const MAX_RECENT = 5;
-const CONFLICTS_DIRNAME = ".chrononote-conflicts";
-
-/** Commands that change persisted state — after these, snapshot to
- * `sessionStorage` so a reload sees the same "disk". */
-const MUTATING_COMMANDS = new Set([
-  "set_notes_dir",
-  "update_config",
-  "write_note",
-  "delete_note",
-  "restore_from_trash",
-  "restore_version",
-  "write_conflict_copy",
-  "write_phone_ledger",
-  "write_saved_searches",
-  "write_tab_session",
-  "import_notes_bundle",
-  "spell_add",
-  "spell_ignore",
-  "spell_set_languages",
-  "onedrive_login", // clears `oneDriveSyncError`
-]);
-
-/** SHA-256 hex — the exact digest `storage.rs`'s `sha2` produces and
- * `drift.ts`'s `sha256Hex` computes in-memory, so mock metadata hashes
- * compare correctly against both. */
-async function sha256Hex(text: string): Promise<string> {
-  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
-  return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, "0")).join("");
-}
-
-async function fileMetadata(content: string | undefined): Promise<FileMetadata> {
-  if (content === undefined) {
-    return { exists: false, contentHash: null, sizeBytes: null, modifiedMs: null };
-  }
-  return {
-    exists: true,
-    contentHash: await sha256Hex(normalizeNoteText(content)),
-    sizeBytes: new TextEncoder().encode(content).length,
-    modifiedMs: Date.now(),
-  };
-}
-
-export interface InvokeLogEntry {
-  cmd: string;
-  args: unknown;
-  at: number;
-}
-
-/** #74/#78: the title rules (removed prefixes, "Placeholder"/"Confirmed" stamps) live in the shared
- * `agendaTitles.ts`, mirroring `agenda.rs`. */
-function titlesForDate(raw: string | undefined, date: string): string[] {
-  return activeTitlesForDate(parseAgendaMeetings(raw), date);
-}
-
-function removedTitlesForDate(raw: string | undefined, date: string): string[] {
-  return removedTitlesForDateShared(parseAgendaMeetings(raw), date);
-}
-
-/** #66: mirrors `agenda.rs`'s `titles_after_date`. */
-function titlesAfterDate(raw: string | undefined, afterDate: string): [string, string][] {
-  return activeTitlesAfterDate(parseAgendaMeetings(raw), afterDate);
-}
-
-/** One handler per Tauri command, its args and resolved value both bound
- * to the `TauriCommands` contract (the same one `tauriApi.ts` checks the
- * real IPC wrapper against). Adding or reshaping a Rust command breaks
- * `svelte-check` here until the mock is updated to match — so the mock
- * can't silently drift from the backend. */
-type CommandHandlers = {
-  [K in keyof TauriCommands]: (
-    args: CommandArgs<K>,
-  ) => CommandReturn<K> | Promise<CommandReturn<K>>;
-};
-
-const MOCK_SPELL_SUGGESTIONS: Record<string, string[]> = {
-  teh: ["the", "ten"],
-  wrods: ["words", "rods"],
-  mispeled: ["misspelled"],
-  sentense: ["sentence"],
-};
+export type {
+  InvokeLogEntry,
+  MockSeed,
+  MockTrashEntry,
+  MockVersionEntry,
+  SeedTabSession,
+} from "./mock/seed";
 
 export class MockBackend {
   spellMisspelled = new Set<string>(["teh", "wrods", "mispeled", "sentense"]);
@@ -567,7 +432,7 @@ export class MockBackend {
     });
   }
 
-  private persist(): void {
+  persist(): void {
     try {
       sessionStorage.setItem(MockBackend.STORAGE_KEY, this.serialize());
     } catch {
@@ -700,7 +565,7 @@ export class MockBackend {
     }
   }
 
-  private dir(path = this.notesDir): MockDir {
+  dir(path = this.notesDir): MockDir {
     let d = this.dirs.get(path);
     if (!d) {
       d = { notes: new Map(), session: null, conflictCopies: new Map(), versions: new Map(), savedSearches: null };
@@ -709,7 +574,7 @@ export class MockBackend {
     return d;
   }
 
-  private config(): AppConfig {
+  config(): AppConfig {
     return {
       schemaVersion: this.schemaVersion,
       notesDir: this.notesDir,
@@ -923,546 +788,84 @@ export class MockBackend {
    * type-checked against the `TauriCommands` contract. Plugin calls
    * (`plugin:*`) are not commands and stay in `dispatch`'s switch. */
   private readonly core: CommandHandlers = {
-    clean_up_versions_and_trash: () => this.cleanUpVersionsAndTrash(),
-    // F1: the update check (Rust `check_update`); records which channel was asked.
-    check_update: ({ early }) => {
-      this.lastCheckUpdateEarly = early;
-      this.lastCheckEarly = early;
-      if (this.updateCheck === "available") {
-        return { version: this.updateCheckVersion, body: "Mock release notes for the test suite." };
-      }
-      return null;
-    },
-    get_config: () => this.config(),
-
-    set_notes_dir: ({ path }) => {
-      if (path !== this.notesDir) {
-        pushRecentNotesDir(this.recentNotesDirs, this.notesDir, path);
-      }
-      this.notesDir = path;
-      const d = this.dir(path); // materialise if brand-new
-      if (this.backendKind === "web") {
-        if (path === "Browser storage" || path === "browser") {
-          d.notes.clear();
-          for (const [k, v] of this.browserNotes) {
-            d.notes.set(k, v);
-          }
-        } else {
-          for (const [k, v] of this.cloudNotes) {
-            d.notes.set(k, v);
-          }
-        }
-      }
-      return this.config();
-    },
-
-    update_config: ({ patch }) => {
-      // Only the present fields change; clamps mirror `ConfigPatch::apply` in storage.rs.
-      if (patch.colorMode !== undefined) this.colorMode = patch.colorMode;
-      if (patch.themeMode !== undefined) this.themeMode = patch.themeMode;
-      if (patch.languageMode !== undefined) this.languageMode = patch.languageMode;
-      if (patch.startupTabMode !== undefined) this.startupTabMode = patch.startupTabMode;
-      if (patch.wordWrap !== undefined) this.wordWrap = patch.wordWrap;
-      if (patch.spellCheck !== undefined) this.spellCheck = patch.spellCheck;
-      if (patch.spellLanguages !== undefined) this.spellLanguages = patch.spellLanguages;
-      if (patch.readableLineLength !== undefined) this.readableLineLength = patch.readableLineLength;
-      if (patch.autoCheckUpdates !== undefined) this.autoCheckUpdates = patch.autoCheckUpdates;
-      if (patch.earlyUpdates !== undefined) this.earlyUpdates = patch.earlyUpdates;
-      if (patch.phoneCompanion !== undefined) this.phoneCompanion = patch.phoneCompanion;
-      if (patch.calendarSyncEnabled !== undefined) this.calendarSyncEnabled = patch.calendarSyncEnabled;
-      if (patch.calendarAutoAdd !== undefined) this.calendarAutoAdd = patch.calendarAutoAdd;
-      if (patch.minutesName !== undefined) this.minutesName = Array.from(patch.minutesName.trim()).slice(0, 60).join("");
-      if (patch.fontSize !== undefined) this.fontSize = Math.min(18, Math.max(12, patch.fontSize));
-      if (patch.lineHeight !== undefined) this.lineHeight = Math.min(1.8, Math.max(1.3, patch.lineHeight));
-      if (patch.occurrenceHint !== undefined) this.occurrenceHint = patch.occurrenceHint;
-      if (patch.statusBarVisible !== undefined) this.statusBarVisible = patch.statusBarVisible;
-      if (patch.tabLabelStyle !== undefined) this.tabLabelStyle = patch.tabLabelStyle;
-      if (patch.historyPaneShare !== undefined) this.historyPaneShare = Math.min(0.60, Math.max(0.18, patch.historyPaneShare));
-      if (patch.actionsPaneShare !== undefined) this.actionsPaneShare = Math.min(0.60, Math.max(0.18, patch.actionsPaneShare));
-      if (patch.pureBlack !== undefined) this.pureBlack = patch.pureBlack;
-      if (patch.peek !== undefined) this.peek = clampPeek(patch.peek);
-      if (patch.lastSeenVersion !== undefined) this.lastSeenVersion = patch.lastSeenVersion;
-      if (patch.onboardingCompleted !== undefined) this.onboardingCompleted = patch.onboardingCompleted;
-      return this.config();
-    },
-
-    list_note_files: () => this.listFiles(),
-
-    read_note: ({ filename }) => {
-      if (!isValidNoteFilename(filename)) {
-        throw new Error(`Invalid note filename: ${filename}`);
-      }
-      const raw = this.dir().notes.get(filename);
-      return raw === undefined ? null : normalizeNoteText(raw);
-    },
-
-    write_note: async ({ filename, content, expectedHash, keepVersion }) => {
-      if (!isValidNoteFilename(filename)) {
-        throw new Error(`Invalid note filename: ${filename}`);
-      }
-      // §94: compare-and-swap when the caller passed the hash it last saw.
-      if (typeof expectedHash === "string") {
-        const current = this.dir().notes.get(filename);
-        // A missing file matches the empty-content hash, like storage.rs.
-        const currentHash = await sha256Hex(current === undefined ? "" : normalizeNoteText(current));
-        if (currentHash !== expectedHash) {
-          throw new Error(`conflict: note changed on disk: ${filename}`);
-        }
-      }
-      // After the compare-and-swap, as in storage.rs: a refused write keeps no version (§412).
-      const existing = this.dir().notes.get(filename);
-      if (existing !== undefined && existing.trim().length > 0) {
-        if (keepVersion || this.shouldKeepVersion(filename, content, expectedHash ?? null)) {
-          this.keepVersion(filename, existing);
-        }
-      }
-      const text = normalizeNoteText(content);
-      this.dir().notes.set(filename, text);
-      if (this.backendKind === "web") {
-        if (!this.oneDriveFolder) this.browserNotes.set(filename, text);
-        else this.cloudNotes.set(filename, text);
-      }
-      return fileMetadata(text);
-    },
-
-    // #63: a missing file is not an error — mirrors
-    // `storage.rs::delete_note_at`'s own idempotent behavior.
-    delete_note: async ({ filename, expectedHash }) => {
-      if (!isValidNoteFilename(filename)) {
-        throw new Error(`Invalid note filename: ${filename}`);
-      }
-      if (typeof expectedHash === "string") {
-        const current = this.dir().notes.get(filename);
-        if (current === undefined) return;
-        if ((await sha256Hex(normalizeNoteText(current))) !== expectedHash) {
-          throw new Error(`conflict: note changed on disk: ${filename}`);
-        }
-      }
-      const raw = this.dir().notes.get(filename);
-      const text = raw !== undefined ? normalizeNoteText(raw) : "";
-      if (raw === undefined || text.trim().length === 0) {
-        const vers = this.dir().versions.get(filename) ?? [];
-        if (vers.length > 0) {
-          const newest = vers[0];
-          const versionText = normalizeNoteText(newest.content);
-          if (versionText.trim().length > 0) {
-            const now = Date.now();
-            const d = new Date(now);
-            const y = d.getUTCFullYear();
-            const m = String(d.getUTCMonth() + 1).padStart(2, "0");
-            const day = String(d.getUTCDate()).padStart(2, "0");
-            const h = String(d.getUTCHours()).padStart(2, "0");
-            const min = String(d.getUTCMinutes()).padStart(2, "0");
-            const s = String(d.getUTCSeconds()).padStart(2, "0");
-            const stamp = `${y}${m}${day}-${h}${min}${s}`;
-            const name = `${stamp}_${filename}`;
-            const firstLine = versionText.split("\n").map((l) => l.trim()).find((l) => l.length > 0) ?? "";
-            const preview = firstLine.slice(0, 80);
-            this.trash.push({
-              name,
-              originalFilename: filename,
-              deletedMs: now,
-              preview,
-              content: versionText,
-            });
-          }
-        }
-        if (raw !== undefined) {
-          this.dir().notes.delete(filename);
-        if (this.backendKind === "web" && !this.oneDriveFolder) this.browserNotes.delete(filename);
-        }
-      } else {
-        const now = Date.now();
-        const d = new Date(now);
-        const y = d.getUTCFullYear();
-        const m = String(d.getUTCMonth() + 1).padStart(2, "0");
-        const day = String(d.getUTCDate()).padStart(2, "0");
-        const h = String(d.getUTCHours()).padStart(2, "0");
-        const min = String(d.getUTCMinutes()).padStart(2, "0");
-        const s = String(d.getUTCSeconds()).padStart(2, "0");
-        const stamp = `${y}${m}${day}-${h}${min}${s}`;
-        const name = `${stamp}_${filename}`;
-        const firstLine = text.split("\n").map((l) => l.trim()).find((l) => l.length > 0) ?? "";
-        const preview = firstLine.slice(0, 80);
-        this.trash.push({
-          name,
-          originalFilename: filename,
-          deletedMs: now,
-          preview,
-          content: text,
-        });
-        this.dir().notes.delete(filename);
-        if (this.backendKind === "web" && !this.oneDriveFolder) this.browserNotes.delete(filename);
-      }
-    },
-
-    list_trash: () => {
-      return [...this.trash]
-        .sort((a, b) => b.deletedMs - a.deletedMs)
-        .map(({ name, originalFilename, deletedMs, preview }) => ({
-          name,
-          originalFilename,
-          deletedMs,
-          preview,
-        }));
-    },
-
-    restore_from_trash: ({ name }) => {
-      if (name.includes("/") || name.includes("\\")) throw new Error("Invalid trash name");
-      const parts = name.split("_");
-      if (parts.length !== 2) throw new Error("Invalid trash name");
-      const [stamp, orig] = parts;
-      if (!/^\d{8}-\d{6}$/.test(stamp) || !isValidNoteFilename(orig)) {
-        throw new Error("Invalid trash name");
-      }
-      const existing = this.dir().notes.get(orig);
-      if (existing !== undefined && existing.trim().length > 0) {
-        throw new Error("note-exists");
-      }
-      const idx = this.trash.findIndex((item) => item.name === name);
-      if (idx === -1) {
-        throw new Error(`Trash item not found: ${name}`);
-      }
-      const [item] = this.trash.splice(idx, 1);
-      this.dir().notes.set(orig, item.content);
-      return orig;
-    },
-
-    list_versions: ({ filename }) => {
-      if (!isValidNoteFilename(filename)) throw new Error(`Invalid note filename: ${filename}`);
-      const vers = this.dir().versions.get(filename) ?? [];
-      return vers.map(({ name, savedMs, sizeBytes }) => ({ name, savedMs, sizeBytes }));
-    },
-
-    read_version: ({ filename, name }) => {
-      if (!isValidNoteFilename(filename)) throw new Error(`Invalid note filename: ${filename}`);
-      const baseName = name.endsWith(".txt") ? name.slice(0, -4) : name;
-      const vers = this.dir().versions.get(filename) ?? [];
-      const v = vers.find((x) => x.name === baseName);
-      if (!v) throw new Error(`Version not found: ${name}`);
-      return normalizeNoteText(v.content);
-    },
-
-    restore_version: async ({ filename, name }) => {
-      if (!isValidNoteFilename(filename)) throw new Error(`Invalid note filename: ${filename}`);
-      const baseName = name.endsWith(".txt") ? name.slice(0, -4) : name;
-      const vers = this.dir().versions.get(filename) ?? [];
-      const v = vers.find((x) => x.name === baseName);
-      if (!v) throw new Error(`Version not found: ${name}`);
-      const current = this.dir().notes.get(filename);
-      if (current !== undefined && current.trim().length > 0) {
-        this.keepVersion(filename, current);
-      }
-      const restored = normalizeNoteText(v.content);
-      this.dir().notes.set(filename, restored);
-      return fileMetadata(restored);
-    },
-
-
-    get_file_metadata: ({ filename }) => {
-      if (!isValidNoteFilename(filename)) throw new Error(`Invalid note filename: ${filename}`);
-      return fileMetadata(this.dir().notes.get(filename));
-    },
-
-    read_note_with_metadata: async ({ filename }) => {
-      if (!isValidNoteFilename(filename)) throw new Error(`Invalid note filename: ${filename}`);
-      const raw = this.dir().notes.get(filename);
-      const content = raw === undefined ? null : normalizeNoteText(raw);
-      return { content, metadata: await fileMetadata(content ?? undefined) };
-    },
-
-    write_conflict_copy: ({ name, content }) => {
-      if (!/^[A-Za-z0-9._-]+\.txt$/.test(name) || name.includes("..")) {
-        throw new Error(`Invalid conflict-copy filename: ${name}`);
-      }
-      this.dir().conflictCopies.set(name, content);
-      return `${this.notesDir}/${CONFLICTS_DIRNAME}/${name}`;
-    },
-
-    write_phone_meetings: ({ content }) => {
-      this.phoneMeetings = content;
-    },
-
-    write_phone_outbox: ({ content }) => {
-      this.phoneOutbox = content;
-    },
-
-    read_phone_inbox: () => this.phoneInbox,
-
-    read_saved_searches: () => {
-      const content = this.dir().savedSearches;
-      if (content === null) return null;
-      if (new TextEncoder().encode(content).length > 64 * 1024) {
-        throw new Error("saved searches too large");
-      }
-      return content;
-    },
-
-    write_saved_searches: ({ content }) => {
-      this.dir().savedSearches = content;
-    },
-
-    read_phone_ledger: () => this.phoneLedger,
-
-    write_phone_ledger: ({ content }) => {
-      this.phoneLedger = content;
-    },
-
-    read_all_notes: () =>
-      this.listFiles().map((f) => [f, normalizeNoteText(this.dir().notes.get(f) ?? "")] as [string, string]),
-
-    read_tab_session: () => this.dir().session,
-
-    write_tab_session: ({ openTabs, activeTab, lastOpenedDate, autoAddedMeetings }) => {
-      const pruned = pruneAutoAddedMeetings(autoAddedMeetings, lastOpenedDate);
-      const session: TabSession = {
-        schemaVersion: 1,
-        openTabs: openTabs ?? [],
-        activeTab: activeTab ?? null,
-        lastOpenedDate: lastOpenedDate ?? null,
-      };
-      if (pruned) {
-        session.autoAddedMeetings = pruned;
-      }
-      this.dir().session = session;
-    },
-
-    path_exists: ({ path }) => this.dirs.has(path),
-
-    import_notes_bundle: ({ notes, mode }) => {
-      const d = this.dir();
-      let imported = 0;
-      let skipped = 0;
-      for (const [filename, content] of Object.entries(notes)) {
-        if (!isValidNoteFilename(filename)) {
-          skipped++;
-          continue;
-        }
-        if (mode === "merge" && d.notes.has(filename)) {
-          skipped++;
-          continue;
-        }
-        if (mode === "replace" && d.notes.has(filename)) {
-          const curr = d.notes.get(filename);
-          if (curr && curr.trim().length > 0) {
-            this.keepVersion(filename, curr);
-          }
-        }
-        d.notes.set(filename, normalizeNoteText(content));
-        imported++;
-      }
-      if (mode === "replace") {
-        // Only after every note is written: old notes survive a failure part-way.
-        for (const name of [...d.notes.keys()]) {
-          if (isValidNoteFilename(name) && !Object.prototype.hasOwnProperty.call(notes, name)) {
-            const curr = d.notes.get(name);
-            if (curr && curr.trim().length > 0) {
-              this.keepVersion(name, curr);
-            }
-            d.notes.delete(name);
-          }
-        }
-      }
-      return { imported, skipped };
-    },
-
-    read_agenda_for_date: ({ date }) => titlesForDate(this.agendaJson, date),
-    read_agenda_removed_for_date: ({ date }) => removedTitlesForDate(this.agendaJson, date),
-    read_agenda_entries_for_date: ({ date }) => activeEntriesForDate(parseAgendaMeetings(this.agendaJson), date),
-    read_agenda_details_for_date: ({ date }) => activeDetailsForDate(parseAgendaMeetings(this.agendaJson), date),
-
-    read_agenda_after: ({ afterDate }) => titlesAfterDate(this.agendaJson, afterDate),
-
-    read_agenda_dates: () => {
-      if (!this.agendaJson) return [];
-      try {
-        return activeAgendaDates(parseAgendaMeetings(this.agendaJson));
-      } catch {
-        return [];
-      }
-    },
-
-    // Mirrors `agenda.rs::agenda_file_exists` — a cheap existence check,
-    // deliberately not the fuller `titlesForDate` validation (an
-    // existing-but-invalid file still greys the button *in* rather than
-    // out, so its own real error surfaces on click).
-    agenda_file_exists: () => this.agendaJson !== undefined,
-    onedrive_login: () => {
-      this.oneDriveSyncError = undefined; // a fresh sign-in renews an expired one
-      return { success: true, account: { email: "test@example.com", displayName: "Test User" }, pending: false };
-    },
-    onedrive_logout: () => {},
-    onedrive_get_account: () => ({ email: "test@example.com", displayName: "Test User" }),
-    onedrive_list_folders: () => [
-      { id: "folder-1", name: "Documents" },
-      { id: "folder-2", name: "Notes" },
-    ],
-    onedrive_create_folder: ({ name }) => ({ id: `folder-${Date.now()}`, name }),
-    onedrive_set_folder: ({ folderId, folderPath }) => {
-      this.oneDriveFolder = { folderId, folderPath };
-    },
-    onedrive_get_folder: () => this.oneDriveFolder,
-    onedrive_exchange_code: () => ({
-      success: true,
-      account: { email: "test@example.com", displayName: "Test User" },
-      pending: false,
-    }),
-    onedrive_sync_now: () => {
-      if (this.oneDriveSyncError) return { success: false, message: { code: "other", detail: this.oneDriveSyncError } };
-      this.lastSyncSuccessMs = Date.now();
-      return { success: true };
-    },
-    // Mirrors `sync.rs::list_conflicts` / `resolve_conflict_files`.
-    onedrive_get_conflicts: () =>
-      [...this.oneDriveConflicts].map(([name, remote]) => ({
-        name,
-        local: this.dir().notes.get(name) ?? "",
-        remote,
-      })),
-    onedrive_resolve_conflict: ({ name, resolution }) => {
-      const remote = this.oneDriveConflicts.get(name);
-      if (remote === undefined) throw new Error(`${name} has no sync conflict to resolve`);
-      const notes = this.dir().notes;
-      if (resolution === "theirs") notes.set(name, remote);
-      else if (resolution === "both") {
-        notes.set(name, `${(notes.get(name) ?? "").trimEnd()}\n\n--- other version (sync conflict) ---\n${remote}`);
-      } else if (resolution !== "mine") throw new Error(`Unknown resolution: ${resolution}`);
-      this.oneDriveConflicts.delete(name);
-      this.persist();
-    },
-    onedrive_get_sync_status: () => "idle",
-    onedrive_get_advanced_config: () => ({ ...this.oneDriveAdvancedConfig }),
-    onedrive_set_advanced_config: ({ config }) => {
-      this.oneDriveAdvancedConfig = { ...config };
-    },
-    save_scratchpad_drafts: ({ drafts }) => {
-      this.scratchpadDrafts = { ...drafts };
-    },
-    load_scratchpad_drafts: () => ({ ...this.scratchpadDrafts }),
-    web_check_browser_notes: () => {
-      const filenames = [...this.browserNotes.keys()].filter(isValidNoteFilename).sort();
-      return { count: filenames.length, filenames };
-    },
-    web_migrate_browser_notes: () => {
-      const validEntries = [...this.browserNotes.entries()].filter(([k]) => isValidNoteFilename(k));
-      if (validEntries.length === 0) return { migratedCount: 0, conflictCount: 0 };
-
-      for (const [k, v] of validEntries) {
-        this.archiveNotes.set(k, v);
-      }
-
-      let migratedCount = 0;
-      let conflictCount = 0;
-
-      for (const [filename, noteContent] of validEntries) {
-        const existingCloud = this.cloudNotes.get(filename);
-        if (existingCloud === undefined || existingCloud.trim() === "") {
-          this.cloudNotes.set(filename, noteContent);
-          migratedCount++;
-        } else if (existingCloud === noteContent || noteContent.trim() === "") {
-          migratedCount++;
-        } else {
-          // Both exist with different non-empty content: flag as conflict
-          this.cloudNotes.set(filename, noteContent);
-          this.oneDriveConflicts.set(filename, existingCloud);
-          conflictCount++;
-          migratedCount++;
-        }
-      }
-
-      this.browserNotes.clear();
-      this.dir().notes.clear();
-
-      return { migratedCount, conflictCount };
-    },
-    onedrive_prepare_folder_switch: () => ({ ready: true, switched: false, archivedCount: 0 }),
-    get_sync_health: () => ({
-      status: "idle",
-      lastSyncSuccessMs: this.lastSyncSuccessMs,
-      localNoteCount: this.listFiles().length,
-      pendingUploadCount: 0,
-    }),
-    append_log: ({ level, message }) => {
-      this.logLines.push(`${level} ${message}`);
-    },
-    read_log_tail: ({ lines }) => {
-      const slice = this.logLines.slice(-lines);
-      return slice.join("\n");
-    },
-    open_log_folder: () => {
-      this.openedUrls.push("log-folder");
-    },
-    write_export_file: ({ path }) => {
-      if (!path.endsWith(".md") && !path.endsWith(".html")) {
-        throw new Error("Export file path must end with .md or .html");
-      }
-    },
-    spell_available_languages: () => ["de-DE", "en-GB", "en-US", "fr-FR", "nl-NL"],
-    spell_windows_languages: () => ["nl-NL"],
-    spell_set_languages: ({ tags }) => {
-      this.mockSpellLanguages = [...tags];
-      return this.mockSpellLanguages;
-    },
-    spell_languages: () => this.mockSpellLanguages,
-    spell_check_lines: ({ lines }) => {
-      return lines.map((line) => {
-        if (this.spellMisspelled.size === 0) return [];
-        const ranges: [number, number][] = [];
-        const regex = /\b[A-Za-z]+\b/g;
-        let match: RegExpExecArray | null;
-        while ((match = regex.exec(line)) !== null) {
-          if (this.spellMisspelled.has(match[0].toLowerCase())) {
-            ranges.push([match.index, match.index + match[0].length]);
-          }
-        }
-        return ranges;
-      });
-    },
-    spell_suggest: ({ word }) => {
-      return MOCK_SPELL_SUGGESTIONS[word.toLowerCase()] ?? [];
-    },
-    spell_add: ({ word }) => {
-      this.spellMisspelled.delete(word.toLowerCase());
-      return null;
-    },
-    spell_ignore: ({ word }) => {
-      this.spellMisspelled.delete(word.toLowerCase());
-      return null;
-    },
-    peek_set_bounds: () => {},
-    peek_set_transparent: () => {},
-    // §393: a 1100x720 "screen"; the strip is full width at its bottom. Recorded for the tests.
-    peek_dock_bottom: ({ height }) => {
-      this.windowCalls.push(`dock ${height}`);
-      this.peekDocked = true;
-      return { x: 0, y: 720 - height, width: 1100, height };
-    },
-    peek_undock: () => {
-      this.windowCalls.push("undock");
-      this.peekDocked = false;
-    },
-    peek_dock_state: () => ({
-      docked: this.peekDocked,
-      registered: this.peekDocked,
-      lostPending: false,
-      window: null,
-      work: null,
-      monitors: 1,
-    }),
-    peek_log: ({ kind, message }) => {
-      this.peekLogLines.push(`${kind}: ${message}`);
-    },
-    snap_overlay_set_rect: () => {},
-    zen_cover_monitor: () => {},
-    zen_prepare_leave: () => {},
-    install_update: ({ onEvent }) => {
-      const channel = onEvent as { onmessage?: (e: unknown) => void } | undefined;
-      channel?.onmessage?.({ event: "started", data: { contentLength: 1000 } });
-      channel?.onmessage?.({ event: "progress", data: { chunkLength: 600 } });
-      channel?.onmessage?.({ event: "progress", data: { chunkLength: 400 } });
-      channel?.onmessage?.({ event: "finished" });
-      channel?.onmessage?.({ event: "launching" });
-    },
+    clean_up_versions_and_trash: () => cleanUpVersionsAndTrash(this),
+    check_update: (args) => checkUpdate(this, args),
+    get_config: () => getConfig(this),
+    set_notes_dir: (args) => setNotesDir(this, args),
+    update_config: (args) => updateConfig(this, args),
+    list_note_files: () => listNoteFiles(this),
+    read_note: (args) => readNote(this, args),
+    write_note: (args) => writeNote(this, args),
+    delete_note: (args) => deleteNote(this, args),
+    list_trash: () => listTrash(this),
+    restore_from_trash: (args) => restoreFromTrash(this, args),
+    list_versions: (args) => listVersions(this, args),
+    read_version: (args) => readVersion(this, args),
+    restore_version: (args) => restoreVersion(this, args),
+    get_file_metadata: (args) => getFileMetadata(this, args),
+    read_note_with_metadata: (args) => readNoteWithMetadata(this, args),
+    write_conflict_copy: (args) => writeConflictCopy(this, args),
+    write_phone_meetings: (args) => writePhoneMeetings(this, args),
+    write_phone_outbox: (args) => writePhoneOutbox(this, args),
+    read_phone_inbox: () => readPhoneInbox(this),
+    read_saved_searches: () => readSavedSearches(this),
+    write_saved_searches: (args) => writeSavedSearches(this, args),
+    read_phone_ledger: () => readPhoneLedger(this),
+    write_phone_ledger: (args) => writePhoneLedger(this, args),
+    read_all_notes: () => readAllNotes(this),
+    read_tab_session: () => readTabSession(this),
+    write_tab_session: (args) => writeTabSession(this, args),
+    path_exists: (args) => pathExists(this, args),
+    import_notes_bundle: (args) => importNotesBundle(this, args),
+    read_agenda_for_date: (args) => readAgendaForDate(this, args),
+    read_agenda_removed_for_date: (args) => readAgendaRemovedForDate(this, args),
+    read_agenda_entries_for_date: (args) => readAgendaEntriesForDate(this, args),
+    read_agenda_details_for_date: (args) => readAgendaDetailsForDate(this, args),
+    read_agenda_after: (args) => readAgendaAfter(this, args),
+    read_agenda_dates: () => readAgendaDates(this),
+    agenda_file_exists: () => agendaFileExists(this),
+    onedrive_login: () => onedriveLogin(this),
+    onedrive_logout: () => onedriveLogout(),
+    onedrive_get_account: () => onedriveGetAccount(),
+    onedrive_list_folders: () => onedriveListFolders(),
+    onedrive_create_folder: (args) => onedriveCreateFolder(args),
+    onedrive_set_folder: (args) => onedriveSetFolder(this, args),
+    onedrive_get_folder: () => onedriveGetFolder(this),
+    onedrive_exchange_code: () => onedriveExchangeCode(),
+    onedrive_sync_now: () => onedriveSyncNow(this),
+    onedrive_get_conflicts: () => onedriveGetConflicts(this),
+    onedrive_resolve_conflict: (args) => onedriveResolveConflict(this, args),
+    onedrive_get_sync_status: () => onedriveGetSyncStatus(),
+    onedrive_get_advanced_config: () => onedriveGetAdvancedConfig(this),
+    onedrive_set_advanced_config: (args) => onedriveSetAdvancedConfig(this, args),
+    save_scratchpad_drafts: (args) => saveScratchpadDrafts(this, args),
+    load_scratchpad_drafts: () => loadScratchpadDrafts(this),
+    web_check_browser_notes: () => webCheckBrowserNotes(this),
+    web_migrate_browser_notes: () => webMigrateBrowserNotes(this),
+    onedrive_prepare_folder_switch: () => onedrivePrepareFolderSwitch(),
+    get_sync_health: () => getSyncHealth(this),
+    append_log: (args) => appendLog(this, args),
+    read_log_tail: (args) => readLogTail(this, args),
+    open_log_folder: () => openLogFolder(this),
+    write_export_file: (args) => writeExportFile(args),
+    spell_available_languages: () => spellAvailableLanguages(),
+    spell_windows_languages: () => spellWindowsLanguages(),
+    spell_set_languages: (args) => spellSetLanguages(this, args),
+    spell_languages: () => spellLanguages(this),
+    spell_check_lines: (args) => spellCheckLines(this, args),
+    spell_suggest: (args) => spellSuggest(args),
+    spell_add: (args) => spellAdd(this, args),
+    spell_ignore: (args) => spellIgnore(this, args),
+    peek_set_bounds: () => peekSetBounds(),
+    peek_set_transparent: () => peekSetTransparent(),
+    peek_dock_bottom: (args) => peekDockBottom(this, args),
+    peek_undock: () => peekUndock(this),
+    peek_dock_state: () => peekDockState(this),
+    peek_log: (args) => peekLog(this, args),
+    snap_overlay_set_rect: () => snapOverlaySetRect(),
+    zen_cover_monitor: () => zenCoverMonitor(),
+    zen_prepare_leave: () => zenPrepareLeave(),
+    install_update: (args) => installUpdate(args),
   };
 
   private async dispatch(cmd: string, args: Record<string, unknown>): Promise<unknown> {
