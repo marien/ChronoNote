@@ -4,6 +4,8 @@ Things that are built and tested automatically, but still need a person (or a la
 instead of a "Not checked yet" note at the end of each chat (§411). An item leaves this list when it is confirmed (it
 then gets a line in its CHANGELOG section) or found broken (it then becomes a fix). Newest first.
 
+`npm run seen-check` keeps this list and the changelog's `**Seen by Marien:**` lines in step (from §479 on).
+
 | Since | What to check | Where / how | Section |
 |---|---|---|---|
 | 2026-11-15 | Calendar sync adds a new meeting by itself to a note with text (caret stays, status message jumps to it); a reorder or a section with text still goes to the review; a deleted auto-added meeting does not come back that day. Also: does the blank-line tidy-up around sections (same as the review's) feel right? | dev build (`npm run dev:app`), add a meeting to today's calendar file | §485 |
