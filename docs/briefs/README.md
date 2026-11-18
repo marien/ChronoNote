@@ -103,7 +103,7 @@ Live views (design 8.4), Marien 2026-11-16: the Actions pane keeps its snapshot.
 | U5 | Design pass on the screenshot gallery | Parked 2026-11-15 (Marien) |
 | R2 | Split the six largest files | One brief per file, moves only; after waves 2 and 3 so open branches do not conflict. `mockBackend.ts` is one 1,200-line class: splitting it is a restructure, not a move (2026-11-18) |
 | R3 | Load dialogs when they open | Measure start time on the phone first |
-| T5 | Do the tests notice a broken rule? | Local, monthly; needs a tool as a dev dependency (Marien's OK on the package) |
+| T5 | Do the tests notice a broken rule? | Local, monthly. StrykerJS (`@stryker-mutator/core` + `@stryker-mutator/vitest-runner`) as dev dependencies: Marien's OK 2026-11-18. Not in CI or verify; core modules only |
 | U4 | Token reference and a check | [wave-4/U4-token-reference.md](wave-4/U4-token-reference.md) · Hydrogen · merged #259 (§505) |
 | R4 | A ceiling on type escapes | [wave-4/R4-type-escape-ceiling.md](wave-4/R4-type-escape-ceiling.md) · Hydrogen · merged #256 (§502) |
 | P4 | "Not yet seen by Marien" kept by the tooling | [wave-4/P4-seen-by-marien.md](wave-4/P4-seen-by-marien.md) · Hydrogen · merged #258 (§504) |
