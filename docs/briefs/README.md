@@ -98,15 +98,15 @@ Live views (design 8.4), Marien 2026-11-16: the Actions pane keeps its snapshot.
 
 | ID | What | Note |
 | :--- | :--- | :--- |
-| T1 | The spec as tables that run | Step 1, numbered lists: [wave-4/T1-spec-tables-lists.md](wave-4/T1-spec-tables-lists.md) · Hydrogen · merged #257 (§503). Step 2, bullets, continuation, editing keys: [wave-4/T1b-spec-tables-editing.md](wave-4/T1b-spec-tables-editing.md) · started 2026-11-18 |
+| T1 | The spec as tables that run | Step 1, numbered lists: [wave-4/T1-spec-tables-lists.md](wave-4/T1-spec-tables-lists.md) · Hydrogen · merged #257 (§503). Step 2, bullets, continuation, editing keys: [wave-4/T1b-spec-tables-editing.md](wave-4/T1b-spec-tables-editing.md) · merged #260 (§506) |
 | T2 | Random typing against the real editor | [wave-4/T2-random-typing.md](wave-4/T2-random-typing.md) · Hydrogen · merged #255 (§501) |
 | U5 | Design pass on the screenshot gallery | Parked 2026-11-15 (Marien) |
 | R2 | Split the six largest files | One brief per file, moves only; after waves 2 and 3 so open branches do not conflict. `mockBackend.ts` is one 1,200-line class: splitting it is a restructure, not a move (2026-11-18) |
 | R3 | Load dialogs when they open | Measure start time on the phone first |
 | T5 | Do the tests notice a broken rule? | Local, monthly; needs a tool as a dev dependency (Marien's OK on the package) |
-| U4 | Token reference and a check | [wave-4/U4-token-reference.md](wave-4/U4-token-reference.md) · Hydrogen · started 2026-11-18 |
+| U4 | Token reference and a check | [wave-4/U4-token-reference.md](wave-4/U4-token-reference.md) · Hydrogen · merged #259 (§505) |
 | R4 | A ceiling on type escapes | [wave-4/R4-type-escape-ceiling.md](wave-4/R4-type-escape-ceiling.md) · Hydrogen · merged #256 (§502) |
-| P4 | "Not yet seen by Marien" kept by the tooling | [wave-4/P4-seen-by-marien.md](wave-4/P4-seen-by-marien.md) · Hydrogen · started 2026-11-18 |
+| P4 | "Not yet seen by Marien" kept by the tooling | [wave-4/P4-seen-by-marien.md](wave-4/P4-seen-by-marien.md) · Hydrogen · merged #258 (§504) |
 
 ## Later (decided 2026-11-15)
 

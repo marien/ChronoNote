@@ -526,3 +526,6 @@ line, and this index is regenerated with `node scripts/changelog-index.mjs`.
 - §501 Random typing against the real editor (T2)
 - §502 A ceiling on type escapes (R4)
 - §503 The numbered-list rules as tables that run (T1, step 1)
+- §504 "Seen by Marien" kept by the tooling (P4)
+- §505 A token reference, and a check that keeps to it (U4)
+- §506 Bullets, list continuation and the editing keys as tables that run (T1, step 2)
