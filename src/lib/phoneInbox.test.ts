@@ -42,7 +42,7 @@ import {
   resetPhoneInboxForTests,
   resolvePhoneConflict,
 } from "./phoneInbox";
-import { appVersion, backendKind, currentDateISO, tabs } from "./stores";
+import { appVersion, backendKind, currentDateISO, notesDir, tabs } from "./stores";
 
 const TODAY = "2026-10-30";
 const NOTE = "2026-10-30.txt";
@@ -513,5 +513,172 @@ describe("processPhoneInbox", () => {
       expect(await phoneConflictNote(TODAY)).toBe("tab content");
     });
 
+  });
+
+  describe("ledger loading", () => {
+    it("ignores a ledger whose format is not 1", async () => {
+      disk.ledger = JSON.stringify({
+        format: 2,
+        handled: {
+          r1: { result: "applied", at: "2026-10-30T09:00:00+01:00", request: addLine("r1", "o x") },
+        },
+      });
+      disk.inbox = inboxOf([addLine("r1", "o x")]);
+      await processPhoneInbox();
+      expect(disk.files[NOTE]).toContain("o x");
+    });
+
+    it("ignores a ledger whose handled field is not an object", async () => {
+      disk.ledger = JSON.stringify({ format: 1, handled: "not-an-object" });
+      disk.inbox = inboxOf([addLine("r1", "o x")]);
+      await processPhoneInbox();
+      expect(disk.files[NOTE]).toContain("o x");
+
+      resetPhoneInboxForTests();
+      disk.files[NOTE] = "Day\n\nStandup\n=======\n# a\n";
+      disk.ledger = JSON.stringify({ format: 1, handled: null });
+      await processPhoneInbox();
+      expect(disk.files[NOTE]).toContain("o x");
+    });
+
+    it("ignores a ledger whose handled field is an array, even when it holds valid entries", async () => {
+      disk.ledger = JSON.stringify({
+        format: 1,
+        handled: [
+          { result: "applied", at: "2026-10-30T09:00:00+01:00", request: addLine("0", "o from array") },
+        ],
+      });
+      disk.inbox = inboxOf([addLine("0", "o from array")]);
+      await processPhoneInbox();
+      expect(disk.files[NOTE]).toContain("o from array");
+    });
+
+    it("ignores invalid ledger entries while keeping valid applied, conflict and rejected entries beside them", async () => {
+      disk.ledger = JSON.stringify({
+        format: 1,
+        handled: {
+          badNull: null,
+          badArray: [],
+          badString: "applied",
+          badResult: { result: "unknown", at: "2026-10-30T09:00:00+01:00", request: addLine("badResult", "o badResult") },
+          emptyResult: { result: "", at: "2026-10-30T09:00:00+01:00", request: addLine("emptyResult", "o emptyResult") },
+          missingAt: { result: "applied", request: addLine("missingAt", "o missingAt") },
+          nonStringAt: { result: "applied", at: 123, request: addLine("nonStringAt", "o nonStringAt") },
+          goodApplied: { result: "applied", at: "2026-10-30T09:00:00+01:00", request: addLine("goodApplied", "o goodApplied") },
+          goodConflict: {
+            result: "conflict",
+            reason: "lineChanged",
+            at: "2026-10-30T09:00:00+01:00",
+            request: addLine("goodConflict", "o goodConflict"),
+          },
+          goodRejected: {
+            result: "rejected",
+            reason: "invalid",
+            at: "2026-10-30T09:00:00+01:00",
+            request: addLine("goodRejected", "o goodRejected"),
+          },
+        },
+      });
+      disk.inbox = inboxOf([
+        addLine("badNull", "o badNull"),
+        addLine("badArray", "o badArray"),
+        addLine("badString", "o badString"),
+        addLine("badResult", "o badResult"),
+        addLine("emptyResult", "o emptyResult"),
+        addLine("missingAt", "o missingAt"),
+        addLine("nonStringAt", "o nonStringAt"),
+        addLine("goodApplied", "o goodApplied"),
+        addLine("goodConflict", "o goodConflict"),
+        addLine("goodRejected", "o goodRejected"),
+      ]);
+
+      await processPhoneInbox();
+
+      for (const kept of ["goodApplied", "goodConflict", "goodRejected"]) {
+        expect(disk.files[NOTE]).not.toContain(`o ${kept}`);
+      }
+      for (const ignored of ["badNull", "badArray", "badString", "badResult", "emptyResult", "missingAt", "nonStringAt"]) {
+        expect(disk.files[NOTE]).toContain(`o ${ignored}`);
+      }
+      expect(get(phoneConflicts).map((e) => e.request.id)).toEqual(["goodConflict"]);
+      expect(lastOutbox().results.find((r) => r.id === "goodRejected")?.result).toBe("rejected");
+    });
+
+    it("does not reuse an in-memory ledger when the notes folder changes", async () => {
+      const prevDir = get(notesDir);
+      try {
+        notesDir.set("/notes-a");
+        disk.inbox = inboxOf([addLine("r1", "o x")]);
+        await processPhoneInbox();
+        expect(disk.files[NOTE]).toContain("o x");
+
+        notesDir.set("/notes-b");
+        disk.files = { [NOTE]: "Day\n\nStandup\n=======\n# a\n" };
+        disk.ledger = null;
+        await processPhoneInbox();
+        expect(disk.files[NOTE]).toContain("o x");
+      } finally {
+        notesDir.set(prevDir);
+      }
+    });
+
+    it("does not re-read or re-save the ledger when the folder and inbox entries are unchanged", async () => {
+      disk.ledger = JSON.stringify({
+        format: 1,
+        handled: {
+          r1: { result: "applied", at: "2026-10-30T09:00:00+01:00", request: addLine("r1", "o x") },
+        },
+      });
+      disk.inbox = inboxOf([addLine("r1", "o x")]);
+      apiMock.readPhoneLedger.mockClear();
+      apiMock.writePhoneLedger.mockClear();
+
+      await processPhoneInbox();
+      expect(apiMock.readPhoneLedger).toHaveBeenCalledTimes(1);
+      expect(apiMock.writePhoneLedger).not.toHaveBeenCalled();
+
+      await processPhoneInbox();
+      expect(apiMock.readPhoneLedger).toHaveBeenCalledTimes(1);
+      expect(apiMock.writePhoneLedger).not.toHaveBeenCalled();
+    });
+
+    it("does not mark the in-memory ledger dirty after saving so an unchanged follow-up run does not rewrite it", async () => {
+      disk.inbox = inboxOf([addLine("r1", "o x")]);
+      await processPhoneInbox();
+      expect(apiMock.writePhoneLedger).toHaveBeenCalledTimes(1);
+
+      apiMock.writePhoneLedger.mockClear();
+      await processPhoneInbox();
+      expect(apiMock.writePhoneLedger).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("phoneConflictNote", () => {
+    it("ignores a scratchpad tab whose filename equals the date note and falls back to the file", async () => {
+      disk.files[NOTE] = "disk content";
+      tabs.set([{ id: "s1", filename: NOTE, isScratchpad: true, content: "scratchpad content" }]);
+      expect(await phoneConflictNote(TODAY)).toBe("disk content");
+    });
+
+    it("uses the real open tab rather than a scratchpad tab with the same filename", async () => {
+      disk.files[NOTE] = "disk content";
+      tabs.set([
+        { id: "s1", filename: NOTE, isScratchpad: true, content: "scratchpad content" },
+        { id: "t1", filename: NOTE, isScratchpad: false, content: "real tab content" },
+      ]);
+      expect(await phoneConflictNote(TODAY)).toBe("real tab content");
+    });
+
+    it("ignores open tabs for other dates and reads the disk file", async () => {
+      disk.files[NOTE] = "disk content";
+      tabs.set([{ id: "other", filename: "2026-10-29.txt", isScratchpad: false, content: "other tab" }]);
+      expect(await phoneConflictNote(TODAY)).toBe("disk content");
+    });
+
+    it("returns an empty string when the note file is missing or cannot be read", async () => {
+      expect(await phoneConflictNote("2099-01-01")).toBe("");
+      apiMock.readNoteWithMetadata.mockRejectedValueOnce(new Error("read failed"));
+      expect(await phoneConflictNote(TODAY)).toBe("");
+    });
   });
 });
