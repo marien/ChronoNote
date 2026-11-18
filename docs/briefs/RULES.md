@@ -33,6 +33,7 @@ TypeScript + CodeMirror 6 in `src/`. Three backends implement one contract (`src
 - Expected values in new tests come from the brief or the spec, never from running the code and copying its output.
 - Do not edit `docs/CHANGELOG.md`, `docs/changelog/`, `website/`, `CLAUDE.local.md` or files under `docs/` unless the
   brief names them. Never commit rebuilt bundles under `website/webapp` or `website/demo-app`.
+- Do not add `any`, `@ts-ignore` or `@ts-expect-error`. `npm run type-escapes` fails when their number rises (R4).
 
 ## Rules of the product (they apply to every change)
 
