@@ -30,6 +30,9 @@
     "prepare": "node scripts/install-hooks.mjs",
     "notices": "node scripts/gen-notices.mjs",
     "notices:check": "node scripts/gen-notices.mjs --check",
+    "mutation": "stryker run",
+    "mutation:one": "stryker run --mutate",
+    "mutation:summary": "node scripts/mutation-summary.mjs",
     "tauri": "tauri"
   },
   "dependencies": {
@@ -47,6 +50,8 @@
   "devDependencies": {
     "@axe-core/playwright": "^4.14.0",
     "@playwright/test": "^1.65.1",
+    "@stryker-mutator/core": "10.1.1",
+    "@stryker-mutator/vitest-runner": "10.1.1",
     "@sveltejs/vite-plugin-svelte": "^7.3.0",
     "@tauri-apps/cli": "^2.12.4",
     "fast-check": "^4.10.2",
