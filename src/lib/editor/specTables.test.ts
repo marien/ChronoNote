@@ -1,15 +1,13 @@
 // @vitest-environment jsdom
-// @ts-expect-error node:fs has no type definitions in browser tsconfig
-import fs from "node:fs";
-// @ts-expect-error node:path has no type definitions in browser tsconfig
-import path from "node:path";
-// @ts-expect-error node:url has no type definitions in browser tsconfig
-import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it } from "vitest";
 import { createTestEditor, type TestEditor } from "../testing/testEditor";
 
 const SPEC_HEADER = "| Before | Keys | After |";
-const SPEC_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../../docs/spec");
+// Vite reads the spec files at transform time: no Node types (and no type escapes) needed.
+const SPEC_FILES = import.meta.glob("../../../docs/spec/*.md", { query: "?raw", import: "default", eager: true }) as Record<
+  string,
+  string
+>;
 
 const editors: TestEditor[] = [];
 
@@ -199,15 +197,10 @@ function parseSpecFile(file: string, content: string): ParsedRow[] {
 }
 
 function loadSpecRows(): ParsedRow[] {
-  if (!fs.existsSync(SPEC_DIR)) return [];
-  const files: string[] = fs
-    .readdirSync(SPEC_DIR)
-    .filter((name: string) => name.endsWith(".md"))
-    .sort();
   const allRows: ParsedRow[] = [];
-  for (const file of files) {
-    const content = fs.readFileSync(path.join(SPEC_DIR, file), "utf8");
-    allRows.push(...parseSpecFile(file, content));
+  for (const key of Object.keys(SPEC_FILES).sort()) {
+    const file = key.slice(key.lastIndexOf("/") + 1);
+    allRows.push(...parseSpecFile(file, SPEC_FILES[key]));
   }
   return allRows;
 }
