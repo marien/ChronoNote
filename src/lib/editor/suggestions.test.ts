@@ -217,6 +217,30 @@ describe("suggestionsExtension", () => {
     expect(partial.view.dom.querySelectorAll('[role="option"]')).toHaveLength(1);
   });
 
+  it("does not open a title's list when the caret only moves into the title (#252)", () => {
+    const listbox = (e: TestEditor) => e.view.dom.querySelector('[role="listbox"]');
+
+    // Clicking into the middle of a title already there: the text before the caret matches other titles
+    const ed = openEditor("Board meeting\n=============\n# ask |", FIXED_SOURCE);
+    ed.select(4);
+    expect(listbox(ed)).toBeNull();
+    ed.select(13);
+    expect(listbox(ed)).toBeNull();
+
+    // Typing in it opens the list; moving the caret within the title then keeps it open
+    ed.select(4);
+    ed.type("d");
+    expect(listbox(ed)).not.toBeNull();
+    ed.select(3);
+    expect(listbox(ed)).not.toBeNull();
+
+    // Leaving the title closes it, and coming back by caret alone does not reopen it
+    ed.select(ed.text().length);
+    expect(listbox(ed)).toBeNull();
+    ed.select(4);
+    expect(listbox(ed)).toBeNull();
+  });
+
   it("ArrowDown then Enter takes the second row", () => {
     const ed = openEditor("# ask @|", FIXED_SOURCE);
     ed.type("R");

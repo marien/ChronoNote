@@ -530,3 +530,4 @@ line, and this index is regenerated with `node scripts/changelog-index.mjs`.
 - §505 A token reference, and a check that keeps to it (U4)
 - §506 Bullets, list continuation and the editing keys as tables that run (T1, step 2)
 - §507 The npm audit gate lets through a dev-only advisory with no fix
+- §508 A section title's suggestions open only while typing in it (#252, second part)

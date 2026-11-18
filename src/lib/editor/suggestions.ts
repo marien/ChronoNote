@@ -318,6 +318,17 @@ export function suggestionsExtension(
         return value === CLOSED_STATE ? value : CLOSED_STATE;
       }
 
+      // #252: a section title's list opens only while typing in it. Clicking or moving the caret into a title that is
+      // already there leaves it closed (the prefix is only the text before the caret, so other titles would match);
+      // a list that is already open for this title stays open while the caret moves within it.
+      if (
+        ctx.kind === "title" &&
+        !(tr.docChanged && (tr.isUserEvent("input") || tr.isUserEvent("delete"))) &&
+        !(value.context?.kind === "title" && value.tooltip?.pos === line.from)
+      ) {
+        return value === CLOSED_STATE ? value : CLOSED_STATE;
+      }
+
       const key = contextKey(line.number, ctx);
       if (!tr.isUserEvent("undo") && key === value.dismissedKey) {
         return value.rows.length === 0 && value.context === null && value.dismissedKey === key
