@@ -15,7 +15,6 @@ then gets a line in its CHANGELOG section) or found broken (it then becomes a fi
 | 2026-11-16 | Search words `section:`, `is:decision`, `is:topic`, `is:emphasis`, and saved searches (star, chips, palette; the file follows the folder to the other laptop and the web app) | dev build, Ctrl+Shift+F | §493, §495 |
 | 2026-11-16 | Suggestions while typing `@` + a letter, `(` after a symbol, and a section title: Tab takes, Enter only after an arrow; invited people first in a meeting with `attendees` | dev build, notes with names and topics | §494, §497 |
 | 2026-11-16 | Person view: Ctrl+click an `@name`, line menu "Show @name", palette `@da`; pane beside the note, rows jump and keep the pane | dev build | §496 |
-| 2026-11-16 | Join button in Peek for a meeting with a `joinUrl` in `.agenda.json` (your exporter's file) | dev build, Peek during a meeting | §497 |
 | 2026-11-16 | Rename everywhere: a meeting title, a name and a topic; untick a note; Ctrl+Z in the open note; the toast's undo; Earlier versions hold the old text | dev build, on a copy of real notes first | §498 |
 | 2026-11-16 | No suggestion when the caret is in a title that already reads exactly like today's meeting (#252) | dev build or next beta, `.agenda.json` with a meeting today | §499 |
 | 2026-11-18 | Two invited people with the same first name are offered as `@DanaS` / `@DanaB` (no hyphen) (#254) | dev build or next beta, `.agenda.json` with `attendees` | §500 |
