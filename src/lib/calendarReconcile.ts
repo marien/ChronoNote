@@ -328,13 +328,46 @@ export function flagRemovedSection(content: string, removed: RemovedSection): st
   return appendBlock(content, [header, underlineFor(header), ...removed.lines]);
 }
 
-/** Sync review "Move to another day" (§3.3) — appends the removed section's
- * header + body onto the *target* day's own content, same two-blank-line
- * append convention as `flagRemovedSection`. The caller is responsible for
- * writing the result to that other day's note and removing it from today's
- * (already done by computeCalendarSync, which never includes it). */
+/** Sync review "Move to another day" (§3.3) — puts the removed section onto the
+ * *target* day's own content. When that day already has a section for the same
+ * meeting (a recurring meeting's next occurrence, matched as the reconciler
+ * matches titles, `[CANCELED]` sections excepted), the moved body is merged into
+ * the end of that section, after a blank line (§509); otherwise the section is
+ * appended with the same two-blank-line convention as `flagRemovedSection`. The
+ * caller is responsible for writing the result to that other day's note and
+ * removing it from today's (already done by computeCalendarSync, which never
+ * includes it). */
 export function appendRemovedSectionTo(targetContent: string, removed: RemovedSection): string {
+  const merged = mergeIntoExistingSection(targetContent, removed);
+  if (merged !== null) return merged;
   return appendBlock(targetContent, [removed.header, underlineFor(removed.header), ...removed.lines]);
+}
+
+function mergeIntoExistingSection(content: string, removed: RemovedSection): string | null {
+  const lines = content.split("\n");
+  const key = matchKey(removed.header);
+  const headerIdxs: number[] = [];
+  for (let i = 0; i + 1 < lines.length; i++) {
+    if (lines[i].trim() !== "" && isSetextUnderline(lines[i + 1])) headerIdxs.push(i);
+  }
+  const k = headerIdxs.findIndex((i) => !isCancelledHeader(lines[i].trim()) && matchKey(lines[i]) === key);
+  if (k < 0) return null;
+
+  const body = [...removed.lines];
+  while (body.length > 0 && body[0].trim() === "") body.shift();
+  while (body.length > 0 && body[body.length - 1].trim() === "") body.pop();
+  if (body.length === 0) return content;
+
+  const start = headerIdxs[k];
+  const end = k + 1 < headerIdxs.length ? headerIdxs[k + 1] : lines.length;
+  let last = end - 1; // last non-blank line of the section (at least its underline)
+  while (last > start + 1 && lines[last].trim() === "") last--;
+  const hasBody = last > start + 1;
+  const insert = hasBody ? ["", ...body] : body;
+  const out = [...lines.slice(0, last + 1), ...insert, ...lines.slice(last + 1)];
+  let text = out.join("\n");
+  if (end === lines.length && !text.endsWith("\n")) text += "\n";
+  return text;
 }
 
 function appendBlock(content: string, block: string[]): string {

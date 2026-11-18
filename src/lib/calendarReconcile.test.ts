@@ -123,6 +123,32 @@ describe("appendRemovedSectionTo", () => {
     );
   });
 
+  it("merges into the target day's occurrence of the same meeting instead of adding a second one (§509)", () => {
+    const target = "Standup\n=======\n- ok\n\n\nWeekly sync\n===========\n- tomorrow's point\n\n\nLunch\n=====\n";
+    const result = appendRemovedSectionTo(target, { header: "Weekly sync", lines: ["", "- carried point", ""] });
+    expect(result).toBe(
+      "Standup\n=======\n- ok\n\n\nWeekly sync\n===========\n- tomorrow's point\n\n- carried point\n\n\nLunch\n=====\n",
+    );
+  });
+
+  it("merges into an empty occurrence at the end of the note, and matches titles as the reconciler does", () => {
+    const result = appendRemovedSectionTo("Weekly Sync\n===========\n", {
+      header: "weekly sync",
+      lines: ["- carried point"],
+    });
+    expect(result).toBe("Weekly Sync\n===========\n- carried point\n");
+  });
+
+  it("does not merge into a [CANCELED] section of the same meeting", () => {
+    const result = appendRemovedSectionTo("[CANCELED] Weekly sync\n======================\n", {
+      header: "Weekly sync",
+      lines: ["- carried point"],
+    });
+    expect(result).toBe(
+      "[CANCELED] Weekly sync\n======================\n\n\nWeekly sync\n===========\n- carried point\n",
+    );
+  });
+
   it("works when the target day's note is empty", () => {
     const result = appendRemovedSectionTo("", { header: "1:1 with Priya", lines: [] });
     expect(result).toBe("1:1 with Priya\n==============\n");

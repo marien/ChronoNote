@@ -910,7 +910,11 @@ reachable from the top bar, a shortcut, or the command palette:
   today or later, only while no dialog is open and the caret is not on a blank
   line, and checked on tab switch, shortly after edits, on window focus and
   once a minute. A reorder, or a section with text whose meeting left the
-  calendar, still goes to the review and the dot. A meeting added this way
+  calendar, still goes to the review and the dot. In the review, "Move to
+  another day" merges the section's text into the end of that day's section
+  for the same meeting when it has one (matched by title as the sync matches,
+  not a `[CANCELED]` one; a blank line between), and otherwise adds the
+  section at the end of that note (§509). A meeting added this way
   and then deleted by the user is not added again (remembered per day in the
   session file); the review lists it unchecked.
 - **Shortcuts & Symbols** (`Ctrl/Cmd+/` or `Ctrl/Cmd+Shift+/`) — the
