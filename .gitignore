@@ -51,4 +51,5 @@ native-test.conf.json
 
 # Local mutation testing reports and incremental state
 reports/
+.stryker-tmp/
 
