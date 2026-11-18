@@ -536,3 +536,4 @@ line, and this index is regenerated with `node scripts/changelog-index.mjs`.
 - §511 `storage.rs` split into modules (R2, step 1)
 - §512 Mutation testing, local and monthly (T5)
 - §513 Per-checkout test ports skip the ones Chromium blocks
+- §514 The other five large files split into folders (R2, steps 2-7)
