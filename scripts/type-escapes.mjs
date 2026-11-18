@@ -11,7 +11,7 @@ import { fileURLToPath } from "node:url";
 import ts from "typescript";
 
 const DIRECTIVE_LINE_RE = /^(?:\/\/+\s*|\/\*\*?\s*|\*\s*|\s*)@ts-(?:ignore|expect-error|nocheck)(?![\w-])/;
-const SCRIPT_TAG_RE = /<!--[\s\S]*?-->|<script\b([^>]*)>([\s\S]*?)<\/script>/gi;
+const SCRIPT_TAG_RE = /<!--[\s\S]*?-->|<script\b([^>]*)>([\s\S]*?)<\/script\s*>/gi;
 const LANG_TS_RE = /\blang\s*=\s*(?:"ts"|'ts')(?=[\s>]|$)/i;
 
 /**
@@ -189,6 +189,16 @@ function getProcess() {
   return (/** @type {{ process?: NodeProcess }} */ (/** @type {unknown} */ (globalThis))).process;
 }
 
+/** Reads the baseline, or null when the file does not exist (one read, no exists-then-read race; CodeQL js/file-system-race). */
+function readBaseline(file) {
+  try {
+    return JSON.parse(fs.readFileSync(file, "utf8"));
+  } catch (err) {
+    if (err && /** @type {NodeJS.ErrnoException} */ (err).code === "ENOENT") return null;
+    throw err;
+  }
+}
+
 function main() {
   const proc = getProcess();
   if (!proc) return;
@@ -198,8 +208,8 @@ function main() {
   const current = scanRepo(ROOT);
 
   if (update) {
-    if (fs.existsSync(baselinePath)) {
-      const baseline = /** @type {EscapeCounts} */ (JSON.parse(fs.readFileSync(baselinePath, "utf8")));
+    const baseline = /** @type {EscapeCounts | null} */ (readBaseline(baselinePath));
+    if (baseline) {
       const result = compare(baseline, current);
       if (!result.ok) {
         console.error(
@@ -216,12 +226,12 @@ function main() {
     proc.exit(0);
   }
 
-  if (!fs.existsSync(baselinePath)) {
+  const baseline = /** @type {EscapeCounts | null} */ (readBaseline(baselinePath));
+  if (!baseline) {
     console.error("type escapes: missing scripts/type-escapes.baseline.json (run npm run type-escapes -- --update)");
     proc.exit(1);
   }
 
-  const baseline = /** @type {EscapeCounts} */ (JSON.parse(fs.readFileSync(baselinePath, "utf8")));
   const result = compare(baseline, current);
 
   if (!result.ok) {

@@ -410,6 +410,16 @@ function formatRises(rose) {
   });
 }
 
+/** Reads the baseline, or null when the file does not exist (one read, no exists-then-read race; CodeQL js/file-system-race). */
+function readBaseline(file) {
+  try {
+    return JSON.parse(fs.readFileSync(file, "utf8"));
+  } catch (err) {
+    if (err && /** @type {NodeJS.ErrnoException} */ (err).code === "ENOENT") return null;
+    throw err;
+  }
+}
+
 function main() {
   const proc = getProcess();
   if (!proc) return;
@@ -419,8 +429,8 @@ function main() {
   const current = scanRepo(ROOT);
 
   if (update) {
-    if (fs.existsSync(baselinePath)) {
-      const baseline = /** @type {BaselineData} */ (JSON.parse(fs.readFileSync(baselinePath, "utf8")));
+    const baseline = /** @type {BaselineData | null} */ (readBaseline(baselinePath));
+    if (baseline) {
       const result = compare(baseline, current);
       if (!result.ok) {
         console.error(
@@ -437,12 +447,12 @@ function main() {
     proc.exit(0);
   }
 
-  if (!fs.existsSync(baselinePath)) {
+  const baseline = /** @type {BaselineData | null} */ (readBaseline(baselinePath));
+  if (!baseline) {
     console.error("css literals: missing scripts/css-literals.baseline.json (run npm run css-literals -- --update)");
     proc.exit(1);
   }
 
-  const baseline = /** @type {BaselineData} */ (JSON.parse(fs.readFileSync(baselinePath, "utf8")));
   const result = compare(baseline, current);
 
   if (!result.ok) {

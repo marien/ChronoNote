@@ -59,9 +59,11 @@ export function judge(advisories, allowlist, patched, today) {
 }
 
 async function firstPatched(id) {
-  const res = await fetch(`https://api.github.com/advisories/${id}`, {
-    headers: { Accept: "application/vnd.github+json", "User-Agent": "chrononote-npm-audit" },
-  });
+  // §515: unauthenticated calls from GitHub's shared runners hit the rate limit (HTTP 403); in CI use the job's token.
+  /** @type {Record<string, string>} */
+  const headers = { Accept: "application/vnd.github+json", "User-Agent": "chrononote-npm-audit" };
+  if (process.env.GITHUB_TOKEN) headers.Authorization = `Bearer ${process.env.GITHUB_TOKEN}`;
+  const res = await fetch(`https://api.github.com/advisories/${id}`, { headers });
   if (!res.ok) throw new Error(`advisory lookup ${id}: HTTP ${res.status}`);
   const body = await res.json();
   const versions = (body.vulnerabilities ?? []).map((v) => v.first_patched_version).filter(Boolean);

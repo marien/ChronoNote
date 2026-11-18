@@ -47,6 +47,8 @@ jobs:
         # §507: high/critical fails, except advisories in scripts/npm-audit-allowlist.json (no fix, dev tools only);
         # those fail again once a fix is published or their review date passes.
         run: node scripts/npm-audit.mjs
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # §515: the advisory lookup is rate-limited without it
 
   cargo-audit:
     name: Cargo Audit
