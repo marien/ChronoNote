@@ -532,3 +532,6 @@ line, and this index is regenerated with `node scripts/changelog-index.mjs`.
 - §507 The npm audit gate lets through a dev-only advisory with no fix
 - §508 A section title's suggestions open only while typing in it (#252, second part)
 - §509 Moving a cancelled meeting to a day that already has it merges the text
+- §510 Lists on the clipboard as tables that run (T1, step 3)
+- §511 `storage.rs` split into modules (R2, step 1)
+- §512 Mutation testing, local and monthly (T5)
