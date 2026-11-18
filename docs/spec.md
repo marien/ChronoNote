@@ -1136,6 +1136,10 @@ What none of them can reach is the real network: the web app's OneDrive
 sync was verified by hand against a live OneDrive (both directions, merges,
 held conflicts, deletes both ways, an offline edit) in a real browser.
 
+A type-escapes check (`npm run type-escapes`, `scripts/type-escapes.baseline.json`)
+also runs in CI and `npm run verify` so the count of `any` and `@ts-*`
+suppression directives cannot rise above the recorded ceiling.
+
 Full detail on running and extending each layer lives in the project's
 `CLAUDE.local.md` (machine-local dev notes) and `tests/e2e/README.md`.
 

@@ -37,6 +37,7 @@ jobs:
         env:
           TEST_GUARD_PR_BODY: ${{ github.event.pull_request.body }}
       - run: npm ci
+      - run: node scripts/type-escapes.mjs
       - run: npm run check
       - run: npm test
 

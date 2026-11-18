@@ -52,6 +52,7 @@ if (!clean) console.log("verify: note: there are uncommitted changes; this check
 
 const steps = [
   ["changelog index", node, [path.join("scripts", "changelog-index.mjs"), "--check"], ROOT],
+  ["type escapes", node, [path.join("scripts", "type-escapes.mjs")], ROOT],
   ["svelte-check", node, [path.join("node_modules", "svelte-check", "bin", "svelte-check"), "--tsconfig", "./tsconfig.json", "--output", "machine"], ROOT],
   ["check:e2e", node, [path.join("node_modules", "typescript", "bin", "tsc"), "-p", "tests/tsconfig.json"], ROOT],
   ["vitest", node, [path.join("node_modules", "vitest", "vitest.mjs"), "run"], ROOT],
