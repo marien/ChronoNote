@@ -11,7 +11,7 @@ import { fileURLToPath } from "node:url";
 import ts from "typescript";
 
 const DIRECTIVE_LINE_RE = /^(?:\/\/+\s*|\/\*\*?\s*|\*\s*|\s*)@ts-(?:ignore|expect-error|nocheck)(?![\w-])/;
-const SCRIPT_TAG_RE = /<!--[\s\S]*?-->|<script\b([^>]*)>([\s\S]*?)<\/script\s*>/gi;
+const SCRIPT_TAG_RE = /<!--[\s\S]*?-->|<script\b([^>]*)>([\s\S]*?)<\/script\b[^>]*>/gi;
 const LANG_TS_RE = /\blang\s*=\s*(?:"ts"|'ts')(?=[\s>]|$)/i;
 
 /**
