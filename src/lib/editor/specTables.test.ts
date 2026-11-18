@@ -49,6 +49,55 @@ function isSeparatorRow(trimmedLine: string): boolean {
   return cells.length === 3 && cells.every((c) => /^:?-{3,}:?$/.test(c));
 }
 
+type KeyStep =
+  | { kind: "press"; key: string }
+  | { kind: "type"; text: string }
+  | { kind: "paste"; text: string };
+
+function parseKeySteps(rawKeys: string): KeyStep[] | string {
+  const parts: string[] = [];
+  let current = "";
+  let inQuotes = false;
+
+  for (let i = 0; i < rawKeys.length; i++) {
+    const ch = rawKeys[i];
+    if (ch === '"') {
+      inQuotes = !inQuotes;
+      current += ch;
+    } else if (ch === "," && !inQuotes) {
+      parts.push(current.trim());
+      current = "";
+    } else {
+      current += ch;
+    }
+  }
+  if (inQuotes) {
+    return "Unterminated quote in Keys cell";
+  }
+  parts.push(current.trim());
+
+  if (parts.length === 0 || parts.some((p) => p.length === 0)) {
+    return "Keys cell must list one or more key names separated by ', '";
+  }
+
+  const steps: KeyStep[] = [];
+  for (const part of parts) {
+    if (/^(type|paste)\b/.test(part)) {
+      const match = /^(type|paste)\s+"([^"]*)"$/.exec(part);
+      if (!match) {
+        return `Invalid ${part.startsWith("type") ? "type" : "paste"} step '${part}'; expected 'type "..."' or 'paste "..."'`;
+      }
+      const kind = match[1] as "type" | "paste";
+      steps.push({ kind, text: decodeSpecText(match[2]) });
+    } else if (part.includes('"')) {
+      return `Unexpected quote in key step '${part}'`;
+    } else {
+      steps.push({ kind: "press", key: part });
+    }
+  }
+  return steps;
+}
+
 type ParsedRow =
   | {
       kind: "valid";
@@ -58,7 +107,7 @@ type ParsedRow =
       rawBefore: string;
       rawKeys: string;
       before: string;
-      keys: string[];
+      steps: KeyStep[];
       after: string;
     }
   | {
@@ -168,14 +217,14 @@ function parseSpecFile(file: string, content: string): ParsedRow[] {
     }
 
     const rawKeys = cells[1];
-    const keys = rawKeys.split(",").map((k) => k.trim());
-    if (keys.length === 0 || keys.some((k) => k.length === 0)) {
+    const stepsOrError = parseKeySteps(rawKeys);
+    if (typeof stepsOrError === "string") {
       rows.push({
         kind: "invalid",
         file,
         heading: currentHeading,
         lineNumber,
-        reason: "Keys cell must list one or more key names separated by ', '",
+        reason: stepsOrError,
       });
       continue;
     }
@@ -188,7 +237,7 @@ function parseSpecFile(file: string, content: string): ParsedRow[] {
       rawBefore: cells[0],
       rawKeys,
       before: decodeSpecText(beforeInner),
-      keys,
+      steps: stepsOrError,
       after: decodeSpecText(afterInner),
     });
   }
@@ -207,6 +256,41 @@ function loadSpecRows(): ParsedRow[] {
 
 const specRows = loadSpecRows();
 
+describe("spec table key parsing", () => {
+  it('parses type "..." as a single step even when quoted text contains ", "', () => {
+    const md = [
+      "### T1. Type parsing",
+      "| Before | Keys | After |",
+      "| :--- | :--- | :--- |",
+      '| `‸` | type "a, b", Backspace | `a, ‸` |',
+    ].join("\n");
+    const rows = parseSpecFile("test.md", md);
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({
+      kind: "valid",
+      steps: [
+        { kind: "type", text: "a, b" },
+        { kind: "press", key: "Backspace" },
+      ],
+    });
+  });
+
+  it('parses paste "..." as a single step, decoding notation inside quotes and keeping ", " together', () => {
+    const md = [
+      "### P1. Paste parsing",
+      "| Before | Keys | After |",
+      "| :--- | :--- | :--- |",
+      '| `‸` | paste "a, b↵⇥c" | `a, b↵⇥c‸` |',
+    ].join("\n");
+    const rows = parseSpecFile("test.md", md);
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({
+      kind: "valid",
+      steps: [{ kind: "paste", text: "a, b\n\tc" }],
+    });
+  });
+});
+
 describe("docs/spec tables", () => {
   it("docs/spec/ contains at least one spec table row", () => {
     expect(specRows.filter((r) => r.kind === "valid").length).toBeGreaterThan(0);
@@ -222,15 +306,17 @@ describe("docs/spec tables", () => {
 
     it(`${row.file} ${row.heading}: ${row.rawBefore} + ${row.rawKeys}`, () => {
       const ed = openEditor(row.before);
-      for (const key of row.keys) {
-        ed.press(key);
+      for (const step of row.steps) {
+        if (step.kind === "type") ed.type(step.text);
+        else if (step.kind === "paste") ed.paste(step.text);
+        else ed.press(step.key);
       }
       expect(ed.caret()).toBe(row.after);
 
       const beforeText = stripMarkers(row.before);
       if (stripMarkers(row.after) !== beforeText) {
         let restored = false;
-        for (let i = 0; i < row.keys.length; i++) {
+        for (let i = 0; i < row.steps.length; i++) {
           if (!ed.undo()) break;
           if (ed.text() === beforeText) {
             restored = true;
