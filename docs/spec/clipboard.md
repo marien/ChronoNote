@@ -17,6 +17,7 @@ Pasting reads the clipboard's HTML only when it contains an `<li>` element or a 
 | `<div data-chrononote=""><ul><li>Item</li></ul></div>` | — |
 | `<html><body><!--StartFragment--><div data-chrononote=""><ul><li>- x</li></ul></div><!--EndFragment--></body></html>` | — |
 | `<ul><li>Item</li></ul>` | `- Item` |
+| `<p style="">No list</p>` | — |
 
 ### P2. Bullets and checkbox items convert to dash bullets
 
@@ -29,6 +30,11 @@ Unordered list items (`<ul><li>`), Word/Outlook bullet paragraphs, and items wit
 | `<ol><li><input type="checkbox"> Checked in ol</li></ol>` | `- Checked in ol` |
 | `<p class="MsoListParagraph" style="mso-list:l0 level1 lfo1"><![if !supportLists]><span style="mso-list:Ignore">o<span>&nbsp;&nbsp;</span></span><![endif]>Word bullet</p>` | `- Word bullet` |
 | `<p class="MsoListParagraph" style="mso-list:l0 level1 lfo1">•  Visible bullet</p>` | `- Visible bullet` |
+| `<ol><li><label><input type="checkbox"> Wrapped</label></li></ol>` | `- Wrapped` |
+| `<p class="MsoListParagraph" style="mso-list:l0 level1 lfo1">o&nbsp;&nbsp;Two spaces after o</p>` | `- Two spaces after o` |
+| `<p class="MsoListParagraph" style="mso-list:l0 level1 lfo1">o One space after o</p>` | `- o One space after o` |
+| `<p class="MsoListParagraph" style="mso-list:l0 level1 lfo1"><span style="mso-list:Ignore">•</span></p>` | `-` |
+| `<p class="MsoListParagraph" style="mso-list:l0 level1 lfo1">•</p>` | `-` |
 
 ### P3. Numbered items convert to N. from order, start, and value
 
@@ -41,6 +47,10 @@ Ordered list items (`<ol><li>`) convert to `N. ` numbered from `1` in order, or 
 | `<ol><li value="5">Five</li><li>Six</li></ol>` | `5. Five↵6. Six` |
 | `<ol start="3"><li>Three</li><li value="10">Ten</li><li>Eleven</li></ol>` | `3. Three↵10. Ten↵11. Eleven` |
 | `<ol start="abc"><li>Fallback</li></ol>` | `1. Fallback` |
+| `<ol><li><input type="text"> Not checkbox</li></ol>` | `1. Not checkbox` |
+| `<ol><li></li><li>Second</li></ol>` | `1.↵2. Second` |
+| `<ul><li></li><li>Second</li></ul>` | `-↵- Second` |
+| `<ul><li><ul><li>Child</li></ul></li></ul>` | `··- Child` |
 
 ### P4. Word markers (`a.`, `ii)`) are counted per level
 
@@ -53,6 +63,24 @@ In Word/Outlook `mso-list` paragraphs, plain numeric markers keep their number, 
 | `<p style="mso-list:l0 level1 lfo1"><span style="mso-list:Ignore">1.</span>One</p><p style="mso-list:l0 level2 lfo1"><span style="mso-list:Ignore">a.</span>Sub a</p><p style="mso-list:l0 level2 lfo1"><span style="mso-list:Ignore">b.</span>Sub b</p><p style="mso-list:l0 level1 lfo1"><span style="mso-list:Ignore">2.</span>Two</p>` | `1. One↵···1. Sub a↵···2. Sub b↵2. Two` |
 | `<p style="mso-list:l0 level1 lfo1"><span style="mso-list:Ignore">1.</span>One</p><p style="mso-list:l0 level2 lfo1"><span style="mso-list:Ignore">i)</span>First sub</p><p style="mso-list:l0 level1 lfo1"><span style="mso-list:Ignore">2.</span>Two</p><p style="mso-list:l0 level2 lfo1"><span style="mso-list:Ignore">ii)</span>Reset sub</p>` | `1. One↵···1. First sub↵2. Two↵···1. Reset sub` |
 | `<p style="mso-list:l0 level1 lfo1"><span style="mso-list:Ignore">i.</span>First</p><p>Break</p><p style="mso-list:l0 level1 lfo1"><span style="mso-list:Ignore">a.</span>Restart</p>` | `1. First↵Break↵1. Restart` |
+| `<p style="mso-list:l0 level1 lfo1"><span style="mso-list: Ignore">a.</span>Spaced ignore</p>` | `1. Spaced ignore` |
+| `<p style="mso-list:l0 level1 lfo1"><span style="mso-list:Ignore">5.</span>Fifth</p>` | `5. Fifth` |
+| `<p style="mso-list:l0 level1 lfo1"><span style="mso-list:Ignore">10.</span>Tenth</p>` | `10. Tenth` |
+| `<p style="mso-list:l0 level1 lfo1"><span style="mso-list:Ignore">(2)</span>Paren</p>` | `2. Paren` |
+| `<p style="mso-list:l0 level1 lfo1"><span style="mso-list:Ignore">Note 1.</span>Text</p>` | `- Text` |
+| `<p style="mso-list:l0 level2 lfo1"><span style="mso-list:Ignore">•</span>Orphan level 2</p>` | `··- Orphan level 2` |
+| `<p style="mso-list:l0 level1 lfo1"><span style="mso-list:Ignore">1.</span>Line 1<br>Line 2<br><br>Line 3</p>` | `1. Line 1↵···Line 2↵↵···Line 3` |
+| `<p style="mso-list:l0 level1 lfo1"><span style="mso-list:Ignore">•</span>Line 1<br>Line 2</p>` | `- Line 1↵··Line 2` |
+| `<p style="mso-list:l0 level1 lfo1"><span style="mso-list:Ignore">a.</span>First</p>Bare text<p style="mso-list:l0 level1 lfo1"><span style="mso-list:Ignore">b.</span>Second</p>` | `1. First↵Bare text↵1. Second` |
+| `<p style="mso-list:l0 level1 lfo1"><span style="mso-list:Ignore">a.</span>First</p><pre>code</pre><p style="mso-list:l0 level1 lfo1"><span style="mso-list:Ignore">b.</span>Second</p>` | `1. First↵code↵1. Second` |
+| `<p style="mso-list:l0 level1 lfo1"><span style="mso-list:Ignore">1.</span>First</p><pre>code</pre><p style="mso-list:l0 level2 lfo1"><span style="mso-list:Ignore">a.</span>Orphan sub</p>` | `1. First↵code↵··1. Orphan sub` |
+| `<p style="mso-list:l0 level1 lfo1"><span style="mso-list:Ignore">•</span>L1</p><p style="mso-list:l0 level2 lfo1"><span style="mso-list:Ignore">•</span>L2</p><p style="mso-list:l0 level3 lfo1"><span style="mso-list:Ignore">•</span>L3</p><p style="mso-list:l0 level4 lfo1"><span style="mso-list:Ignore">•</span>L4</p><p style="mso-list:l0 level5 lfo1"><span style="mso-list:Ignore">•</span>L5</p><p style="mso-list:l0 level6 lfo1"><span style="mso-list:Ignore">•</span>L6</p><p style="mso-list:l0 level7 lfo1"><span style="mso-list:Ignore">•</span>L7</p><p style="mso-list:l0 level8 lfo1"><span style="mso-list:Ignore">•</span>L8</p><p style="mso-list:l0 level9 lfo1"><span style="mso-list:Ignore">•</span>L9</p><p style="mso-list:l0 level10 lfo1"><span style="mso-list:Ignore">•</span>L10</p>` | `- L1↵··- L2↵····- L3↵······- L4↵········- L5↵··········- L6↵············- L7↵··············- L8↵················- L9↵··················- L10` |
+| `<div><p style="mso-list:l0 level1 lfo1"><span style="mso-list:Ignore">a.</span>Inside div</p></div>` | `1. Inside div` |
+| `<div><div><p style="mso-list:l0 level1 lfo1"><span style="mso-list:Ignore">a.</span>Nested div</p></div></div>` | `1. Nested div` |
+| `<blockquote><p style="mso-list:l0 level1 lfo1"><span style="mso-list:Ignore">a.</span>Quoted</p></blockquote>` | `1. Quoted` |
+| `<div><h1 style="mso-list:l0 level1 lfo1"><span style="mso-list:Ignore">a.</span>Heading item</h1></div>` | `1. Heading item` |
+| `<div><h2 style="mso-list:l0 level1 lfo1"><span style="mso-list:Ignore">a.</span>H2</h2><h3 style="mso-list:l0 level1 lfo1"><span style="mso-list:Ignore">b.</span>H3</h3><h4 style="mso-list:l0 level1 lfo1"><span style="mso-list:Ignore">c.</span>H4</h4><h5 style="mso-list:l0 level1 lfo1"><span style="mso-list:Ignore">d.</span>H5</h5><h6 style="mso-list:l0 level1 lfo1"><span style="mso-list:Ignore">e.</span>H6</h6></div>` | `1. H2↵2. H3↵3. H4↵4. H5↵5. H6` |
+| `<p style="mso-list:l0 level1 lfo1"><span style="mso-list:Ignore">1.</span>First</p><div><pre>code</pre></div><p style="mso-list:l0 level2 lfo1"><span style="mso-list:Ignore">a.</span>Orphan sub</p>` | `1. First↵code↵··1. Orphan sub` |
 
 ### P5. Nested lists indent under their parent's text column and restart numbering at 1
 
@@ -67,6 +95,9 @@ Items in a nested list indent to `indent + String(number).length + 2` spaces und
 | `<ol start="10"><li>Ten<ul><li>Sub bullet</li></ul></li></ol>` | `10. Ten↵····- Sub bullet` |
 | `<ol start="4"><li>Four<ol><li>Sub 1</li><li>Sub 2</li></ol></li><li>Five</li></ol>` | `4. Four↵···1. Sub 1↵···2. Sub 2↵5. Five` |
 | `<ol><li>One<ol><li>Two<ol><li>Three</li></ol></li></ol></li></ol>` | `1. One↵···1. Two↵······1. Three` |
+| `<ol><li>One</li><ol><li>Sub</li></ol></ol>` | `1. One↵···1. Sub` |
+| `<ul><ul><li>Nested first</li></ul></ul>` | `- Nested first` |
+| `<ul><p>Note</p><li>Item</li></ul>` | `Note↵- Item` |
 
 ### P6. Continuation text inside an item aligns under the item's text
 
@@ -80,6 +111,16 @@ Line breaks (`<br>`) and multiple blocks (`<p>`) inside a list item produce cont
 | `<ol start="12"><li>Twelfth<br>continuation</li></ol>` | `12. Twelfth↵····continuation` |
 | `<ol><li>One<ol><li>Sub<br>continuation</li></ol></li></ol>` | `1. One↵···1. Sub↵······continuation` |
 | `<ul><li><p>First para</p><p>Second para</p></li></ul>` | `- First para↵··Second para` |
+| `<ul><li>Text<p>Para</p></li></ul>` | `- Text↵··Para` |
+| `<ul><li><p>First</p><p></p><p></p><p>Second</p></li></ul>` | `- First↵↵··Second` |
+| `<ul><li><p>First</p><p>  </p><p>Second</p></li></ul>` | `- First↵↵··Second` |
+| `<ul><li><br>After br</li></ul>` | `- After br` |
+| `<ul><li><div>Block</div><blockquote>Quote</blockquote><h1>Heading</h1></li></ul>` | `- Block↵··Quote↵··Heading` |
+| `<ul><li><h2>H2</h2><h6>H6</h6></li></ul>` | `- H2↵··H6` |
+| `<ul><li><table><tr><td>Row 1</td></tr><tr><td>Row 2</td></tr></table></li></ul>` | `- Row 1↵··Row 2` |
+| `<ul><li><div>Parent<ul><li>Ignored child</li></ul></div></li></ul>` | `- Parent` |
+| `<ul><li><div>Parent<ol><li>Ignored child</li></ol></div></li></ul>` | `- Parent` |
+| `<ul><li><p>First</p><p><style>  </style></p><p>Second</p></li></ul>` | `- First↵↵··Second` |
 
 ### P7. Other blocks become lines with collapsed whitespace while preformatted blocks stay verbatim
 
@@ -93,6 +134,17 @@ Non-list blocks become lines with runs of spaces, tabs, and newlines collapsed t
 | `<p>  Lots   of   spaces  </p><ul><li>Item</li></ul>` | `Lots of spaces↵- Item` |
 | `<style>body{}</style><script>x()</script><!-- comment --><ul><li>Valid<o:p>&nbsp;</o:p></li></ul>` | `- Valid` |
 | `<ul><li>Code:</li></ul><pre>  a = 1;↵    b = 2;</pre>` | `- Code:↵··a = 1;↵····b = 2;` |
+| `<ul><li>Item<!-- comment --> text</li></ul>` | `- Item text` |
+| `<ul><li><style>.x{}</style><script>y()</script><title>T</title>Clean</li></ul>` | `- Clean` |
+| `<ul><li>Item</li></ul><style>.x{}</style><script>y()</script><o:p>ignored</o:p>` | `- Item` |
+| `<ul><li>A</li></ul><style>.x{}</style><script>y()</script><o:p>x</o:p><ul><li>B</li></ul>` | `- A↵- B` |
+| `<br><ul><li>One</li></ul><br><ul><li>Two</li></ul><br>` | `- One↵↵- Two` |
+| `<ul><li>One</li></ul><p></p><p></p><ul><li>Two</li></ul>` | `- One↵↵- Two` |
+| `<ul><li>One</li></ul><p><script>x()</script></p><ul><li>Two</li></ul>` | `- One↵↵- Two` |
+| `  Bare   text⇥and↵newlines &nbsp; more  <ul><li>Item</li></ul>` | `Bare text and newlines   more↵- Item` |
+| `<ul><li>Item</li></ul><pre>↵hello↵</pre>` | `- Item↵hello` |
+| `<ul><li>&lt;![if !supportLists]&gt;text&lt;![endif]&gt;</li></ul>` | `- text` |
+| `&lt;![if !supportLists]&gt;text&lt;![endif]&gt;<ul><li>Item</li></ul>` | `text↵- Item` |
 
 ### P8. Converted pastes go through the standard plain-text paste handling
 
@@ -131,6 +183,8 @@ A `<pre>` element inside a list item preserves its internal spaces and newlines 
 | `<ol><li>run:<pre>npm i↵npm test</pre></li></ol>` | `1. run:↵···npm i↵···npm test` |
 | `<ul><li>code:<pre>  if (x) {↵    return 1;↵  }</pre></li></ul>` | `- code:↵····if (x) {↵······return 1;↵····}` |
 | `<ol start="10"><li>run:<pre>echo ok↵echo done</pre></li></ol>` | `10. run:↵····echo ok↵····echo done` |
+| `<ul><li>First<br>  <pre>second</pre><p>third</p></li></ul>` | `- First↵··second↵··third` |
+| `<ul><li>run:<pre>a&nbsp;b</pre></li></ul>` | `- run:↵··a b` |
 
 ### P12. Edge case (§469): Google Docs lists keep their aria-level nesting
 
@@ -142,6 +196,17 @@ Lists with `aria-level` attributes (whether flat or wrapped in sibling sub-lists
 | `<b id="docs-internal-guid-2"><ul><li aria-level="1"><p>Top one</p></li><ul><li aria-level="2"><p>Sub one</p></li></ul><li aria-level="1"><p>Top two</p></li></ul></b>` | `- Top one↵··- Sub one↵- Top two` |
 | `<b id="docs-internal-guid-3"><ol><li aria-level="1"><p>One</p></li><li aria-level="2"><p>Sub</p></li><li aria-level="1"><p>Two</p></li></ol></b>` | `1. One↵···1. Sub↵2. Two` |
 | `<ol><li aria-level="1">One</li><li aria-level="2">Two</li><li aria-level="3">Three</li><li aria-level="1">Four</li></ol>` | `1. One↵···1. Two↵······1. Three↵2. Four` |
+| `<ul><li aria-level="2">Indented first</li></ul>` | `··- Indented first` |
+| `<ol><li aria-level="1">One</li><li aria-level="3">Deep</li></ol>` | `1. One↵·····1. Deep` |
+| `<ol><li aria-level="1">One</li><li aria-level="2">Sub 1</li><li aria-level="2">Sub 2</li><li aria-level="1">Two</li><li aria-level="2">Reset sub</li></ol>` | `1. One↵···1. Sub 1↵···2. Sub 2↵2. Two↵···1. Reset sub` |
+| `<ol start="5"><li aria-level="1">Five</li></ol>` | `5. Five` |
+| `<ol><li aria-level="1" value="5">Five</li><li>Six</li></ol>` | `5. Five↵6. Six` |
+| `<ol><li aria-level="1">One</li><li aria-level="2" value="5">Five</li><li aria-level="2">Six</li><li aria-level="1">Two</li></ol>` | `1. One↵···5. Five↵···6. Six↵2. Two` |
+| `<ol><li aria-level="0">Zero</li><li aria-level="abc">Bad</li></ol>` | `1. Zero↵2. Bad` |
+| `<ol><li aria-level="1">One</li></ol>Bare text<ol><li aria-level="2">After</li></ol>` | `1. One↵Bare text↵··1. After` |
+| `<ol><li aria-level="1">One</li></ol><pre>code</pre><ol><li aria-level="2">After</li></ol>` | `1. One↵code↵··1. After` |
+| `<ol><li aria-level="1">One</li></ol><p>Break</p><ol><li aria-level="2">After</li></ol>` | `1. One↵Break↵··1. After` |
+| `<ol><li aria-level="1">One</li></ol><p style="mso-list:l0 level1 lfo1">Bullet</p><ol><li aria-level="2">After</li></ol>` | `1. One↵- Bullet↵··1. After` |
 
 ### P13. Edge case (§469): Word/Outlook paragraphs without Ignore strip their visible marker
 
@@ -154,6 +219,11 @@ When a Word/Outlook `mso-list` paragraph has no `mso-list:Ignore` span and its v
 | `<p class="MsoListParagraph" style="mso-list:l0 level1 lfo1">1.&nbsp;&nbsp;first</p><p class="MsoListParagraph" style="mso-list:l0 level1 lfo1">2.&nbsp;&nbsp;second</p>` | `1. first↵2. second` |
 | `<p class="MsoListParagraph" style="mso-list:l0 level1 lfo1">1. text</p><p class="MsoListParagraph" style="mso-list:l0 level2 lfo1">a.  sub</p>` | `1. text↵···1. sub` |
 | `<p class="MsoListParagraph" style="mso-list:l0 level1 lfo1">•  bullet</p>` | `- bullet` |
+| `<p class="MsoListParagraph" style="mso-list:l0 level1 lfo1">10.  ten</p>` | `10. ten` |
+| `<p class="MsoListParagraph" style="mso-list:l0 level1 lfo1">ii.  second</p>` | `1. second` |
+| `<p class="MsoListParagraph" style="mso-list:l0 level1 lfo1">1.</p>` | `1.` |
+| `<p class="MsoListParagraph" style="mso-list:l0 level1 lfo1">foo 1. bar</p>` | `- foo 1. bar` |
+| `<p class="MsoListParagraph" style="mso-list:l0 level1 lfo1">foo • bar</p>` | `- foo • bar` |
 
 ## Copying lists
 
@@ -180,6 +250,9 @@ Dash (`-`) and star (`*`) bullets become `<ul>`, and numbered items (`.` or `)`)
 | `1. One↵2. Two` | `<div data-chrononote=""><ol><li>One</li><li>Two</li></ol></div>` |
 | `4. Four↵5. Five` | `<div data-chrononote=""><ol start="4"><li>Four</li><li>Five</li></ol></div>` |
 | `* Star↵2) Paren` | `<div data-chrononote=""><ul><li>Star</li></ul><ol start="2"><li>Paren</li></ol></div>` |
+| `- item   ` | `<div data-chrononote=""><ul><li>item</li></ul></div>` |
+| `1. One↵- Bullet` | `<div data-chrononote=""><ol><li>One</li></ol><ul><li>Bullet</li></ul></div>` |
+| `1. Dot↵2) Paren` | `<div data-chrononote=""><ol><li>Dot</li></ol><ol start="2"><li>Paren</li></ol></div>` |
 
 ### K3. Indentation levels and flat dotted outlines nest as sub-lists
 
@@ -193,6 +266,7 @@ Structural indentation levels—both 2-space and 3-space indents as well as tabs
 | `- Bullet↵··1. Numbered↵····- Deep` | `<div data-chrononote=""><ul><li>Bullet<ol><li>Numbered<ul><li>Deep</li></ul></li></ol></li></ul></div>` |
 | `⇥1. a↵⇥⇥1.1. b↵⇥2. c` | `<div data-chrononote=""><ol><li>a<ol><li>b</li></ol></li><li>c</li></ol></div>` |
 | `1. a↵1.1. b↵1.1.1. c↵2. d` | `<div data-chrononote=""><ol><li>a<ol><li>b<ol><li>c</li></ol></li></ol></li><li>d</li></ol></div>` |
+| `1.1. a↵··1. b` | `<div data-chrononote=""><ol><li>a<ol><li>b</li></ol></li></ol></div>` |
 
 ### K4. Non-list lines become divs, empty lines break, and continuation lines stay inside the item
 
@@ -205,6 +279,7 @@ Non-list lines outside a list become `<div>` elements (with leading spaces as `&
 | `- Item↵↵··Indented non-list` | `<div data-chrononote=""><ul><li>Item</li></ul><div><br></div><div>&nbsp;&nbsp;Indented non-list</div></div>` |
 | `1. a↵···cont↵2. b` | `<div data-chrononote=""><ol><li>a<br>cont</li><li>b</li></ol></div>` |
 | `1. a↵···- sub↵···cont of 1↵2. b` | `<div data-chrononote=""><ol><li>a<ul><li>sub</li></ul><br>cont of 1</li><li>b</li></ol></div>` |
+| `- Item 1↵···↵- Item 2` | `<div data-chrononote=""><ul><li>Item 1</li></ul><div><br></div><ul><li>Item 2</li></ul></div>` |
 
 ### K5. All copied text is HTML-escaped and wrapped with data-chrononote
 
