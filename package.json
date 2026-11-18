@@ -64,5 +64,13 @@
   },
   "allowScripts": {
     "esbuild@0.28.2": true
+  },
+  "overrides": {
+    "@stryker-mutator/core": {
+      "minimatch": "11.0.9"
+    },
+    "typed-rest-client": {
+      "qs": "6.16.1"
+    }
   }
 }
