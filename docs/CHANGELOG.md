@@ -538,3 +538,4 @@ line, and this index is regenerated with `node scripts/changelog-index.mjs`.
 - §513 Per-checkout test ports skip the ones Chromium blocks
 - §514 The other five large files split into folders (R2, steps 2-7)
 - §515 Security findings of 2026-11-18: the audit's advisory lookup, and two CodeQL patterns
+- §516 Tests for the first mutation gaps (M1, M2)
