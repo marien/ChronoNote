@@ -36,7 +36,7 @@
 </script>
 
 <script lang="ts">
-  import { onMount, tick } from "svelte";
+  import { onMount } from "svelte";
   import { wireSnapOverlay } from "../snapOverlay";
   import * as controller from "../controller";
   import {
@@ -48,96 +48,30 @@
     chromeExpanded,
     currentDateISO,
     isMobile,
-    mobileTabDrawerOpen,
-    notesDir,
     oneDriveAccount,
     oneDriveFolder,
-    saveState,
-    showToast,
     tabLabelStyle,
     tabs,
   } from "../controller";
 
-  import type { NoteTab } from "../types";
   import { devBuild } from "../stores";
   import Icon from "../icons/Icon.svelte";
   import AppIcon from "./AppIcon.svelte";
-  import { formatCombo, formatShortcut, shortcutById } from "../shortcuts";
-  import { countActions } from "../tokens";
-  import { locale, t } from "../i18n";
-  import { focusTrap } from "../actions/focusTrap";
-  import { formatNoteDate } from "../noteDateLabel";
-  import type { TabLabelStyle } from "../generated/tauri-types";
-  import { openExportModal, printNote, printTitle } from "../exportNotes";
-  import { openVersions } from "../versions";
-
-  let contextMenuVisible = $state(false);
-  let contextTab = $state<NoteTab | null>(null);
-  let contextPos = $state({ x: 0, y: 0 });
-  let contextMenuEl = $state<HTMLDivElement>();
-
-  let renamingTabId = $state<string | null>(null);
-  let renameInputVal = $state("");
-  let renameInputEl = $state<HTMLInputElement>();
-
-  function isLastDisplayTab(tab: NoteTab | null): boolean {
-    if (!tab) return true;
-    const last = displayTabs[displayTabs.length - 1];
-    return !last || last.id === tab.id;
-  }
-
-  function openTabContextMenu(e: MouseEvent, tab: NoteTab) {
-    e.preventDefault();
-    e.stopPropagation();
-    contextTab = tab;
-    contextMenuVisible = true;
-    const menuWidth = 200;
-    const menuHeight = 250;
-    const x = Math.min(e.clientX, window.innerWidth - menuWidth - 8);
-    const y = Math.min(e.clientY, window.innerHeight - menuHeight - 8);
-    contextPos = { x: Math.max(8, x), y: Math.max(8, y) };
-  }
-
-  function closeContextMenu() {
-    contextMenuVisible = false;
-    contextTab = null;
-  }
-
-  function startRenaming(tab: NoteTab) {
-    closeContextMenu();
-    if (!tab.isScratchpad) return;
-    renamingTabId = tab.id;
-    renameInputVal = tab.filename;
-    tick().then(() => {
-      renameInputEl?.focus();
-      renameInputEl?.select();
-    });
-  }
-
-  function commitRename() {
-    if (renamingTabId) {
-      if (renameInputVal.trim()) {
-        controller.renameScratchpad(renamingTabId, renameInputVal.trim());
-      }
-      renamingTabId = null;
-    }
-  }
-
-  function cancelRename() {
-    renamingTabId = null;
-  }
-
-  async function copyDate(tab: NoteTab) {
-    const dateStr = tab.filename.replace(/\.txt$/, "");
-    await navigator.clipboard.writeText(dateStr);
-    showToast($t("toast.tabs.copiedToClipboard", { text: dateStr }));
-  }
-
-  async function copyPath(tab: NoteTab) {
-    const path = $notesDir ? `${$notesDir}/${tab.filename}` : tab.filename;
-    await navigator.clipboard.writeText(path);
-    showToast($t("toast.tabs.copiedToClipboard", { text: path }));
-  }
+  import { formatShortcut } from "../shortcuts";
+  import { t } from "../i18n";
+  import TabStrip from "./topbar/TabStrip.svelte";
+  import NewMenu from "./topbar/NewMenu.svelte";
+  import TabContextMenu from "./topbar/TabContextMenu.svelte";
+  import {
+    COMMAND_GAP,
+    FIT_MARGIN,
+    GUTTER_MIN,
+    TAB_BAR_PADDING,
+    TAB_EDGE_PEEK,
+    layoutSignature,
+    nextFrame,
+    rectWidth,
+  } from "./topbar/topbarHelpers";
 
   // §merged-titlebar: the app icon, drag regions, and window-control
   // buttons only make sense when this frontend is actually running inside
@@ -150,39 +84,6 @@
   // `getCurrentWindow()` call already exercised under the mock) and lets
   // the whole thing be covered by the existing Playwright suite.
   const isMergedTitlebar = $derived($backendKind === "desktop");
-
-  /** Dated tabs show just the date; scratchpads keep their given name. */
-  const tabLabel = (t: NoteTab) => (t.isScratchpad ? t.filename : t.filename.replace(/\.txt$/, ""));
-
-  // §B3: friendly labels ("Today", "do 9 okt"). `dayFormat` and `tabLabelWords` follow the language.
-  const dayFormat = $derived(new Intl.DateTimeFormat($locale, { weekday: "short", day: "numeric", month: "short" }));
-  const tabLabelWords = $derived({
-    today: $t("phoneNav.today"),
-    yesterday: $t("phoneNav.yesterday"),
-    tomorrow: $t("phoneNav.tomorrow"),
-  });
-  /** The label on a tab in the desktop strip. Style and today come in as parameters, like
-   * `tabDateClass` below, so the template re-renders when either changes. The tab's `title`
-   * is always the plain ISO name (`tabLabel`). */
-  const stripLabel = (t: NoteTab, style: TabLabelStyle, today: string): string =>
-    formatNoteDate(t.filename, style, today, tabLabelWords, (d) => dayFormat.format(d));
-
-  /** #68/#72: a daily tab's date relative to today — past/today/future get
-   * a distinct look (§68's own CSS) so today's tab, the one most work
-   * happens in, stands out from yesterday's leftovers and next week's
-   * placeholders without having to read every label. A scratchpad has no
-   * date of its own, so it's excluded (`""`, no extra class). Takes
-   * `today` as a parameter rather than reading `todayISO()` itself —
-   * called from the template on every render, so it needs `$currentDateISO`
-   * (a real reactive dependency, kept live by `boot.ts`'s
-   * `wireDateRollover`) to actually refresh at midnight, rather than a
-   * plain function call that only happens to re-run when something else
-   * Svelte is already watching triggers a re-render. */
-  const tabDateClass = (t: NoteTab, today: string): string => {
-    if (t.isScratchpad) return "";
-    const date = t.filename.slice(0, 10);
-    return date < today ? "past" : date > today ? "future" : "today";
-  };
 
   let topBarEl: HTMLDivElement;
   let tabBarEl = $state<HTMLDivElement>();
@@ -198,74 +99,6 @@
   // overflowing; §392: an arrow is disabled (greyed) once the first or last
   // tab is fully in view, instead of wrapping to the other end.
   let isOverflowing = $state(false);
-  let canScrollLeft = $state(false);
-  let canScrollRight = $state(false);
-  // Judged by whether the first / last tab is fully in view, not by the scroll position: the strip has side padding,
-  // so "the last tab is visible" and "scrolled to the very end" differ by a few pixels.
-  function updateScrollEdges() {
-    if (!tabBarEl) return;
-    const tabEls = tabBarEl.querySelectorAll<HTMLElement>(".tab");
-    if (tabEls.length === 0) return;
-    const bar = tabBarEl.getBoundingClientRect();
-    const left = tabEls[0].getBoundingClientRect().left < bar.left - 0.5;
-    const right = tabEls[tabEls.length - 1].getBoundingClientRect().right > bar.right + 0.5;
-    if (left !== canScrollLeft) canScrollLeft = left;
-    if (right !== canScrollRight) canScrollRight = right;
-  }
-
-  // §392: dragging over the tabs scrolls the strip (mouse and pen; touch scrolls natively). A press that moves
-  // less than DRAG_THRESHOLD stays a click. The strip's empty space is the window's drag region and is left alone.
-  const DRAG_THRESHOLD = 5;
-  let tabDrag: { pointerId: number; startX: number; startScroll: number; moved: boolean } | null = null;
-  let suppressTabClick = false;
-  function onTabBarPointerDown(e: PointerEvent) {
-    if (!tabBarEl || !isOverflowing || e.button !== 0 || e.pointerType === "touch") return;
-    if (e.target === tabBarEl || (e.target as HTMLElement).closest(".tab-rename-input")) return;
-    tabDrag = { pointerId: e.pointerId, startX: e.clientX, startScroll: tabBarEl.scrollLeft, moved: false };
-  }
-  function onTabBarPointerMove(e: PointerEvent) {
-    if (!tabDrag || !tabBarEl || e.pointerId !== tabDrag.pointerId) return;
-    const dx = e.clientX - tabDrag.startX;
-    if (!tabDrag.moved) {
-      if (Math.abs(dx) < DRAG_THRESHOLD) return;
-      tabDrag.moved = true;
-      tabBarEl.setPointerCapture(e.pointerId);
-    }
-    tabBarEl.scrollLeft = tabDrag.startScroll - dx;
-  }
-  function onTabBarPointerUp(e: PointerEvent) {
-    if (!tabDrag || e.pointerId !== tabDrag.pointerId) return;
-    if (tabDrag.moved) {
-      // The release after a drag must not also switch to (or close) the tab under the pointer.
-      suppressTabClick = true;
-      setTimeout(() => (suppressTabClick = false), 0);
-    }
-    tabDrag = null;
-  }
-  function onTabBarClickCapture(e: MouseEvent) {
-    if (!suppressTabClick) return;
-    suppressTabClick = false;
-    e.stopPropagation();
-    e.preventDefault();
-  }
-  // Attached here rather than as attributes: the tablist itself is not focusable (its tabs are), and the a11y
-  // check wants interactive handlers only on focusable elements.
-  $effect(() => {
-    const el = tabBarEl;
-    if (!el) return;
-    el.addEventListener("pointerdown", onTabBarPointerDown);
-    el.addEventListener("pointermove", onTabBarPointerMove);
-    el.addEventListener("pointerup", onTabBarPointerUp);
-    el.addEventListener("pointercancel", onTabBarPointerUp);
-    el.addEventListener("click", onTabBarClickCapture, true);
-    return () => {
-      el.removeEventListener("pointerdown", onTabBarPointerDown);
-      el.removeEventListener("pointermove", onTabBarPointerMove);
-      el.removeEventListener("pointerup", onTabBarPointerUp);
-      el.removeEventListener("pointercancel", onTabBarPointerUp);
-      el.removeEventListener("click", onTabBarClickCapture, true);
-    };
-  });
   let resizeObserver: ResizeObserver | null = null;
 
   // #61 follow-up: refs into the off-screen measurement clones below —
@@ -278,14 +111,16 @@
   let clonePromoteEl = $state<HTMLElement>();
   // The flexible drag gutter after the + button: whatever it has beyond its minimum is spare room.
   let gutterEl = $state<HTMLElement>();
+  let newSplitEl = $state<HTMLDivElement>();
+  let newMenuOpen = $state(false);
+  let tabStripRef = $state<TabStrip>();
+  let newMenuRef = $state<NewMenu>();
+  let contextMenuRef = $state<TabContextMenu>();
 
   // The horizontal tab strip is replaced by the tabs-drawer button on
   // touch-first devices only — NOT by window width: a narrow desktop/web
   // window keeps the strip (#56's collapse-into-More logic measures it).
   const showHorizontalTabs = $derived(!$isMobile);
-  // Touch-first only: desktop scrolls its strip with the §52 arrows instead.
-  const showOpenTabsBtn = $derived(!showHorizontalTabs);
-  const mobileActiveTab = $derived($tabs.find((t) => t.id === $activeTabId) ?? null);
   // On a phone the top bar carries the drawer button and the active tab's date, so
   // there's no room for the whole button row: the secondary buttons live in "More".
   $effect.pre(() => {
@@ -312,27 +147,6 @@
     !!activeTab && !activeTab.isScratchpad && activeTab.filename.slice(0, 10) >= $currentDateISO && $agendaFileExists,
   );
   const displayTabs = $derived(controller.sortedTabsForDisplay($tabs));
-  const hasTabsWithoutOpenActions = $derived($tabs.some((t) => countActions(t.content).open === 0));
-
-  /** Waits for the next paint frame — used instead of Svelte's own `tick()`
-   * everywhere below. `tick()` resolves via Svelte's reactive scheduler,
-   * and awaiting it inside a function invoked from a reactive block (a
-   * `$:` statement when this was written, an `$effect` since runes; both
-   * `settleLayout` and `scrollActiveTabIntoView` were called that way)
-   * hands control back to that same scheduler on resume — which can decide
-   * the originating statement is still "active" and re-run it, and if the
-   * resumed code does anything that looks like more reactive work, this
-   * repeats forever. That was the cause of a real hard freeze here: with
-   * `scrollActiveTabIntoView` using `await tick()`, switching tabs could
-   * lock up the whole window (unresponsive to clicks and shortcuts) —
-   * confirmed by swapping this one call for `requestAnimationFrame`, which
-   * sits outside Svelte's scheduler entirely and doesn't retrigger it.
-   * Still gives a render pass to wait for (needed so a *newly created*
-   * tab's element exists in the DOM before code below tries to measure or
-   * scroll to it), just via the browser's own frame clock instead. */
-  function nextFrame(): Promise<void> {
-    return new Promise((resolve) => requestAnimationFrame(() => resolve()));
-  }
 
   /** Priority order when space is tight: (1) everything fits → nothing to do;
    * (2) the tab strip overflows → collapse the secondary command buttons into
@@ -366,26 +180,11 @@
    * `tabsContentWidth()` sums the tabs' own rendered widths instead, which isn't
    * floored the same way and actually shrinks when there's less content,
    * however comfortably it fits. */
-  const TAB_BAR_PADDING = 16; // `#tab-bar`'s horizontal padding (room for the active tab's base curves)
   function tabsContentWidth(): number {
     if (!tabBarEl) return 0;
     let w = TAB_BAR_PADDING;
     for (const child of tabBarEl.children) w += (child as HTMLElement).offsetWidth;
     return w;
-  }
-
-  const FIT_MARGIN = 8;
-  // §merged-titlebar follow-up: how much of a neighboring tab to leave
-  // peeking in when scrolling the active tab into view at an edge.
-  const TAB_EDGE_PEEK = 24;
-  // Matches `.titlebar-commands`' `gap` (02-top-bar.css) — only manifests between buttons, so a
-  // collapsed button's real width in the row is its own plus this.
-  const COMMAND_GAP = 2;
-  // `.titlebar-drag-gutter`'s `min-width` — the part of it that is not spare room.
-  const GUTTER_MIN = 48;
-
-  function rectWidth(el: HTMLElement | undefined): number {
-    return el ? el.getBoundingClientRect().width : 0;
   }
 
   /** `#tab-bar` is only as wide as its tabs (the drag gutter takes the rest), so its own
@@ -474,7 +273,7 @@
 
         const nowOverflowing = tabBarEl.scrollWidth > tabBarEl.clientWidth;
         if (nowOverflowing !== isOverflowing) isOverflowing = nowOverflowing;
-        updateScrollEdges();
+        tabStripRef?.updateScrollEdges();
         // If another call came in while the above was awaiting a frame,
         // loop once more on the now-current state instead of returning
         // with it unevaluated — using whatever `allowUpgrade` that (or any
@@ -490,13 +289,6 @@
     } finally {
       settling = false;
     }
-  }
-
-  /** §52: the ‹ › arrows scroll the strip by about a tab. §392: they stop at the ends (the arrow is disabled
-   * there) rather than wrapping to the other end. */
-  function scrollTabBar(direction: 1 | -1) {
-    if (!tabBarEl) return;
-    tabBarEl.scrollBy({ left: direction * 160, behavior: "smooth" });
   }
 
   /** §48: switching tabs (keyboard, Date picker, Search, etc.) can move
@@ -593,53 +385,7 @@
   // `activeTabId.subscribe` directly here, instead of reactive blocks that
   // call these same functions, removes the retrigger channel entirely
   // rather than papering over wherever it was last observed.
-  //
-  // #57: `tabs.subscribe` on its own over-fires, though — every keystroke
-  // calls `updateActiveTabContent()`, which is a `tabs.set()` on every
-  // single content change, not just a tab being added/removed/renamed.
-  // `settleLayout()`'s "try a better tier" branches unconditionally flip
-  // state and measure again even when nothing about the available width
-  // could possibly have changed, so a plain `tabs.subscribe(() =>
-  // settleLayout())` visibly flashed labels/buttons on and off on every
-  // keystroke while typing — the exact bug reported. `layoutSignature`
-  // below reduces a tab list to just the fields that can actually change
-  // rendered width (identity, scratchpad-ness, filename, and the
-  // scratchpad "unsaved" dot's on/off state) — a keystroke changes a
-  // tab's `content` but never any of those, so the signature comes out
-  // identical and `settleLayout()` is never even called.
-  function layoutSignature(list: NoteTab[]): string {
-    return list
-      .map(
-        (t) =>
-          `${t.id}:${t.isScratchpad ? "s" : "d"}:${t.filename}:${t.isScratchpad && t.content.trim() !== "" ? 1 : 0}`,
-      )
-      .join("|");
-  }
   let lastTabsLayoutSignature: string | null = null;
-
-  // §B2: the + button's menu (New scratchpad / Open date / Reopen closed tab).
-  let newMenuOpen = $state(false);
-  let newMenuPos = $state({ x: 0, y: 0 });
-  let newMenuEl = $state<HTMLDivElement>();
-  let newSplitEl = $state<HTMLDivElement>();
-  const NEW_MENU_MAX_WIDTH = 320; // `.more-actions-pop`'s max-width: keeps it on screen near the right edge
-
-  function toggleNewMenu() {
-    if (newMenuOpen) {
-      newMenuOpen = false;
-      return;
-    }
-    if (!newSplitEl) return;
-    const r = newSplitEl.getBoundingClientRect();
-    newMenuPos = { x: Math.max(8, Math.min(r.left, window.innerWidth - NEW_MENU_MAX_WIDTH - 8)), y: r.bottom + 6 };
-    newMenuOpen = true;
-    tick().then(() => newMenuEl?.querySelector<HTMLElement>("button")?.focus());
-  }
-
-  function runNewMenuItem(action: () => unknown) {
-    newMenuOpen = false;
-    void action();
-  }
 
   onMount(() => {
     // Observe the outer row, not `tabBarEl` itself: `settleLayout()` (which
@@ -765,172 +511,20 @@
     <!-- §458: a debug build says so (the window title and icon do too, set in Rust). -->
     <span class="dev-badge" data-testid="dev-badge" data-tauri-drag-region title="Debug build">DEV</span>
   {/if}
-  {#if !showHorizontalTabs}
-    {#if showOpenTabsBtn}
-      <button
-        class="icon-btn mobile-tab-drawer-btn"
-        title={$t("topBar.openTabsList.title")}
-        aria-label={$t("topBar.openTabsList.ariaLabel", { count: $tabs.length })}
-        onclick={() => mobileTabDrawerOpen.set(true)}
-      >
-        <Icon name="tabs" size={16} />
-        <span class="mobile-tab-count" data-count={$tabs.length} aria-hidden="true"></span>
-      </button>
-      {#if mobileActiveTab}
-        <button
-          class="tab active mobile-active-tab {mobileActiveTab.isScratchpad ? 'scratch' : 'daily'} {tabDateClass(mobileActiveTab, $currentDateISO)}"
-          aria-label={$t("topBar.activeTabAriaLabel", { label: tabLabel(mobileActiveTab) })}
-          onclick={() => mobileTabDrawerOpen.set(true)}
-        >
-          <span class="tab-icon" aria-hidden="true">
-            <Icon name={mobileActiveTab.isScratchpad ? "tab-scratch" : "tab-daily"} size={13} />
-          </span>
-          <span class="tab-label">{tabLabel(mobileActiveTab)}</span>
-        </button>
-      {/if}
-    {/if}
-    <div class="tab-bar-spacer"></div>
-    <button
-      class="icon-btn"
-      title={$t("topBar.newScratchpad.title", { combo: formatCombo(shortcutById('newScratchpad').combos[0]) })}
-      onclick={controller.createScratchpad}
-    >
-      <Icon name="new-scratchpad" />
-    </button>
-  {:else}
-    {#if isOverflowing}
-      <button
-        class="icon-btn tab-scroll-btn"
-        aria-label={$t("topBar.scrollTabsLeft")}
-        disabled={!canScrollLeft}
-        onclick={() => scrollTabBar(-1)}
-      >
-        <Icon name="chevron-left" size={14} />
-      </button>
-    {/if}
-    <div
-      id="tab-bar"
-      role="tablist"
-      aria-label={$t("topBar.openTabsList.ariaLabel", { count: displayTabs.length })}
-      bind:this={tabBarEl}
-      data-tauri-drag-region={isMergedTitlebar ? true : undefined}
-      onscroll={updateScrollEdges}
-    >
-      {#each displayTabs as tab, i (tab.id)}
-        {#if i > 0 && tab.isScratchpad && !displayTabs[i - 1].isScratchpad}
-          <!-- §103: hairline between the daily-note group and the scratchpad group -->
-          <div class="tab-group-divider" aria-hidden="true"></div>
-        {/if}
-        <div
-          class="tab {tab.id === $activeTabId ? 'active' : ''} {tab.isScratchpad
-            ? 'scratch'
-            : 'daily'} {tabDateClass(tab, $currentDateISO)}"
-          role="tab"
-          tabindex="0"
-          data-tab-id={tab.id}
-          title={tab.isScratchpad ? undefined : tabLabel(tab)}
-          aria-selected={tab.id === $activeTabId}
-          onclick={() => controller.switchTab(tab.id)}
-          ondblclick={() => tab.isScratchpad && startRenaming(tab)}
-          oncontextmenu={(e) => openTabContextMenu(e, tab)}
-          onmousedown={(e) => {
-            // Middle-click closes the tab (and suppress the autoscroll cursor).
-            if (e.button === 1) {
-              e.preventDefault();
-              controller.requestTabClose(tab.id);
-            }
-          }}
-          onkeydown={(e) => e.key === "Enter" && controller.switchTab(tab.id)}
-        >
-          {#if tab.isScratchpad}
-            <span class="tab-icon" aria-hidden="true"><Icon name="tab-scratch" size={13} /></span>
-          {:else}
-            <!-- §B3: the past/today/future cue is this dot's colour -->
-            <span class="tab-dot" aria-hidden="true"></span>
-          {/if}
-          {#if renamingTabId === tab.id}
-            <input
-              type="text"
-              class="tab-rename-input"
-              bind:this={renameInputEl}
-              bind:value={renameInputVal}
-              onkeydown={(e) => {
-                if (e.key === "Enter") {
-                  e.stopPropagation();
-                  commitRename();
-                } else if (e.key === "Escape") {
-                  e.stopPropagation();
-                  cancelRename();
-                }
-              }}
-              onblur={commitRename}
-              onclick={(e) => e.stopPropagation()}
-            />
-          {:else}
-            <span class="tab-label" class:friendly={!tab.isScratchpad && $tabLabelStyle === "friendly"}>{stripLabel(tab, $tabLabelStyle, $currentDateISO)}</span>
-          {/if}
-          {#if tab.isScratchpad && tab.content.trim() !== ""}
-            <span class="tab-status-dot mem" title={$t("topBar.tabStatus.memoryOnly")}></span>
-          {:else if tab.id === $activeTabId && $saveState === "error"}
-            <span class="tab-status-dot err" title={$t("topBar.tabStatus.saveFailed")}></span>
-          {/if}
-          <!-- svelte-ignore a11y_no_static_element_interactions -->
-          <span
-            class="tab-close"
-            aria-label={$t("topBar.closeTab")}
-            onclick={(e) => {
-              e.stopPropagation();
-              controller.requestTabClose(tab.id);
-            }}
-            onkeydown={(e) => {
-              e.stopPropagation();
-              if (e.key === "Enter") controller.requestTabClose(tab.id);
-            }}
-          >
-            <Icon name="close" size={11} />
-          </span>
-        </div>
-      {/each}
-    </div>
-    {#if isOverflowing}
-      <button
-        class="icon-btn tab-scroll-btn"
-        aria-label={$t("topBar.scrollTabsRight")}
-        disabled={!canScrollRight}
-        onclick={() => scrollTabBar(1)}
-      >
-        <Icon name="chevron-right" size={14} />
-      </button>
-    {/if}
-    <!-- §B2: the split + button sits right after the tabs, as a sibling of the scrollable
-         #tab-bar rather than a child of it (§53), so it stays visible whatever the scroll
-         position. + creates a scratchpad; the chevron opens the small "new" menu. -->
-    <div class="tab-bar-split" bind:this={newSplitEl}>
-      <button
-        class="icon-btn tab-new-btn"
-        data-keytip="N"
-        title={$t("topBar.newScratchpad.title", { combo: formatCombo(shortcutById('newScratchpad').combos[0]) })}
-        aria-label={$t("shortcuts.newScratchpad.label")}
-        onclick={controller.createScratchpad}
-      >
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true">
-          <path d="M7 2.5v9M2.5 7h9" />
-        </svg>
-      </button>
-      <button
-        class="icon-btn tab-new-menu-btn"
-        data-keytip="W"
-        title={$t("topBar.newTabMenu")}
-        aria-label={$t("topBar.newTabMenu")}
-        aria-haspopup="menu"
-        aria-expanded={newMenuOpen}
-        onclick={toggleNewMenu}
-      >
-        <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <path d="M2 3.5 5 6.5 8 3.5" />
-        </svg>
-      </button>
-    </div>
+  <TabStrip
+    bind:this={tabStripRef}
+    {showHorizontalTabs}
+    {isMergedTitlebar}
+    {displayTabs}
+    {isOverflowing}
+    bind:tabBarEl
+    bind:newSplitEl
+    {newMenuOpen}
+    onToggleNewMenu={() => newMenuRef?.toggleNewMenu()}
+    onOpenContextMenu={(e, tab) => contextMenuRef?.openTabContextMenu(e, tab)}
+    onCloseContextMenu={() => contextMenuRef?.closeContextMenu()}
+  />
+  {#if showHorizontalTabs}
     <!-- §merged-titlebar: the drag territory, and now also the bar's free space — #tab-bar
          only takes as much as its tabs need, so everything left over is this gutter and the
          empty bar stays a window drag area. Its minimum keeps something to grab even once the
@@ -1066,215 +660,9 @@
   </div>
 </div>
 
-{#if newMenuOpen}
-  <!-- §B2: the + menu — same look as the More popover (`.more-actions-pop`), opened under the split button. -->
-  <div
-    class="more-actions-pop"
-    bind:this={newMenuEl}
-    role="menu"
-    aria-label={$t("topBar.newTabMenu")}
-    use:focusTrap
-    style="top: {newMenuPos.y}px; left: {newMenuPos.x}px;"
-  >
-    <button type="button" class="more-actions-item" role="menuitem" onclick={() => runNewMenuItem(controller.createScratchpad)}>
-      <Icon name="new-scratchpad" size={14} /><span>{$t("shortcuts.newScratchpad.label")}</span>
-      <kbd>{formatShortcut("newScratchpad")}</kbd>
-    </button>
-    <button type="button" class="more-actions-item" role="menuitem" onclick={() => runNewMenuItem(controller.openDatePicker)}>
-      <Icon name="date-note" size={14} /><span>{$t("shortcuts.openDateNote.label")}</span>
-      <kbd>{formatShortcut("openDateNote")}</kbd>
-    </button>
-    <div class="more-actions-sep" role="separator"></div>
-    <button type="button" class="more-actions-item" role="menuitem" onclick={() => runNewMenuItem(controller.reopenLastClosedTab)}>
-      <Icon name="undo" size={14} /><span>{$t("shortcuts.reopenClosedTab.label")}</span>
-      <kbd>{formatShortcut("reopenClosedTab")}</kbd>
-    </button>
-  </div>
-{/if}
+<NewMenu bind:this={newMenuRef} {newSplitEl} bind:newMenuOpen />
 
-<svelte:window
-  onmousedown={(e) => {
-    if (contextMenuVisible && contextMenuEl && !contextMenuEl.contains(e.target as Node)) {
-      closeContextMenu();
-    }
-    // The chevron toggles the menu itself, so a press on the split button is not an outside click.
-    if (newMenuOpen && !newMenuEl?.contains(e.target as Node) && !newSplitEl?.contains(e.target as Node)) {
-      newMenuOpen = false;
-    }
-  }}
-  onkeydown={(e) => {
-    if (e.key === "Escape" && contextMenuVisible) {
-      closeContextMenu();
-    }
-    if (e.key === "Escape" && newMenuOpen) {
-      newMenuOpen = false;
-    }
-  }}
-  onresize={() => (newMenuOpen = false)}
-/>
-
-{#if contextMenuVisible && contextTab}
-  <div
-    class="tab-context-menu"
-    bind:this={contextMenuEl}
-    style="top: {contextPos.y}px; left: {contextPos.x}px;"
-    role="menu"
-    aria-label={$t("topBar.contextMenu.ariaLabel")}
-  >
-    <button
-      type="button"
-      class="tab-context-item"
-      role="menuitem"
-      onclick={() => {
-        const id = contextTab?.id;
-        closeContextMenu();
-        if (id) controller.requestTabClose(id);
-      }}
-    >
-      <Icon name="close" size={13} />
-      <span>{$t("topBar.contextMenu.close")}</span>
-    </button>
-    <button
-      type="button"
-      class="tab-context-item"
-      role="menuitem"
-      disabled={$tabs.length <= 1}
-      onclick={() => {
-        const id = contextTab?.id;
-        closeContextMenu();
-        if (id) controller.closeOtherTabs(id);
-      }}
-    >
-      <Icon name="close-others" size={13} />
-      <span>{$t("topBar.contextMenu.closeOthers")}</span>
-    </button>
-    <button
-      type="button"
-      class="tab-context-item"
-      role="menuitem"
-      disabled={isLastDisplayTab(contextTab)}
-      onclick={() => {
-        const id = contextTab?.id;
-        closeContextMenu();
-        if (id) controller.closeTabsToTheRight(id);
-      }}
-    >
-      <Icon name="close-right" size={13} />
-      <span>{$t("topBar.contextMenu.closeToTheRight")}</span>
-    </button>
-    <button
-      type="button"
-      class="tab-context-item"
-      role="menuitem"
-      disabled={!hasTabsWithoutOpenActions}
-      onclick={() => {
-        closeContextMenu();
-        controller.closeTabsWithNoOpenActions();
-      }}
-    >
-      <Icon name="close-clean" size={13} />
-      <span>{$t("topBar.contextMenu.closeTabsWithNoOpenActions")}</span>
-    </button>
-
-    <div class="tab-context-sep" role="separator"></div>
-
-    {#if contextTab.isScratchpad}
-      <button
-        type="button"
-        class="tab-context-item"
-        role="menuitem"
-        onclick={() => {
-          if (contextTab) startRenaming(contextTab);
-        }}
-      >
-        <Icon name="edit" size={13} />
-        <span>{$t("topBar.contextMenu.renameScratchpad")}</span>
-      </button>
-      <button
-        type="button"
-        class="tab-context-item"
-        role="menuitem"
-        onclick={() => {
-          const id = contextTab?.id;
-          closeContextMenu();
-          if (id) controller.duplicateTab(id);
-        }}
-      >
-        <Icon name="new-scratchpad" size={13} />
-        <span>{$t("topBar.contextMenu.duplicateScratchpad")}</span>
-      </button>
-    {:else}
-      <button
-        type="button"
-        class="tab-context-item"
-        role="menuitem"
-        onclick={() => {
-          const t = contextTab;
-          closeContextMenu();
-          if (t) copyDate(t);
-        }}
-      >
-        <Icon name="date-note" size={13} />
-        <span>{$t("topBar.contextMenu.copyDate")}</span>
-      </button>
-      <button
-        type="button"
-        class="tab-context-item"
-        role="menuitem"
-        onclick={() => {
-          const t = contextTab;
-          closeContextMenu();
-          if (t) copyPath(t);
-        }}
-      >
-        <Icon name="copy" size={13} />
-        <span>{$t("topBar.contextMenu.copyPath")}</span>
-      </button>
-      <button
-        type="button"
-        class="tab-context-item"
-        role="menuitem"
-        onclick={() => {
-          const t = contextTab;
-          closeContextMenu();
-          if (t) openVersions(t.filename);
-        }}
-      >
-        <Icon name="section-history" size={13} />
-        <span>{$t("versions.menuItem")}</span>
-      </button>
-    {/if}
-
-    <div class="tab-context-sep" role="separator"></div>
-
-    <button
-      type="button"
-      class="tab-context-item"
-      role="menuitem"
-      onclick={() => {
-        const t = contextTab;
-        closeContextMenu();
-        if (t) openExportModal(t);
-      }}
-    >
-      <Icon name="external" size={13} />
-      <span>{$t("export.menuItem")}</span>
-    </button>
-    <button
-      type="button"
-      class="tab-context-item"
-      role="menuitem"
-      onclick={() => {
-        const t = contextTab;
-        closeContextMenu();
-        if (t) printNote(t.content, printTitle(t.filename));
-      }}
-    >
-      <Icon name="tab-scratch" size={13} />
-      <span>{$t("print.menuItem")}</span>
-    </button>
-  </div>
-{/if}
+<TabContextMenu bind:this={contextMenuRef} {displayTabs} onStartRenaming={(tab) => tabStripRef?.startRenaming(tab)} />
 
 <style>
 /* Top Chrome / Tabs (§103: bar, daily vs scratchpad archetypes) */
@@ -1413,131 +801,9 @@
 
 /* §B1: a window in the background dims its title bar, as Windows 11 does. */
 :global(body.window-inactive) #top-bar .app-icon,
-:global(body.window-inactive) #top-bar .tab-label,
 :global(body.window-inactive) #top-bar .icon-btn,
 :global(body.window-inactive) #top-bar .win-btn {
   color: var(--text-tertiary);
-}
-
-#tab-bar {
-  display: flex;
-  /* §B2: only as wide as its tabs (the + button then sits right after the last one);
-     the drag gutter takes the rest. The side padding keeps the active tab's outward
-     curves (§B3) from being clipped by the scroll container. */
-  flex: 0 1 auto;
-  min-width: 0;
-  padding: 0 8px;
-  height: 100%;
-  /* Tabs sit on the floor of the bar so the active one meets the editor
-     canvas below — the scrollbar is hidden and tabs scroll smoothly. */
-  align-items: flex-end;
-  overflow-x: auto;
-  scrollbar-width: none;
-}
-
-#tab-bar::-webkit-scrollbar {
-  height: 0;
-}
-
-.tab-bar-spacer {
-  flex: 1;
-}
-
-.tab {
-  flex-shrink: 0;
-  padding: 0 10px 0 12px;
-  /* #49: matches `#top-bar .icon-btn`'s height exactly. Both are
-     bottom-anchored (`#tab-bar`'s and `#top-bar`'s `align-items:
-     flex-end`), so equal heights are what makes their icons land on the
-     same row — the two need to move together if either ever changes. */
-  height: 32px;
-  margin: 0 1px;
-  border-radius: 6px 6px 0 0;
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  font-size: var(--type-caption);
-  cursor: pointer;
-  background: transparent;
-  color: var(--muted);
-  white-space: nowrap;
-}
-
-.tab.daily .tab-label {
-  font-family: var(--font-mono);
-}
-
-.tab:hover {
-  background: var(--surface-raised);
-  color: var(--text);
-}
-
-.tab-icon {
-  display: inline-flex;
-  align-items: center;
-  flex-shrink: 0;
-  opacity: 0.7;
-}
-
-.tab.active .tab-icon {
-  opacity: 1;
-  color: var(--tab-active-border);
-}
-
-.tab.scratch .tab-label {
-  font-style: italic;
-}
-
-.tab-group-divider {
-  width: 1.5px;
-  height: 20px;
-  background: var(--edge-strong);
-  flex-shrink: 0;
-  /* #49: #tab-bar bottom-anchors its children (`align-items: flex-end`),
-     same as the 32px tabs — this fixed-height (20px) sibling inherits
-     that anchor too, so the extra 6px bottom margin (half of 32 - 20)
-     centres it on the shared tab/icon-button row instead of sitting
-     lower, flush with the very bottom. */
-  margin: 0 7px 6px;
-}
-
-.tab-scroll-btn {
-  flex-shrink: 0;
-  padding: 0 6px;
-}
-
-.tab.active {
-  background: var(--surface-canvas);
-  color: var(--text);
-  font-weight: 600;
-  /* Bridge the 1px chrome border so the active tab reads as one surface
-     with the editor below it. */
-  position: relative;
-  z-index: 1;
-  margin-bottom: -1px;
-}
-
-.tab-close {
-  opacity: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 3px 5px;
-  margin-left: 2px;
-  border-radius: var(--radius-control);
-  line-height: 1;
-}
-
-.tab:hover .tab-close,
-.tab.active .tab-close,
-.tab-close:focus-visible {
-  opacity: 0.55;
-}
-
-.tab-close:hover,
-.tab-close:focus-visible {
-  opacity: 1 !important;
-  background: var(--surface-raised);
 }
 
 .icon-btn-pip {
@@ -1565,200 +831,5 @@
   visibility: hidden;
   pointer-events: none;
   white-space: nowrap;
-}
-
-/* Tab Context Menu */
-
-.tab-context-menu {
-  position: fixed;
-  z-index: 300;
-  min-width: 180px;
-  width: max-content;
-  max-width: 280px;
-  background: var(--surface-overlay);
-  background: color-mix(in srgb, var(--surface-overlay) 88%, transparent);
-  backdrop-filter: blur(20px) saturate(125%);
-  border: 1px solid var(--edge-strong);
-  border-radius: var(--radius-overlay);
-  box-shadow: var(--shadow-flyout);
-  padding: 4px;
-  font-size: 13px;
-  color: var(--text);
-}
-
-.tab-context-item {
-  width: 100%;
-  background: transparent;
-  border: none;
-  border-radius: var(--radius-control);
-  color: inherit;
-  font-size: 13px;
-  text-align: left;
-  cursor: pointer;
-  padding: 6px 8px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.tab-context-item span {
-  flex: 1;
-}
-
-.tab-context-item:hover {
-  background: var(--surface-raised);
-}
-
-.tab-context-item:disabled {
-  opacity: 0.4;
-  cursor: default;
-  color: var(--text-tertiary);
-}
-
-.tab-context-item:disabled:hover {
-  background: transparent;
-}
-
-.tab-context-sep {
-  height: 1px;
-  margin: 4px 6px;
-  background: var(--edge-soft);
-}
-
-.tab-rename-input {
-  background: var(--surface-input, rgba(0, 0, 0, 0.2));
-  border: 1px solid var(--accent);
-  border-radius: var(--radius-control);
-  color: var(--text);
-  font-family: inherit;
-  font-size: 12px;
-  padding: 1px 4px;
-  margin: 0 -4px;
-  outline: none;
-  width: 110px;
-  max-width: 140px;
-}
-
-/* The active tab, shown next to the drawer button so the date being edited is always visible. */
-
-.tab.mobile-active-tab {
-  flex: 0 1 auto;
-  min-width: 0;
-  border: none;
-  font: inherit;
-  font-size: var(--type-caption);
-  margin: 0 0 0 4px;
-}
-
-.tab.mobile-active-tab .tab-label {
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-/* #68: past/today/future get a distinct look, independent of which tab
-   is active — so today's tab (the one most work happens in) is easy to
-   spot among a restored session's leftover past tabs and any
-   pre-created future ones, even while looking at a different tab.
-   Deliberately just the icon's color/opacity, not the label — quiet
-   enough not to fight the existing active/hover treatment. */
-
-.tab:global(.past) .tab-icon {
-  opacity: 0.45;
-}
-
-.tab:global(.today) .tab-icon {
-  opacity: 1;
-  color: var(--tab-active-border);
-}
-
-.tab:global(.future) .tab-icon {
-  opacity: 1;
-  color: var(--state-ok);
-}
-
-/* The desktop strip's active tab has no top accent line (§B3); the phone's chip keeps it. */
-
-.tab.mobile-active-tab.active {
-  box-shadow: inset 0 2px 0 var(--tab-active-border);
-}
-
-/* #96: `.tab.mobile-active-tab.active`'s top border (above) defaults to `--tab-active-border`,
-   the same color `.tab.today .tab-icon` already uses — so a selected
-   today-tab needs no override. A selected past/future tab's border is
-   brought in line with its own icon's color above, instead of always
-   showing the "today" accent regardless of which tab is actually active. */
-
-.tab.mobile-active-tab.active:global(.past) {
-  box-shadow: inset 0 2px 0 color-mix(in srgb, var(--muted) 45%, transparent);
-}
-
-.tab.mobile-active-tab.active:global(.future) {
-  box-shadow: inset 0 2px 0 var(--state-ok);
-}
-
-/* §B3: Notepad-style tabs in the desktop strip — 8px top corners, 108–200px wide, the label
-   truncates. (The phone's `.mobile-active-tab` chip keeps its flatter look.) */
-
-#tab-bar .tab {
-  position: relative;
-  min-width: 108px;
-  max-width: 200px;
-  margin: 0;
-  padding: 0 8px 0 10px;
-  border-radius: 8px 8px 0 0;
-}
-
-#tab-bar .tab .tab-label {
-  flex: 1 1 auto;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-/* ISO dates stay monospace; friendly names use the UI font. */
-
-.tab.daily .tab-label.friendly {
-  font-family: inherit;
-}
-
-/* The active tab is outlined on top and both sides (Windows 11 style): the canvas colour it shares with the
-   note is too close to the title bar's to find it by fill alone (Marien, after §335). */
-
-#tab-bar .tab.active {
-  border: 1px solid var(--edge-strong);
-  border-bottom: none;
-}
-
-/* No outward curves at the active tab's base any more: with the outline (§339) and Mica's see-through title bar they
-   showed as dark wedges beside the tab (Marien, 2026-10-10). The outlined tab sits square on the note. */
-
-/* A hairline between two neighbouring inactive tabs, so a row of dates is easy to scan. */
-
-#tab-bar .tab:not(.active) + .tab:not(.active)::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  top: 9px;
-  bottom: 9px;
-  width: 1px;
-  background: var(--edge-strong);
-}
-
-/* The past/today/future cue: a 6px dot before the label (grey, accent, green) instead of an icon colour. */
-
-.tab-dot {
-  width: 6px;
-  height: 6px;
-  flex-shrink: 0;
-  border-radius: 50%;
-  background: var(--text-tertiary);
-}
-
-.tab:global(.today) .tab-dot {
-  background: var(--tab-active-border);
-}
-
-.tab:global(.future) .tab-dot {
-  background: var(--state-ok);
 }
 </style>
