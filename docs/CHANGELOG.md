@@ -520,3 +520,9 @@ line, and this index is regenerated with `node scripts/changelog-index.mjs`.
 - §498 Rename everywhere (F6)
 - §499 No title suggestion that changes nothing (#252)
 - §500 Invited names without a hyphen (#254)
+
+## 501-600 · [changelog/0501-0600.md](changelog/0501-0600.md)
+
+- §501 Random typing against the real editor (T2)
+- §502 A ceiling on type escapes (R4)
+- §503 The numbered-list rules as tables that run (T1, step 1)
