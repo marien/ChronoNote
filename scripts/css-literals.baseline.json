@@ -1,0 +1,126 @@
+{
+  "colors": 57,
+  "fontSizes": 138,
+  "files": {
+    "src/lib/components/AboutPanel.svelte": {
+      "colors": 2,
+      "fontSizes": 4
+    },
+    "src/lib/components/CloudStatusButton.svelte": {
+      "colors": 0,
+      "fontSizes": 2
+    },
+    "src/lib/components/CompactDatePicker.svelte": {
+      "colors": 0,
+      "fontSizes": 7
+    },
+    "src/lib/components/NavToast.svelte": {
+      "colors": 0,
+      "fontSizes": 1
+    },
+    "src/lib/components/StatusBar.svelte": {
+      "colors": 0,
+      "fontSizes": 1
+    },
+    "src/lib/components/TopBar.svelte": {
+      "colors": 4,
+      "fontSizes": 4
+    },
+    "src/lib/components/mobile/MobileAppBar.svelte": {
+      "colors": 0,
+      "fontSizes": 3
+    },
+    "src/lib/components/mobile/MobileNavBar.svelte": {
+      "colors": 0,
+      "fontSizes": 2
+    },
+    "src/lib/components/modals/ActionDrawerModal.svelte": {
+      "colors": 0,
+      "fontSizes": 1
+    },
+    "src/lib/components/modals/DatePickerModal.svelte": {
+      "colors": 0,
+      "fontSizes": 8
+    },
+    "src/lib/components/modals/ExportModal.svelte": {
+      "colors": 0,
+      "fontSizes": 2
+    },
+    "src/lib/components/modals/HistoryModal.svelte": {
+      "colors": 2,
+      "fontSizes": 3
+    },
+    "src/lib/components/modals/OneDriveFolderPickerModal.svelte": {
+      "colors": 2,
+      "fontSizes": 4
+    },
+    "src/lib/components/modals/PersonModal.svelte": {
+      "colors": 0,
+      "fontSizes": 3
+    },
+    "src/lib/components/modals/PhoneChangesModal.svelte": {
+      "colors": 1,
+      "fontSizes": 6
+    },
+    "src/lib/components/modals/RenameModal.svelte": {
+      "colors": 1,
+      "fontSizes": 2
+    },
+    "src/lib/components/modals/SettingsModal.svelte": {
+      "colors": 0,
+      "fontSizes": 6
+    },
+    "src/lib/components/modals/VersionsModal.svelte": {
+      "colors": 2,
+      "fontSizes": 0
+    },
+    "src/lib/components/modals/WeekReviewModal.svelte": {
+      "colors": 2,
+      "fontSizes": 2
+    },
+    "src/styles/02-top-bar.css": {
+      "colors": 0,
+      "fontSizes": 3
+    },
+    "src/styles/03-editor.css": {
+      "colors": 0,
+      "fontSizes": 8
+    },
+    "src/styles/04-status-bar.css": {
+      "colors": 1,
+      "fontSizes": 1
+    },
+    "src/styles/06-modals.css": {
+      "colors": 26,
+      "fontSizes": 25
+    },
+    "src/styles/08-toast-settings.css": {
+      "colors": 1,
+      "fontSizes": 7
+    },
+    "src/styles/09-mobile.css": {
+      "colors": 6,
+      "fontSizes": 11
+    },
+    "src/styles/10-zen-sync-about.css": {
+      "colors": 2,
+      "fontSizes": 10
+    },
+    "src/styles/11-peek.css": {
+      "colors": 3,
+      "fontSizes": 11
+    },
+    "src/styles/14-infobar.css": {
+      "colors": 1,
+      "fontSizes": 0
+    },
+    "src/styles/16-keytips.css": {
+      "colors": 0,
+      "fontSizes": 1
+    },
+    "src/styles/17-history-pane.css": {
+      "colors": 1,
+      "fontSizes": 0
+    }
+  }
+}

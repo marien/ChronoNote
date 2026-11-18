@@ -1,0 +1,289 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ChronoNote Design Tokens</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 28px 24px 64px;
+      font-family: "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, "Roboto", sans-serif;
+      font-size: 14px;
+      line-height: 1.45;
+      background: #141416;
+      color: #e4e4e7;
+    }
+    .tok-wrap { max-width: 1120px; margin: 0 auto; }
+    .tok-header { margin-bottom: 24px; border-bottom: 1px solid rgba(255,255,255,0.12); padding-bottom: 16px; }
+    .tok-header h1 { margin: 0 0 6px; font-size: 22px; font-weight: 600; }
+    .tok-subtitle { margin: 0 0 14px; color: #a1a1aa; font-size: 13px; }
+    .tok-nav { display: flex; flex-wrap: wrap; gap: 6px; }
+    .tok-pill {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 4px 10px; border-radius: 999px;
+      background: #222226; border: 1px solid rgba(255,255,255,0.1);
+      color: #e4e4e7; text-decoration: none; font-size: 12px;
+    }
+    .tok-pill:hover { background: #2d2d33; }
+    .tok-count {
+      display: inline-block; padding: 0 6px; border-radius: 999px;
+      background: rgba(255,255,255,0.1); color: #d4d4d8; font-size: 11px;
+    }
+    .tok-section { margin-top: 28px; }
+    .tok-section-title {
+      margin: 0 0 12px; font-size: 16px; font-weight: 600;
+      display: flex; align-items: center; gap: 8px;
+      padding-bottom: 6px; border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+    .tok-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 12px; }
+    .tok-card {
+      background: #1c1c20; border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 8px; padding: 12px; display: flex; flex-direction: column; gap: 8px;
+    }
+    .tok-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    .tok-name { font-size: 13px; font-weight: 600; color: #f4f4f5; }
+    code { font-family: "Cascadia Code", "JetBrains Mono", "Consolas", monospace; font-size: 12px; word-break: break-word; }
+    .tok-swatch-row { display: flex; flex-wrap: wrap; gap: 8px; }
+    .tok-swatch-card {
+      flex: 1 1 130px; display: flex; align-items: center; gap: 8px;
+      padding: 8px; border-radius: 6px; border: 1px solid rgba(128,128,128,0.28);
+    }
+    .tok-swatch {
+      width: 26px; height: 26px; flex: 0 0 26px; border-radius: 4px;
+      border: 1px solid rgba(128,128,128,0.45);
+    }
+    .tok-swatch-meta { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+    .tok-mode-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.04em; opacity: 0.72; }
+    .tok-resolved { font-size: 11px; opacity: 0.75; }
+    .tok-sub-label { font-size: 11px; color: #a1a1aa; margin-top: 2px; }
+    .tok-preview-box {
+      padding: 10px 12px; border-radius: 6px; background: #1e1e1e; color: #d4d4d4;
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+    .tok-type-sample, .tok-font-sample { line-height: 1.4; }
+    .tok-radius-row { display: flex; align-items: center; gap: 12px; }
+    .tok-radius-box { width: 44px; height: 28px; background: #37373b; border: 1px solid rgba(255,255,255,0.25); }
+    .tok-shadow-stage {
+      flex: 1 1 130px; padding: 12px; border-radius: 6px;
+      border: 1px solid rgba(128,128,128,0.28); display: flex; flex-direction: column; gap: 8px;
+    }
+    .tok-shadow-card { padding: 8px 10px; border-radius: 6px; font-size: 12px; text-align: center; }
+    .tok-values { display: flex; flex-wrap: wrap; gap: 8px 14px; color: #d4d4d8; }
+    .tok-kv { display: inline-flex; align-items: center; gap: 6px; }
+    .tok-comment { margin: 0; font-size: 12px; color: #a1a1aa; }
+  </style>
+</head>
+<body>
+<div class="tok-wrap">
+  <header class="tok-header">
+    <h1>ChronoNote Design Tokens</h1>
+    <p class="tok-subtitle">Generated from <code>src/styles/01-tokens.css</code> (54 tokens in 21 families).</p>
+    <nav class="tok-nav" aria-label="Token families">
+      <a class="tok-pill" href="#family-surface">surface <span class="tok-count">4</span></a>
+      <a class="tok-pill" href="#family-edge">edge <span class="tok-count">2</span></a>
+      <a class="tok-pill" href="#family-state">state <span class="tok-count">3</span></a>
+      <a class="tok-pill" href="#family-spell">spell <span class="tok-count">1</span></a>
+      <a class="tok-pill" href="#family-text">text <span class="tok-count">2</span></a>
+      <a class="tok-pill" href="#family-muted">muted <span class="tok-count">1</span></a>
+      <a class="tok-pill" href="#family-selected">selected <span class="tok-count">2</span></a>
+      <a class="tok-pill" href="#family-status">status <span class="tok-count">1</span></a>
+      <a class="tok-pill" href="#family-highlight">highlight <span class="tok-count">1</span></a>
+      <a class="tok-pill" href="#family-tab">tab <span class="tok-count">3</span></a>
+      <a class="tok-pill" href="#family-caret">caret <span class="tok-count">1</span></a>
+      <a class="tok-pill" href="#family-editor">editor <span class="tok-count">1</span></a>
+      <a class="tok-pill" href="#family-font">font <span class="tok-count">4</span></a>
+      <a class="tok-pill" href="#family-type">type <span class="tok-count">3</span></a>
+      <a class="tok-pill" href="#family-radius">radius <span class="tok-count">2</span></a>
+      <a class="tok-pill" href="#family-shadow">shadow <span class="tok-count">2</span></a>
+      <a class="tok-pill" href="#family-motion">motion <span class="tok-count">3</span></a>
+      <a class="tok-pill" href="#family-ease">ease <span class="tok-count">1</span></a>
+      <a class="tok-pill" href="#family-bg">bg <span class="tok-count">1</span></a>
+      <a class="tok-pill" href="#family-border">border <span class="tok-count">1</span></a>
+      <a class="tok-pill" href="#family-glyph">glyph <span class="tok-count">15</span></a>
+    </nav>
+  </header>
+
+  <section class="tok-section" id="family-surface">
+    <h2 class="tok-section-title">surface <span class="tok-count">4</span></h2>
+    <div class="tok-grid">
+      <article class="tok-card"><div class="tok-head"><code class="tok-name">--surface-canvas</code></div><div class="tok-swatch-row"><div class="tok-swatch-card" style="background:#1e1e1e;color:#d4d4d4"><span class="tok-swatch" style="background:#1e1e1e"></span><span class="tok-swatch-meta"><span class="tok-mode-label">Dark</span><code>#1e1e1e</code></span></div><div class="tok-swatch-card" style="background:#ffffff;color:#1b1b1b"><span class="tok-swatch" style="background:#ffffff"></span><span class="tok-swatch-meta"><span class="tok-mode-label">Light</span><code>#ffffff</code></span></div><div class="tok-swatch-card" style="background:#000000;color:#e0e0e0"><span class="tok-swatch" style="background:#000000"></span><span class="tok-swatch-meta"><span class="tok-mode-label">Pure black</span><code>#000000</code></span></div></div><p class="tok-comment">editor canvas</p></article>
+      <article class="tok-card"><div class="tok-head"><code class="tok-name">--surface-chrome</code></div><div class="tok-swatch-row"><div class="tok-swatch-card" style="background:#1e1e1e;color:#d4d4d4"><span class="tok-swatch" style="background:#252526"></span><span class="tok-swatch-meta"><span class="tok-mode-label">Dark</span><code>#252526</code></span></div><div class="tok-swatch-card" style="background:#ffffff;color:#1b1b1b"><span class="tok-swatch" style="background:#f3f3f3"></span><span class="tok-swatch-meta"><span class="tok-mode-label">Light</span><code>#f3f3f3</code></span></div><div class="tok-swatch-card" style="background:#000000;color:#e0e0e0"><span class="tok-swatch" style="background:#0a0a0a"></span><span class="tok-swatch-meta"><span class="tok-mode-label">Pure black</span><code>#0a0a0a</code></span></div></div><p class="tok-comment">top bar · tab strip · status bar</p></article>
+      <article class="tok-card"><div class="tok-head"><code class="tok-name">--surface-overlay</code></div><div class="tok-swatch-row"><div class="tok-swatch-card" style="background:#1e1e1e;color:#d4d4d4"><span class="tok-swatch" style="background:#2d2d2e"></span><span class="tok-swatch-meta"><span class="tok-mode-label">Dark</span><code>#2d2d2e</code></span></div><div class="tok-swatch-card" style="background:#ffffff;color:#1b1b1b"><span class="tok-swatch" style="background:#ffffff"></span><span class="tok-swatch-meta"><span class="tok-mode-label">Light</span><code>#ffffff</code></span></div><div class="tok-swatch-card" style="background:#000000;color:#e0e0e0"><span class="tok-swatch" style="background:#121212"></span><span class="tok-swatch-meta"><span class="tok-mode-label">Pure black</span><code>#121212</code></span></div></div><p class="tok-comment">modals · popovers · drawers</p></article>
+      <article class="tok-card"><div class="tok-head"><code class="tok-name">--surface-raised</code></div><div class="tok-swatch-row"><div class="tok-swatch-card" style="background:#1e1e1e;color:#d4d4d4"><span class="tok-swatch" style="background:#37373b"></span><span class="tok-swatch-meta"><span class="tok-mode-label">Dark</span><code>#37373b</code></span></div><div class="tok-swatch-card" style="background:#ffffff;color:#1b1b1b"><span class="tok-swatch" style="background:#e7e7e7"></span><span class="tok-swatch-meta"><span class="tok-mode-label">Light</span><code>#e7e7e7</code></span></div><div class="tok-swatch-card" style="background:#000000;color:#e0e0e0"><span class="tok-swatch" style="background:#1e1e1e"></span><span class="tok-swatch-meta"><span class="tok-mode-label">Pure black</span><code>#1e1e1e</code></span></div></div><p class="tok-comment">hovered rows · inputs · chips · active controls</p></article>
+    </div>
+  </section>
+
+  <section class="tok-section" id="family-edge">
+    <h2 class="tok-section-title">edge <span class="tok-count">2</span></h2>
+    <div class="tok-grid">
+      <article class="tok-card"><div class="tok-head"><code class="tok-name">--edge-soft</code></div><div class="tok-swatch-row"><div class="tok-swatch-card" style="background:#1e1e1e;color:#d4d4d4"><span class="tok-swatch" style="background:rgba(255, 255, 255, 0.07)"></span><span class="tok-swatch-meta"><span class="tok-mode-label">Dark</span><code>rgba(255, 255, 255, 0.07)</code></span></div><div class="tok-swatch-card" style="background:#ffffff;color:#1b1b1b"><span class="tok-swatch" style="background:rgba(0, 0, 0, 0.09)"></span><span class="tok-swatch-meta"><span class="tok-mode-label">Light</span><code>rgba(0, 0, 0, 0.09)</code></span></div><div class="tok-swatch-card" style="background:#000000;color:#e0e0e0"><span class="tok-swatch" style="background:rgba(255, 255, 255, 0.10)"></span><span class="tok-swatch-meta"><span class="tok-mode-label">Pure black</span><code>rgba(255, 255, 255, 0.10)</code></span></div></div><p class="tok-comment">internal divisions</p></article>
+      <article class="tok-card"><div class="tok-head"><code class="tok-name">--edge-strong</code></div><div class="tok-swatch-row"><div class="tok-swatch-card" style="background:#1e1e1e;color:#d4d4d4"><span class="tok-swatch" style="background:rgba(255, 255, 255, 0.13)"></span><span class="tok-swatch-meta"><span class="tok-mode-label">Dark</span><code>rgba(255, 255, 255, 0.13)</code></span></div><div class="tok-swatch-card" style="background:#ffffff;color:#1b1b1b"><span class="tok-swatch" style="background:rgba(0, 0, 0, 0.16)"></span><span class="tok-swatch-meta"><span class="tok-mode-label">Light</span><code>rgba(0, 0, 0, 0.16)</code></span></div><div class="tok-swatch-card" style="background:#000000;color:#e0e0e0"><span class="tok-swatch" style="background:rgba(255, 255, 255, 0.18)"></span><span class="tok-swatch-meta"><span class="tok-mode-label">Pure black</span><code>rgba(255, 255, 255, 0.18)</code></span></div></div><p class="tok-comment">overlay &amp; input outlines</p></article>
+    </div>
+  </section>
+
+  <section class="tok-section" id="family-state">
+    <h2 class="tok-section-title">state <span class="tok-count">3</span></h2>
+    <div class="tok-grid">
+      <article class="tok-card"><div class="tok-head"><code class="tok-name">--state-ok</code></div><div class="tok-swatch-row"><div class="tok-swatch-card" style="background:#1e1e1e;color:#d4d4d4"><span class="tok-swatch" style="background:#4bbf87"></span><span class="tok-swatch-meta"><span class="tok-mode-label">Dark</span><code>#4bbf87</code></span></div><div class="tok-swatch-card" style="background:#ffffff;color:#1b1b1b"><span class="tok-swatch" style="background:#257b53"></span><span class="tok-swatch-meta"><span class="tok-mode-label">Light</span><code>#257b53</code></span></div></div><p class="tok-comment">D5: 4.6:1 on the light chrome</p></article>
+      <article class="tok-card"><div class="tok-head"><code class="tok-name">--state-warn</code></div><div class="tok-swatch-row"><div class="tok-swatch-card" style="background:#1e1e1e;color:#d4d4d4"><span class="tok-swatch" style="background:#d8a24a"></span><span class="tok-swatch-meta"><span class="tok-mode-label">Dark</span><code>#d8a24a</code></span></div><div class="tok-swatch-card" style="background:#ffffff;color:#1b1b1b"><span class="tok-swatch" style="background:#b5771f"></span><span class="tok-swatch-meta"><span class="tok-mode-label">Light</span><code>#b5771f</code></span></div></div></article>
+      <article class="tok-card"><div class="tok-head"><code class="tok-name">--state-error</code></div><div class="tok-swatch-row"><div class="tok-swatch-card" style="background:#1e1e1e;color:#d4d4d4"><span class="tok-swatch" style="background:#d66b63"></span><span class="tok-swatch-meta"><span class="tok-mode-label">Dark</span><code>#d66b63</code></span></div><div class="tok-swatch-card" style="background:#ffffff;color:#1b1b1b"><span class="tok-swatch" style="background:#c4463e"></span><span class="tok-swatch-meta"><span class="tok-mode-label">Light</span><code>#c4463e</code></span></div></div></article>
+    </div>
+  </section>
+
+  <section class="tok-section" id="family-spell">
+    <h2 class="tok-section-title">spell <span class="tok-count">1</span></h2>
+    <div class="tok-grid">
+      <article class="tok-card"><div class="tok-head"><code class="tok-name">--spell-error</code></div><div class="tok-swatch-row"><div class="tok-swatch-card" style="background:#1e1e1e;color:#d4d4d4"><span class="tok-swatch" style="background:#ea5e5e"></span><span class="tok-swatch-meta"><span class="tok-mode-label">Dark</span><code>#ea5e5e</code></span></div><div class="tok-swatch-card" style="background:#ffffff;color:#1b1b1b"><span class="tok-swatch" style="background:#c4463e"></span><span class="tok-swatch-meta"><span class="tok-mode-label">Light</span><code>#c4463e</code></span></div></div></article>
+    </div>
+  </section>
+
+  <section class="tok-section" id="family-text">
+    <h2 class="tok-section-title">text <span class="tok-count">2</span></h2>
+    <div class="tok-grid">
+      <article class="tok-card"><div class="tok-head"><code class="tok-name">--text</code></div><div class="tok-swatch-row"><div class="tok-swatch-card" style="background:#1e1e1e;color:#d4d4d4"><span class="tok-swatch" style="background:#d4d4d4"></span><span class="tok-swatch-meta"><span class="tok-mode-label">Dark</span><code>#d4d4d4</code></span></div><div class="tok-swatch-card" style="background:#ffffff;color:#1b1b1b"><span class="tok-swatch" style="background:#1b1b1b"></span><span class="tok-swatch-meta"><span class="tok-mode-label">Light</span><code>#1b1b1b</code></span></div><div class="tok-swatch-card" style="background:#000000;color:#e0e0e0"><span class="tok-swatch" style="background:#e0e0e0"></span><span class="tok-swatch-meta"><span class="tok-mode-label">Pure black</span><code>#e0e0e0</code></span></div></div></article>
+      <article class="tok-card"><div class="tok-head"><code class="tok-name">--text-tertiary</code></div><div class="tok-swatch-row"><div class="tok-swatch-card" style="background:#1e1e1e;color:#d4d4d4"><span class="tok-swatch" style="background:#949494"></span><span class="tok-swatch-meta"><span class="tok-mode-label">Dark</span><code>#949494</code></span></div><div class="tok-swatch-card" style="background:#ffffff;color:#1b1b1b"><span class="tok-swatch" style="background:#757575"></span><span class="tok-swatch-meta"><span class="tok-mode-label">Light</span><code>#757575</code></span></div><div class="tok-swatch-card" style="background:#000000;color:#e0e0e0"><span class="tok-swatch" style="background:#949494"></span><span class="tok-swatch-meta"><span class="tok-mode-label">Pure black</span><code>#949494</code></span></div></div><p class="tok-comment">D5: 4.6:1 on the dark raised surfaces · D5: 4.6:1 on white</p></article>
+    </div>
+  </section>
+
+  <section class="tok-section" id="family-muted">
+    <h2 class="tok-section-title">muted <span class="tok-count">1</span></h2>
+    <div class="tok-grid">
+      <article class="tok-card"><div class="tok-head"><code class="tok-name">--muted</code></div><div class="tok-swatch-row"><div class="tok-swatch-card" style="background:#1e1e1e;color:#d4d4d4"><span class="tok-swatch" style="background:#a6a6a6"></span><span class="tok-swatch-meta"><span class="tok-mode-label">Dark</span><code>#a6a6a6</code></span></div><div class="tok-swatch-card" style="background:#ffffff;color:#1b1b1b"><span class="tok-swatch" style="background:#5f5f5f"></span><span class="tok-swatch-meta"><span class="tok-mode-label">Light</span><code>#5f5f5f</code></span></div><div class="tok-swatch-card" style="background:#000000;color:#e0e0e0"><span class="tok-swatch" style="background:#a8a8a8"></span><span class="tok-swatch-meta"><span class="tok-mode-label">Pure black</span><code>#a8a8a8</code></span></div></div></article>
+    </div>
+  </section>
+
+  <section class="tok-section" id="family-selected">
+    <h2 class="tok-section-title">selected <span class="tok-count">2</span></h2>
+    <div class="tok-grid">
+      <article class="tok-card"><div class="tok-head"><code class="tok-name">--selected-bg</code></div><div class="tok-swatch-row"><div class="tok-swatch-card" style="background:#1e1e1e;color:#d4d4d4"><span class="tok-swatch" style="background:#4a4a4a"></span><span class="tok-swatch-meta"><span class="tok-mode-label">Dark</span><code>#4a4a4a</code></span></div><div class="tok-swatch-card" style="background:#ffffff;color:#1b1b1b"><span class="tok-swatch" style="background:#d6d6d6"></span><span class="tok-swatch-meta"><span class="tok-mode-label">Light</span><code>#d6d6d6</code></span></div></div><div class="tok-sub-label">Color glyph mode</div><div class="tok-swatch-row"><div class="tok-swatch-card" style="background:#1e1e1e;color:#d4d4d4"><span class="tok-swatch" style="background:#0a74c2"></span><span class="tok-swatch-meta"><span class="tok-mode-label">Color dark</span><code>#0a74c2</code></span></div><div class="tok-swatch-card" style="background:#ffffff;color:#1b1b1b"><span class="tok-swatch" style="background:#0a6fc2"></span><span class="tok-swatch-meta"><span class="tok-mode-label">Color light</span><code>#0a6fc2</code></span></div></div><p class="tok-comment">D5: white text 4.9:1 (was 3.95)</p></article>
+      <article class="tok-card"><div class="tok-head"><code class="tok-name">--selected-fg</code></div><div class="tok-swatch-row"><div class="tok-swatch-card" style="background:#1e1e1e;color:#d4d4d4"><span class="tok-swatch" style="background:#ffffff"></span><span class="tok-swatch-meta"><span class="tok-mode-label">Dark</span><code>#ffffff</code></span></div><div class="tok-swatch-card" style="background:#ffffff;color:#1b1b1b"><span class="tok-swatch" style="background:#000000"></span><span class="tok-swatch-meta"><span class="tok-mode-label">Light</span><code>#000000</code></span></div></div><div class="tok-sub-label">Color glyph mode</div><div class="tok-swatch-row"><div class="tok-swatch-card" style="background:#1e1e1e;color:#d4d4d4"><span class="tok-swatch" style="background:#ffffff"></span><span class="tok-swatch-meta"><span class="tok-mode-label">Color dark</span><code>#ffffff</code></span></div><div class="tok-swatch-card" style="background:#ffffff;color:#1b1b1b"><span class="tok-swatch" style="background:#ffffff"></span><span class="tok-swatch-meta"><span class="tok-mode-label">Color light</span><code>#ffffff</code></span></div></div></article>
+    </div>
+  </section>
+
+  <section class="tok-section" id="family-status">
+    <h2 class="tok-section-title">status <span class="tok-count">1</span></h2>
+    <div class="tok-grid">
+      <article class="tok-card"><div class="tok-head"><code class="tok-name">--status-fg</code></div><div class="tok-swatch-row"><div class="tok-swatch-card" style="background:#1e1e1e;color:#d4d4d4"><span class="tok-swatch" style="background:#f0f0f0"></span><span class="tok-swatch-meta"><span class="tok-mode-label">Dark</span><code>#f0f0f0</code></span></div><div class="tok-swatch-card" style="background:#ffffff;color:#1b1b1b"><span class="tok-swatch" style="background:#1b1b1b"></span><span class="tok-swatch-meta"><span class="tok-mode-label">Light</span><code>#1b1b1b</code></span></div></div></article>
+    </div>
+  </section>
+
+  <section class="tok-section" id="family-highlight">
+    <h2 class="tok-section-title">highlight <span class="tok-count">1</span></h2>
+    <div class="tok-grid">
+      <article class="tok-card"><div class="tok-head"><code class="tok-name">--highlight</code></div><div class="tok-swatch-row"><div class="tok-swatch-card" style="background:#1e1e1e;color:#d4d4d4"><span class="tok-swatch" style="background:rgba(255, 255, 255, 0.25)"></span><span class="tok-swatch-meta"><span class="tok-mode-label">Dark</span><code>rgba(255, 255, 255, 0.25)</code></span></div><div class="tok-swatch-card" style="background:#ffffff;color:#1b1b1b"><span class="tok-swatch" style="background:rgba(0, 0, 0, 0.15)"></span><span class="tok-swatch-meta"><span class="tok-mode-label">Light</span><code>rgba(0, 0, 0, 0.15)</code></span></div></div><div class="tok-sub-label">Color glyph mode</div><div class="tok-swatch-row"><div class="tok-swatch-card" style="background:#1e1e1e;color:#d4d4d4"><span class="tok-swatch" style="background:rgba(245, 200, 66, 0.28)"></span><span class="tok-swatch-meta"><span class="tok-mode-label">Color dark</span><code>rgba(245, 200, 66, 0.28)</code></span></div><div class="tok-swatch-card" style="background:#ffffff;color:#1b1b1b"><span class="tok-swatch" style="background:rgba(245, 200, 66, 0.45)"></span><span class="tok-swatch-meta"><span class="tok-mode-label">Color light</span><code>rgba(245, 200, 66, 0.45)</code></span></div></div></article>
+    </div>
+  </section>
+
+  <section class="tok-section" id="family-tab">
+    <h2 class="tok-section-title">tab <span class="tok-count">3</span></h2>
+    <div class="tok-grid">
+      <article class="tok-card"><div class="tok-head"><code class="tok-name">--tab-active-border</code></div><div class="tok-swatch-row"><div class="tok-swatch-card" style="background:#1e1e1e;color:#d4d4d4"><span class="tok-swatch" style="background:#d4d4d4"></span><span class="tok-swatch-meta"><span class="tok-mode-label">Dark</span><code>var(--text)</code> <span class="tok-resolved">(#d4d4d4)</span></span></div><div class="tok-swatch-card" style="background:#ffffff;color:#1b1b1b"><span class="tok-swatch" style="background:#1b1b1b"></span><span class="tok-swatch-meta"><span class="tok-mode-label">Light</span><code>var(--text)</code> <span class="tok-resolved">(#1b1b1b)</span></span></div><div class="tok-swatch-card" style="background:#000000;color:#e0e0e0"><span class="tok-swatch" style="background:#e0e0e0"></span><span class="tok-swatch-meta"><span class="tok-mode-label">Pure black</span><code>var(--text)</code> <span class="tok-resolved">(#e0e0e0)</span></span></div></div><div class="tok-sub-label">Color glyph mode</div><div class="tok-swatch-row"><div class="tok-swatch-card" style="background:#1e1e1e;color:#d4d4d4"><span class="tok-swatch" style="background:#38bdf8"></span><span class="tok-swatch-meta"><span class="tok-mode-label">Color dark</span><code>#38bdf8</code></span></div><div class="tok-swatch-card" style="background:#ffffff;color:#1b1b1b"><span class="tok-swatch" style="background:#0d6f8a"></span><span class="tok-swatch-meta"><span class="tok-mode-label">Color light</span><code>#0d6f8a</code></span></div></div><p class="tok-comment">D5</p></article>
+      <article class="tok-card"><div class="tok-head"><code class="tok-name">--tab-bg</code></div><div class="tok-swatch-row"><div class="tok-swatch-card" style="background:#1e1e1e;color:#d4d4d4"><span class="tok-swatch" style="background:#252526"></span><span class="tok-swatch-meta"><span class="tok-mode-label">Dark</span><code>var(--surface-chrome)</code> <span class="tok-resolved">(#252526)</span></span></div><div class="tok-swatch-card" style="background:#ffffff;color:#1b1b1b"><span class="tok-swatch" style="background:#f3f3f3"></span><span class="tok-swatch-meta"><span class="tok-mode-label">Light</span><code>var(--surface-chrome)</code> <span class="tok-resolved">(#f3f3f3)</span></span></div><div class="tok-swatch-card" style="background:#000000;color:#e0e0e0"><span class="tok-swatch" style="background:#0a0a0a"></span><span class="tok-swatch-meta"><span class="tok-mode-label">Pure black</span><code>var(--surface-chrome)</code> <span class="tok-resolved">(#0a0a0a)</span></span></div></div></article>
+      <article class="tok-card"><div class="tok-head"><code class="tok-name">--tab-active</code></div><div class="tok-swatch-row"><div class="tok-swatch-card" style="background:#1e1e1e;color:#d4d4d4"><span class="tok-swatch" style="background:#1e1e1e"></span><span class="tok-swatch-meta"><span class="tok-mode-label">Dark</span><code>var(--surface-canvas)</code> <span class="tok-resolved">(#1e1e1e)</span></span></div><div class="tok-swatch-card" style="background:#ffffff;color:#1b1b1b"><span class="tok-swatch" style="background:#ffffff"></span><span class="tok-swatch-meta"><span class="tok-mode-label">Light</span><code>var(--surface-canvas)</code> <span class="tok-resolved">(#ffffff)</span></span></div><div class="tok-swatch-card" style="background:#000000;color:#e0e0e0"><span class="tok-swatch" style="background:#000000"></span><span class="tok-swatch-meta"><span class="tok-mode-label">Pure black</span><code>var(--surface-canvas)</code> <span class="tok-resolved">(#000000)</span></span></div></div></article>
+    </div>
+  </section>
+
+  <section class="tok-section" id="family-caret">
+    <h2 class="tok-section-title">caret <span class="tok-count">1</span></h2>
+    <div class="tok-grid">
+      <article class="tok-card"><div class="tok-head"><code class="tok-name">--caret-color</code></div><div class="tok-swatch-row"><div class="tok-swatch-card" style="background:#1e1e1e;color:#d4d4d4"><span class="tok-swatch" style="background:#ffffff"></span><span class="tok-swatch-meta"><span class="tok-mode-label">Dark</span><code>#ffffff</code></span></div><div class="tok-swatch-card" style="background:#ffffff;color:#1b1b1b"><span class="tok-swatch" style="background:#000000"></span><span class="tok-swatch-meta"><span class="tok-mode-label">Light</span><code>#000000</code></span></div></div></article>
+    </div>
+  </section>
+
+  <section class="tok-section" id="family-editor">
+    <h2 class="tok-section-title">editor <span class="tok-count">1</span></h2>
+    <div class="tok-grid">
+      <article class="tok-card"><div class="tok-head"><code class="tok-name">--editor-selection-bg</code></div><div class="tok-swatch-row"><div class="tok-swatch-card" style="background:#1e1e1e;color:#d4d4d4"><span class="tok-swatch" style="background:#454952"></span><span class="tok-swatch-meta"><span class="tok-mode-label">Dark</span><code>#454952</code></span></div><div class="tok-swatch-card" style="background:#ffffff;color:#1b1b1b"><span class="tok-swatch" style="background:#c8d3e0"></span><span class="tok-swatch-meta"><span class="tok-mode-label">Light</span><code>#c8d3e0</code></span></div></div></article>
+    </div>
+  </section>
+
+  <section class="tok-section" id="family-font">
+    <h2 class="tok-section-title">font <span class="tok-count">4</span></h2>
+    <div class="tok-grid">
+      <article class="tok-card"><div class="tok-head"><code class="tok-name">--font-ui</code></div><div class="tok-preview-box"><div class="tok-font-sample" style="font-family:&quot;Segoe UI Variable Text&quot;, &quot;Segoe UI&quot;, system-ui, -apple-system, &quot;Roboto&quot;, sans-serif">Aa Bb Cc 0123 · # v &gt; x =&gt; @name (topic)</div></div><div class="tok-values"><code>&quot;Segoe UI Variable Text&quot;, &quot;Segoe UI&quot;, system-ui, -apple-system, &quot;Roboto&quot;, sans-serif</code></div></article>
+      <article class="tok-card"><div class="tok-head"><code class="tok-name">--font-ui-display</code></div><div class="tok-preview-box"><div class="tok-font-sample" style="font-family:&quot;Segoe UI Variable Display&quot;, &quot;Segoe UI&quot;, system-ui, -apple-system, &quot;Roboto&quot;, sans-serif">Aa Bb Cc 0123 · # v &gt; x =&gt; @name (topic)</div></div><div class="tok-values"><code>&quot;Segoe UI Variable Display&quot;, &quot;Segoe UI&quot;, system-ui, -apple-system, &quot;Roboto&quot;, sans-serif</code></div></article>
+      <article class="tok-card"><div class="tok-head"><code class="tok-name">--font</code></div><div class="tok-preview-box"><div class="tok-font-sample" style="font-family:&quot;Cascadia Code&quot;, &quot;JetBrains Mono&quot;, &quot;Consolas&quot;, monospace">Aa Bb Cc 0123 · # v &gt; x =&gt; @name (topic)</div></div><div class="tok-values"><code>&quot;Cascadia Code&quot;, &quot;JetBrains Mono&quot;, &quot;Consolas&quot;, monospace</code></div></article>
+      <article class="tok-card"><div class="tok-head"><code class="tok-name">--font-mono</code></div><div class="tok-preview-box"><div class="tok-font-sample" style="font-family:&quot;Cascadia Code&quot;, &quot;JetBrains Mono&quot;, &quot;Consolas&quot;, monospace">Aa Bb Cc 0123 · # v &gt; x =&gt; @name (topic)</div></div><div class="tok-values"><code>var(--font)</code></div></article>
+    </div>
+  </section>
+
+  <section class="tok-section" id="family-type">
+    <h2 class="tok-section-title">type <span class="tok-count">3</span></h2>
+    <div class="tok-grid">
+      <article class="tok-card"><div class="tok-head"><code class="tok-name">--type-caption</code></div><div class="tok-preview-box"><div class="tok-type-sample" style="font-size:12px">ChronoNote · Aa Bb Cc 0123 — The quick brown fox</div></div><div class="tok-values"><code>12px</code></div></article>
+      <article class="tok-card"><div class="tok-head"><code class="tok-name">--type-body</code></div><div class="tok-preview-box"><div class="tok-type-sample" style="font-size:14px">ChronoNote · Aa Bb Cc 0123 — The quick brown fox</div></div><div class="tok-values"><code>14px</code></div></article>
+      <article class="tok-card"><div class="tok-head"><code class="tok-name">--type-subtitle</code></div><div class="tok-preview-box"><div class="tok-type-sample" style="font-size:20px">ChronoNote · Aa Bb Cc 0123 — The quick brown fox</div></div><div class="tok-values"><code>20px</code></div></article>
+    </div>
+  </section>
+
+  <section class="tok-section" id="family-radius">
+    <h2 class="tok-section-title">radius <span class="tok-count">2</span></h2>
+    <div class="tok-grid">
+      <article class="tok-card"><div class="tok-head"><code class="tok-name">--radius-control</code></div><div class="tok-preview-box tok-radius-row"><div class="tok-radius-box" style="border-radius:4px"></div><code>4px</code></div></article>
+      <article class="tok-card"><div class="tok-head"><code class="tok-name">--radius-overlay</code></div><div class="tok-preview-box tok-radius-row"><div class="tok-radius-box" style="border-radius:8px"></div><code>8px</code></div></article>
+    </div>
+  </section>
+
+  <section class="tok-section" id="family-shadow">
+    <h2 class="tok-section-title">shadow <span class="tok-count">2</span></h2>
+    <div class="tok-grid">
+      <article class="tok-card"><div class="tok-head"><code class="tok-name">--shadow-flyout</code></div><div class="tok-swatch-row"><div class="tok-shadow-stage" style="background:#1e1e1e;color:#d4d4d4"><div class="tok-shadow-card" style="background:#2d2d2e;box-shadow:0 8px 16px rgba(0, 0, 0, 0.28)">Dark</div><code>0 8px 16px rgba(0, 0, 0, 0.28)</code></div><div class="tok-shadow-stage" style="background:#ffffff;color:#1b1b1b"><div class="tok-shadow-card" style="background:#ffffff;box-shadow:0 8px 16px rgba(0, 0, 0, 0.14)">Light</div><code>0 8px 16px rgba(0, 0, 0, 0.14)</code></div></div></article>
+      <article class="tok-card"><div class="tok-head"><code class="tok-name">--shadow-dialog</code></div><div class="tok-swatch-row"><div class="tok-shadow-stage" style="background:#1e1e1e;color:#d4d4d4"><div class="tok-shadow-card" style="background:#2d2d2e;box-shadow:0 32px 64px rgba(0, 0, 0, 0.37), 0 2px 21px rgba(0, 0, 0, 0.22)">Dark</div><code>0 32px 64px rgba(0, 0, 0, 0.37), 0 2px 21px rgba(0, 0, 0, 0.22)</code></div><div class="tok-shadow-stage" style="background:#ffffff;color:#1b1b1b"><div class="tok-shadow-card" style="background:#ffffff;box-shadow:0 32px 64px rgba(0, 0, 0, 0.18), 0 2px 21px rgba(0, 0, 0, 0.11)">Light</div><code>0 32px 64px rgba(0, 0, 0, 0.18), 0 2px 21px rgba(0, 0, 0, 0.11)</code></div></div></article>
+    </div>
+  </section>
+
+  <section class="tok-section" id="family-motion">
+    <h2 class="tok-section-title">motion <span class="tok-count">3</span></h2>
+    <div class="tok-grid">
+      <article class="tok-card"><div class="tok-head"><code class="tok-name">--motion-fast</code></div><div class="tok-values"><span class="tok-kv"><span class="tok-mode-label">Value</span><code>83ms</code></span></div></article>
+      <article class="tok-card"><div class="tok-head"><code class="tok-name">--motion-normal</code></div><div class="tok-values"><span class="tok-kv"><span class="tok-mode-label">Value</span><code>167ms</code></span></div></article>
+      <article class="tok-card"><div class="tok-head"><code class="tok-name">--motion-slow</code></div><div class="tok-values"><span class="tok-kv"><span class="tok-mode-label">Value</span><code>250ms</code></span></div></article>
+    </div>
+  </section>
+
+  <section class="tok-section" id="family-ease">
+    <h2 class="tok-section-title">ease <span class="tok-count">1</span></h2>
+    <div class="tok-grid">
+      <article class="tok-card"><div class="tok-head"><code class="tok-name">--ease-decelerate</code></div><div class="tok-values"><span class="tok-kv"><span class="tok-mode-label">Value</span><code>cubic-bezier(0, 0, 0, 1)</code></span></div></article>
+    </div>
+  </section>
+
+  <section class="tok-section" id="family-bg">
+    <h2 class="tok-section-title">bg <span class="tok-count">1</span></h2>
+    <div class="tok-grid">
+      <article class="tok-card"><div class="tok-head"><code class="tok-name">--bg</code></div><div class="tok-swatch-row"><div class="tok-swatch-card" style="background:#1e1e1e;color:#d4d4d4"><span class="tok-swatch" style="background:#1e1e1e"></span><span class="tok-swatch-meta"><span class="tok-mode-label">Dark</span><code>var(--surface-canvas)</code> <span class="tok-resolved">(#1e1e1e)</span></span></div><div class="tok-swatch-card" style="background:#ffffff;color:#1b1b1b"><span class="tok-swatch" style="background:#ffffff"></span><span class="tok-swatch-meta"><span class="tok-mode-label">Light</span><code>var(--surface-canvas)</code> <span class="tok-resolved">(#ffffff)</span></span></div><div class="tok-swatch-card" style="background:#000000;color:#e0e0e0"><span class="tok-swatch" style="background:#000000"></span><span class="tok-swatch-meta"><span class="tok-mode-label">Pure black</span><code>var(--surface-canvas)</code> <span class="tok-resolved">(#000000)</span></span></div></div></article>
+    </div>
+  </section>
+
+  <section class="tok-section" id="family-border">
+    <h2 class="tok-section-title">border <span class="tok-count">1</span></h2>
+    <div class="tok-grid">
+      <article class="tok-card"><div class="tok-head"><code class="tok-name">--border</code></div><div class="tok-swatch-row"><div class="tok-swatch-card" style="background:#1e1e1e;color:#d4d4d4"><span class="tok-swatch" style="background:rgba(255, 255, 255, 0.07)"></span><span class="tok-swatch-meta"><span class="tok-mode-label">Dark</span><code>var(--edge-soft)</code> <span class="tok-resolved">(rgba(255, 255, 255, 0.07))</span></span></div><div class="tok-swatch-card" style="background:#ffffff;color:#1b1b1b"><span class="tok-swatch" style="background:rgba(0, 0, 0, 0.09)"></span><span class="tok-swatch-meta"><span class="tok-mode-label">Light</span><code>var(--edge-soft)</code> <span class="tok-resolved">(rgba(0, 0, 0, 0.09))</span></span></div><div class="tok-swatch-card" style="background:#000000;color:#e0e0e0"><span class="tok-swatch" style="background:rgba(255, 255, 255, 0.10)"></span><span class="tok-swatch-meta"><span class="tok-mode-label">Pure black</span><code>var(--edge-soft)</code> <span class="tok-resolved">(rgba(255, 255, 255, 0.10))</span></span></div></div></article>
+    </div>
+  </section>
+
+  <section class="tok-section" id="family-glyph">
+    <h2 class="tok-section-title">glyph <span class="tok-count">15</span></h2>
+    <div class="tok-grid">
+      <article class="tok-card"><div class="tok-head"><code class="tok-name">--glyph-open-color</code></div><div class="tok-swatch-row"><div class="tok-swatch-card" style="background:#1e1e1e;color:#d4d4d4"><span class="tok-swatch" style="background:#d4d4d4"></span><span class="tok-swatch-meta"><span class="tok-mode-label">Dark</span><code>var(--text)</code> <span class="tok-resolved">(#d4d4d4)</span></span></div><div class="tok-swatch-card" style="background:#ffffff;color:#1b1b1b"><span class="tok-swatch" style="background:#1b1b1b"></span><span class="tok-swatch-meta"><span class="tok-mode-label">Light</span><code>var(--text)</code> <span class="tok-resolved">(#1b1b1b)</span></span></div><div class="tok-swatch-card" style="background:#000000;color:#e0e0e0"><span class="tok-swatch" style="background:#e0e0e0"></span><span class="tok-swatch-meta"><span class="tok-mode-label">Pure black</span><code>var(--text)</code> <span class="tok-resolved">(#e0e0e0)</span></span></div></div><div class="tok-sub-label">Color glyph mode</div><div class="tok-swatch-row"><div class="tok-swatch-card" style="background:#1e1e1e;color:#d4d4d4"><span class="tok-swatch" style="background:#ff6b6b"></span><span class="tok-swatch-meta"><span class="tok-mode-label">Color dark</span><code>#ff6b6b</code></span></div><div class="tok-swatch-card" style="background:#ffffff;color:#1b1b1b"><span class="tok-swatch" style="background:#d9383a"></span><span class="tok-swatch-meta"><span class="tok-mode-label">Color light</span><code>#d9383a</code></span></div></div></article>
+      <article class="tok-card"><div class="tok-head"><code class="tok-name">--glyph-open-weight</code></div><div class="tok-values"><span class="tok-kv"><span class="tok-mode-label">Value</span><code>normal</code></span><span class="tok-kv"><span class="tok-mode-label">Color mode</span><code>bold</code></span></div></article>
+      <article class="tok-card"><div class="tok-head"><code class="tok-name">--glyph-done-color</code></div><div class="tok-swatch-row"><div class="tok-swatch-card" style="background:#1e1e1e;color:#d4d4d4"><span class="tok-swatch" style="background:#d4d4d4"></span><span class="tok-swatch-meta"><span class="tok-mode-label">Dark</span><code>var(--text)</code> <span class="tok-resolved">(#d4d4d4)</span></span></div><div class="tok-swatch-card" style="background:#ffffff;color:#1b1b1b"><span class="tok-swatch" style="background:#1b1b1b"></span><span class="tok-swatch-meta"><span class="tok-mode-label">Light</span><code>var(--text)</code> <span class="tok-resolved">(#1b1b1b)</span></span></div><div class="tok-swatch-card" style="background:#000000;color:#e0e0e0"><span class="tok-swatch" style="background:#e0e0e0"></span><span class="tok-swatch-meta"><span class="tok-mode-label">Pure black</span><code>var(--text)</code> <span class="tok-resolved">(#e0e0e0)</span></span></div></div><div class="tok-sub-label">Color glyph mode</div><div class="tok-swatch-row"><div class="tok-swatch-card" style="background:#1e1e1e;color:#d4d4d4"><span class="tok-swatch" style="background:#51cf66"></span><span class="tok-swatch-meta"><span class="tok-mode-label">Color dark</span><code>#51cf66</code></span></div><div class="tok-swatch-card" style="background:#ffffff;color:#1b1b1b"><span class="tok-swatch" style="background:#2b8a3e"></span><span class="tok-swatch-meta"><span class="tok-mode-label">Color light</span><code>#2b8a3e</code></span></div></div></article>
+      <article class="tok-card"><div class="tok-head"><code class="tok-name">--glyph-done-weight</code></div><div class="tok-values"><span class="tok-kv"><span class="tok-mode-label">Value</span><code>normal</code></span><span class="tok-kv"><span class="tok-mode-label">Color mode</span><code>bold</code></span></div></article>
+      <article class="tok-card"><div class="tok-head"><code class="tok-name">--glyph-done-opacity</code></div><div class="tok-values"><span class="tok-kv"><span class="tok-mode-label">Value</span><code>0.55</code></span><span class="tok-kv"><span class="tok-mode-label">Color mode</span><code>1</code></span></div></article>
+      <article class="tok-card"><div class="tok-head"><code class="tok-name">--glyph-progress-color</code></div><div class="tok-swatch-row"><div class="tok-swatch-card" style="background:#1e1e1e;color:#d4d4d4"><span class="tok-swatch" style="background:#d4d4d4"></span><span class="tok-swatch-meta"><span class="tok-mode-label">Dark</span><code>var(--text)</code> <span class="tok-resolved">(#d4d4d4)</span></span></div><div class="tok-swatch-card" style="background:#ffffff;color:#1b1b1b"><span class="tok-swatch" style="background:#1b1b1b"></span><span class="tok-swatch-meta"><span class="tok-mode-label">Light</span><code>var(--text)</code> <span class="tok-resolved">(#1b1b1b)</span></span></div><div class="tok-swatch-card" style="background:#000000;color:#e0e0e0"><span class="tok-swatch" style="background:#e0e0e0"></span><span class="tok-swatch-meta"><span class="tok-mode-label">Pure black</span><code>var(--text)</code> <span class="tok-resolved">(#e0e0e0)</span></span></div></div><div class="tok-sub-label">Color glyph mode</div><div class="tok-swatch-row"><div class="tok-swatch-card" style="background:#1e1e1e;color:#d4d4d4"><span class="tok-swatch" style="background:#e5a50a"></span><span class="tok-swatch-meta"><span class="tok-mode-label">Color dark</span><code>#e5a50a</code></span></div><div class="tok-swatch-card" style="background:#ffffff;color:#1b1b1b"><span class="tok-swatch" style="background:#b25e00"></span><span class="tok-swatch-meta"><span class="tok-mode-label">Color light</span><code>#b25e00</code></span></div></div></article>
+      <article class="tok-card"><div class="tok-head"><code class="tok-name">--glyph-progress-weight</code></div><div class="tok-values"><span class="tok-kv"><span class="tok-mode-label">Value</span><code>bold</code></span><span class="tok-kv"><span class="tok-mode-label">Color mode</span><code>bold</code></span></div></article>
+      <article class="tok-card"><div class="tok-head"><code class="tok-name">--glyph-cancelled-color</code></div><div class="tok-swatch-row"><div class="tok-swatch-card" style="background:#1e1e1e;color:#d4d4d4"><span class="tok-swatch" style="background:#d4d4d4"></span><span class="tok-swatch-meta"><span class="tok-mode-label">Dark</span><code>var(--text)</code> <span class="tok-resolved">(#d4d4d4)</span></span></div><div class="tok-swatch-card" style="background:#ffffff;color:#1b1b1b"><span class="tok-swatch" style="background:#1b1b1b"></span><span class="tok-swatch-meta"><span class="tok-mode-label">Light</span><code>var(--text)</code> <span class="tok-resolved">(#1b1b1b)</span></span></div><div class="tok-swatch-card" style="background:#000000;color:#e0e0e0"><span class="tok-swatch" style="background:#e0e0e0"></span><span class="tok-swatch-meta"><span class="tok-mode-label">Pure black</span><code>var(--text)</code> <span class="tok-resolved">(#e0e0e0)</span></span></div></div><div class="tok-sub-label">Color glyph mode</div><div class="tok-swatch-row"><div class="tok-swatch-card" style="background:#1e1e1e;color:#d4d4d4"><span class="tok-swatch" style="background:#868e96"></span><span class="tok-swatch-meta"><span class="tok-mode-label">Color dark</span><code>#868e96</code></span></div><div class="tok-swatch-card" style="background:#ffffff;color:#1b1b1b"><span class="tok-swatch" style="background:#5c636a"></span><span class="tok-swatch-meta"><span class="tok-mode-label">Color light</span><code>#5c636a</code></span></div></div></article>
+      <article class="tok-card"><div class="tok-head"><code class="tok-name">--glyph-cancelled-weight</code></div><div class="tok-values"><span class="tok-kv"><span class="tok-mode-label">Value</span><code>normal</code></span><span class="tok-kv"><span class="tok-mode-label">Color mode</span><code>bold</code></span></div></article>
+      <article class="tok-card"><div class="tok-head"><code class="tok-name">--glyph-cancelled-opacity</code></div><div class="tok-values"><span class="tok-kv"><span class="tok-mode-label">Value</span><code>0.55</code></span><span class="tok-kv"><span class="tok-mode-label">Color mode</span><code>1</code></span></div></article>
+      <article class="tok-card"><div class="tok-head"><code class="tok-name">--glyph-followup-color</code></div><div class="tok-swatch-row"><div class="tok-swatch-card" style="background:#1e1e1e;color:#d4d4d4"><span class="tok-swatch" style="background:#a6a6a6"></span><span class="tok-swatch-meta"><span class="tok-mode-label">Dark</span><code>var(--muted)</code> <span class="tok-resolved">(#a6a6a6)</span></span></div><div class="tok-swatch-card" style="background:#ffffff;color:#1b1b1b"><span class="tok-swatch" style="background:#5f5f5f"></span><span class="tok-swatch-meta"><span class="tok-mode-label">Light</span><code>var(--muted)</code> <span class="tok-resolved">(#5f5f5f)</span></span></div><div class="tok-swatch-card" style="background:#000000;color:#e0e0e0"><span class="tok-swatch" style="background:#a8a8a8"></span><span class="tok-swatch-meta"><span class="tok-mode-label">Pure black</span><code>var(--muted)</code> <span class="tok-resolved">(#a8a8a8)</span></span></div></div><div class="tok-sub-label">Color glyph mode</div><div class="tok-swatch-row"><div class="tok-swatch-card" style="background:#1e1e1e;color:#d4d4d4"><span class="tok-swatch" style="background:#0098ff"></span><span class="tok-swatch-meta"><span class="tok-mode-label">Color dark</span><code>#0098ff</code></span></div><div class="tok-swatch-card" style="background:#ffffff;color:#1b1b1b"><span class="tok-swatch" style="background:#0066b8"></span><span class="tok-swatch-meta"><span class="tok-mode-label">Color light</span><code>#0066b8</code></span></div></div></article>
+      <article class="tok-card"><div class="tok-head"><code class="tok-name">--glyph-followup-weight</code></div><div class="tok-values"><span class="tok-kv"><span class="tok-mode-label">Value</span><code>normal</code></span><span class="tok-kv"><span class="tok-mode-label">Color mode</span><code>bold</code></span></div></article>
+      <article class="tok-card"><div class="tok-head"><code class="tok-name">--glyph-assignee-bg</code></div><div class="tok-swatch-row"><div class="tok-swatch-card" style="background:#1e1e1e;color:#d4d4d4"><span class="tok-swatch" style="background:rgba(128, 128, 128, 0.18)"></span><span class="tok-swatch-meta"><span class="tok-mode-label">Dark</span><code>rgba(128, 128, 128, 0.18)</code></span></div><div class="tok-swatch-card" style="background:#ffffff;color:#1b1b1b"><span class="tok-swatch" style="background:rgba(128, 128, 128, 0.18)"></span><span class="tok-swatch-meta"><span class="tok-mode-label">Light</span><code>rgba(128, 128, 128, 0.18)</code></span></div></div><div class="tok-sub-label">Color glyph mode</div><div class="tok-swatch-row"><div class="tok-swatch-card" style="background:#1e1e1e;color:#d4d4d4"><span class="tok-swatch" style="background:rgba(0, 122, 204, 0.15)"></span><span class="tok-swatch-meta"><span class="tok-mode-label">Color dark</span><code>rgba(0, 122, 204, 0.15)</code></span></div><div class="tok-swatch-card" style="background:#ffffff;color:#1b1b1b"><span class="tok-swatch" style="background:rgba(0, 102, 184, 0.12)"></span><span class="tok-swatch-meta"><span class="tok-mode-label">Color light</span><code>rgba(0, 102, 184, 0.12)</code></span></div></div></article>
+      <article class="tok-card"><div class="tok-head"><code class="tok-name">--glyph-assignee-color</code></div><div class="tok-swatch-row"><div class="tok-swatch-card" style="background:#1e1e1e;color:#d4d4d4"><span class="tok-swatch" style="background:#d4d4d4"></span><span class="tok-swatch-meta"><span class="tok-mode-label">Dark</span><code>var(--text)</code> <span class="tok-resolved">(#d4d4d4)</span></span></div><div class="tok-swatch-card" style="background:#ffffff;color:#1b1b1b"><span class="tok-swatch" style="background:#1b1b1b"></span><span class="tok-swatch-meta"><span class="tok-mode-label">Light</span><code>var(--text)</code> <span class="tok-resolved">(#1b1b1b)</span></span></div><div class="tok-swatch-card" style="background:#000000;color:#e0e0e0"><span class="tok-swatch" style="background:#e0e0e0"></span><span class="tok-swatch-meta"><span class="tok-mode-label">Pure black</span><code>var(--text)</code> <span class="tok-resolved">(#e0e0e0)</span></span></div></div><div class="tok-sub-label">Color glyph mode</div><div class="tok-swatch-row"><div class="tok-swatch-card" style="background:#1e1e1e;color:#d4d4d4"><span class="tok-swatch" style="background:#29a8ff"></span><span class="tok-swatch-meta"><span class="tok-mode-label">Color dark</span><code>#29a8ff</code></span></div><div class="tok-swatch-card" style="background:#ffffff;color:#1b1b1b"><span class="tok-swatch" style="background:#0066b8"></span><span class="tok-swatch-meta"><span class="tok-mode-label">Color light</span><code>#0066b8</code></span></div></div><p class="tok-comment">D5: 4.6:1 on its badge</p></article>
+      <article class="tok-card"><div class="tok-head"><code class="tok-name">--glyph-emphasis-color</code></div><div class="tok-swatch-row"><div class="tok-swatch-card" style="background:#1e1e1e;color:#d4d4d4"><span class="tok-swatch" style="background:#d4d4d4"></span><span class="tok-swatch-meta"><span class="tok-mode-label">Dark</span><code>var(--text)</code> <span class="tok-resolved">(#d4d4d4)</span></span></div><div class="tok-swatch-card" style="background:#ffffff;color:#1b1b1b"><span class="tok-swatch" style="background:#1b1b1b"></span><span class="tok-swatch-meta"><span class="tok-mode-label">Light</span><code>var(--text)</code> <span class="tok-resolved">(#1b1b1b)</span></span></div><div class="tok-swatch-card" style="background:#000000;color:#e0e0e0"><span class="tok-swatch" style="background:#e0e0e0"></span><span class="tok-swatch-meta"><span class="tok-mode-label">Pure black</span><code>var(--text)</code> <span class="tok-resolved">(#e0e0e0)</span></span></div></div><div class="tok-sub-label">Color glyph mode</div><div class="tok-swatch-row"><div class="tok-swatch-card" style="background:#1e1e1e;color:#d4d4d4"><span class="tok-swatch" style="background:#ffd43b"></span><span class="tok-swatch-meta"><span class="tok-mode-label">Color dark</span><code>#ffd43b</code></span></div><div class="tok-swatch-card" style="background:#ffffff;color:#1b1b1b"><span class="tok-swatch" style="background:#f08c00"></span><span class="tok-swatch-meta"><span class="tok-mode-label">Color light</span><code>#f08c00</code></span></div></div></article>
+    </div>
+  </section>
+</div>
+</body>
+</html>

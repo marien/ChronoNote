@@ -54,6 +54,8 @@ const steps = [
   ["changelog index", node, [path.join("scripts", "changelog-index.mjs"), "--check"], ROOT],
   ["seen check", node, [path.join("scripts", "seen-check.mjs")], ROOT],
   ["type escapes", node, [path.join("scripts", "type-escapes.mjs")], ROOT],
+  ["css literals", node, [path.join("scripts", "css-literals.mjs")], ROOT],
+  ["tokens page", node, [path.join("scripts", "tokens-page.mjs"), "--check"], ROOT],
   ["svelte-check", node, [path.join("node_modules", "svelte-check", "bin", "svelte-check"), "--tsconfig", "./tsconfig.json", "--output", "machine"], ROOT],
   ["check:e2e", node, [path.join("node_modules", "typescript", "bin", "tsc"), "-p", "tests/tsconfig.json"], ROOT],
   ["vitest", node, [path.join("node_modules", "vitest", "vitest.mjs"), "run"], ROOT],
