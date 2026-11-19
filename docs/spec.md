@@ -41,6 +41,8 @@ ChronoNote is a minimalist, keyboard-driven plain-text application engineered to
 
 ### 2.2 Token Semantics & Dynamic Glyph Replacement
 
+The token rules, with examples that run as tests, are in [docs/spec/tokens.md](spec/tokens.md).
+
 Every glyph is at most 2 characters (3 for `=> `), matching — never
 exceeding — the character width of the token it replaces, forced via
 explicit CSS `ch`-unit sizing on each glyph so column alignment holds
