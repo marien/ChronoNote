@@ -919,6 +919,8 @@ reachable from the top bar, a shortcut, or the command palette:
   section at the end of that note (§509). A meeting added this way
   and then deleted by the user is not added again (remembered per day in the
   session file); the review lists it unchecked.
+
+  The sync rules, with examples that run as tests, are in [docs/spec/calendar.md](spec/calendar.md).
 - **Shortcuts & Symbols** (`Ctrl/Cmd+/` or `Ctrl/Cmd+Shift+/`) — the
   keyboard shortcut table (§4) and the token→glyph vocabulary (§2.2)
   side by side in two independently-scrollable columns. Each column
