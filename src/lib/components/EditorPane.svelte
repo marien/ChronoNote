@@ -48,7 +48,8 @@
   import { isTitleLine } from "../grammar/tokenize";
 import { calendarSyncEnabled, currentDateISO, currentLineKind, editorFocused, minutesName, tabs } from "../stores";
   import { lineKind } from "../lineKind";
-  import { htmlToNoteText, noteTextToHtml } from "../richClipboard";
+  import { noteTextToHtml } from "../richClipboard";
+  import { resolveClipboardPaste } from "../editor/clipboardPaste";
 
   interface Props {
     content: string;
@@ -557,28 +558,22 @@ import { calendarSyncEnabled, currentDateISO, currentLineKind, editorFocused, mi
         },
         paste: (event, v) => {
           // #196: a list copied from Teams, a browser, Word or Outlook only keeps its bullets and indentation in the
-          // HTML; anything else (and ChronoNote's own copies) pastes text/plain as before.
+          // HTML; anything else (and ChronoNote's own copies) pastes text/plain, with foreign tabs converted to two spaces.
+          if (v.state.readOnly) return false;
           const rawHtml = event.clipboardData?.getData("text/html");
-          if (rawHtml) {
-            const converted = htmlToNoteText(rawHtml);
-            if (converted !== null) {
-              event.preventDefault();
-              const lineIdx = v.state.doc.lineAt(v.state.selection.main.head).number - 1;
-              const docText = v.state.doc.toString();
-              controller.handlePasteIntoTab(controller.getActiveTabId(), converted, {
-                targetLineIdx: lineIdx,
-                targetDocText: docText,
-              });
-              v.dispatch({ ...v.state.replaceSelection(converted), userEvent: "input.paste", scrollIntoView: true });
-              return true;
-            }
-          }
+          const rawPlain = event.clipboardData?.getData("text/plain");
+          const { insertText, pasteCheckText } = resolveClipboardPaste(rawHtml, rawPlain);
           const lineIdx = v.state.doc.lineAt(v.state.selection.main.head).number - 1;
           const docText = v.state.doc.toString();
-          controller.handlePasteIntoTab(controller.getActiveTabId(), event.clipboardData?.getData("text/plain"), {
+          controller.handlePasteIntoTab(controller.getActiveTabId(), pasteCheckText, {
             targetLineIdx: lineIdx,
             targetDocText: docText,
           });
+          if (insertText !== null) {
+            event.preventDefault();
+            v.dispatch({ ...v.state.replaceSelection(insertText), userEvent: "input.paste", scrollIntoView: true });
+            return true;
+          }
           return false;
         },
         dragstart: () => {
@@ -594,20 +589,19 @@ import { calendarSyncEnabled, currentDateISO, currentLineKind, editorFocused, mi
           internalDragActive = false;
           if (wasInternalDrag || v.state.readOnly || !event.dataTransfer) return false;
           const rawHtml = event.dataTransfer.getData("text/html");
-          if (rawHtml) {
-            const converted = htmlToNoteText(rawHtml);
-            if (converted !== null) {
-              event.preventDefault();
-              const dropPos = v.posAtCoords({ x: event.clientX, y: event.clientY }, false);
-              v.focus();
-              v.dispatch({
-                changes: { from: dropPos, insert: converted },
-                selection: { anchor: dropPos, head: dropPos + converted.length },
-                userEvent: "input.drop",
-                scrollIntoView: true,
-              });
-              return true;
-            }
+          const rawPlain = event.dataTransfer.getData("text/plain");
+          const { insertText } = resolveClipboardPaste(rawHtml, rawPlain);
+          if (insertText !== null) {
+            event.preventDefault();
+            const dropPos = v.posAtCoords({ x: event.clientX, y: event.clientY }, false);
+            v.focus();
+            v.dispatch({
+              changes: { from: dropPos, insert: insertText },
+              selection: { anchor: dropPos, head: dropPos + insertText.length },
+              userEvent: "input.drop",
+              scrollIntoView: true,
+            });
+            return true;
           }
           return false;
         },

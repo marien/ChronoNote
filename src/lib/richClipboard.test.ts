@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, expect, it } from "vitest";
-import { htmlToNoteText, noteTextToHtml } from "./richClipboard";
+import { htmlToNoteText, isOwnChronoNoteHtml, noteTextToHtml, tabsToTwoSpaces } from "./richClipboard";
 
 describe("richClipboard", () => {
   describe("htmlToNoteText", () => {
@@ -205,6 +205,26 @@ describe("richClipboard", () => {
       expect(htmlToNoteText(html)).toBe(
         "- Code block below:\n  function test() {\n    return 123;\n  }"
       );
+    });
+
+    it("converts tabs in <pre> blocks to two spaces", () => {
+      const tabbedPre = "<ul><li>Code:</li></ul><pre>\ta = 1;\n\t\tb = 2;\nkey\tvalue</pre>";
+      expect(htmlToNoteText(tabbedPre)).toBe(
+        "- Code:\n  a = 1;\n    b = 2;\nkey  value"
+      );
+
+      const tabbedPreInLi = "<ul><li>run:<pre>\tnpm i\n\t\tnpm test</pre></li></ul>";
+      expect(htmlToNoteText(tabbedPreInLi)).toBe(
+        "- run:\n    npm i\n      npm test"
+      );
+    });
+
+    it("detects ChronoNote's own HTML marker only as an element attribute", () => {
+      expect(isOwnChronoNoteHtml('<div data-chrononote=""><ul><li>a</li></ul></div>')).toBe(true);
+      expect(isOwnChronoNoteHtml('<html><body><!--StartFragment--><div data-chrononote=""></div></body></html>')).toBe(true);
+      expect(isOwnChronoNoteHtml("<p>data-chrononote in prose</p>")).toBe(false);
+      expect(isOwnChronoNoteHtml("")).toBe(false);
+      expect(tabsToTwoSpaces("\ta\t\tb\tc")).toBe("  a    b  c");
     });
 
     it("aligns continuation lines from <p> paragraphs inside <li>", () => {

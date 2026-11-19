@@ -310,3 +310,21 @@ Not run as a table: clipboard selection inspection and multi-range copy dispatch
 Dropping text into the editor goes through the same HTML/plain-text paste rules as pasting (decision D9), and moving text within the note by dragging is recorded as a single undo step.
 
 Not run as a table: pointer drag-and-drop and CodeMirror transaction grouping cannot be expressed as HTML/Text conversion rows.
+
+## Tabs on paste
+
+### P15. Tabs pasted or dropped from other programs become two spaces
+
+When text is pasted or dropped from another program, every tab (`⇥`) becomes two spaces—both in HTML `<pre>` blocks (plus Word `mso-list` marker tabs, which collapse/strip as part of marker extraction) and on the plain-text path (`⇥item` → `··item`, `⇥⇥- sub` → `····- sub`, `a⇥b` → `a··b`). ChronoNote's own copies carry `data-chrononote`, so `htmlToNoteText` returns `null` (`—`) and the plain-text path keeps their tabs untouched; typing Tab and tabs already in a note are unaffected.
+
+The plain-text path (`⇥item`, `⇥⇥- sub`, `a⇥b`, and `data-chrononote` + plain text) cannot be expressed as `| HTML | Text |` rows and is tested beside the code in `src/lib/editor/clipboardPaste.test.ts` and `tests/e2e/rich-clipboard.spec.ts`.
+
+| HTML | Text |
+| :--- | :--- |
+| `<p class="MsoListParagraph" style="mso-list:l0 level1 lfo1"><span style="mso-list:Ignore">•</span>⇥Word bullet</p>` | `- Word bullet` |
+| `<p class="MsoListParagraph" style="mso-list:l0 level1 lfo1"><span style="mso-list:Ignore">1.</span>⇥Word item</p>` | `1. Word item` |
+| `<p class="MsoListParagraph" style="mso-list:l0 level1 lfo1">•⇥Visible bullet</p>` | `- Visible bullet` |
+| `<ul><li>Code:</li></ul><pre>⇥a = 1;↵⇥⇥b = 2;</pre>` | `- Code:↵··a = 1;↵····b = 2;` |
+| `<ul><li>run:<pre>⇥npm i↵⇥⇥npm test</pre></li></ul>` | `- run:↵····npm i↵······npm test` |
+| `<ul><li>Code:</li></ul><pre>key⇥value</pre>` | `- Code:↵key··value` |
+| `<div data-chrononote=""><ul><li>item</li></ul></div>` | — |
