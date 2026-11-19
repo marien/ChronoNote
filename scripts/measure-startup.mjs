@@ -117,7 +117,11 @@ function startStaticServer() {
       res.end("Forbidden");
       return;
     }
-    if (!fs.existsSync(filePath) || !fs.statSync(filePath).isFile()) {
+    // Read once and treat a missing file or a folder as not found (no check-then-read: CodeQL js/file-system-race).
+    let raw;
+    try {
+      raw = fs.readFileSync(filePath);
+    } catch {
       res.writeHead(404);
       res.end("Not found");
       return;
@@ -134,7 +138,7 @@ function startStaticServer() {
     if (acceptGzip && compressibleExts.has(ext)) {
       let gz = gzipCache.get(filePath);
       if (!gz) {
-        gz = zlib.gzipSync(fs.readFileSync(filePath), { level: 6 });
+        gz = zlib.gzipSync(raw, { level: 6 });
         gzipCache.set(filePath, gz);
       }
       res.writeHead(200, { ...headers, "Content-Encoding": "gzip", "Content-Length": gz.length });
@@ -142,7 +146,6 @@ function startStaticServer() {
       return;
     }
 
-    const raw = fs.readFileSync(filePath);
     res.writeHead(200, { ...headers, "Content-Length": raw.length });
     res.end(raw);
   });
