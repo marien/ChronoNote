@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { buildPasteDataTransfer, readClipboardPastePayload } from "./clipboardPaste";
+import { buildPasteDataTransfer, readClipboardPastePayload, resolveClipboardPaste } from "./clipboardPaste";
 
 function makeClipboardItem(entries: Record<string, string>): ClipboardItem {
   const types = Object.keys(entries);
@@ -143,5 +143,71 @@ describe("clipboardPaste", () => {
     expect(htmlOnly.types).toEqual(["text/html"]);
     expect(htmlOnly.getData("text/html")).toBe("<ul><li>html only</li></ul>");
     expect(htmlOnly.getData("text/plain")).toBe("");
+  });
+
+  describe("resolveClipboardPaste", () => {
+    it("converts leading, nested, and inline tabs to two spaces on foreign plain-text pastes", () => {
+      expect(resolveClipboardPaste(undefined, "\titem")).toEqual({
+        insertText: "  item",
+        pasteCheckText: "  item",
+      });
+      expect(resolveClipboardPaste("", "\t\t- sub")).toEqual({
+        insertText: "    - sub",
+        pasteCheckText: "    - sub",
+      });
+      expect(resolveClipboardPaste("", "key\tvalue\t\tmore")).toEqual({
+        insertText: "key  value    more",
+        pasteCheckText: "key  value    more",
+      });
+      expect(resolveClipboardPaste("", "\ta\r\n\tb")).toEqual({
+        insertText: "  a\n  b",
+        pasteCheckText: "  a\n  b",
+      });
+    });
+
+    it("leaves plain text without tabs for CodeMirror's default handler", () => {
+      expect(resolveClipboardPaste("", "plain text")).toEqual({
+        insertText: null,
+        pasteCheckText: "plain text",
+      });
+      expect(resolveClipboardPaste(undefined, undefined)).toEqual({
+        insertText: null,
+        pasteCheckText: undefined,
+      });
+    });
+
+    it("converts tabs when foreign non-list HTML falls back to plain text", () => {
+      expect(resolveClipboardPaste("<p>a\tb</p>", "\titem\t2")).toEqual({
+        insertText: "  item  2",
+        pasteCheckText: "  item  2",
+      });
+    });
+
+    it("converts HTML lists and <pre> tabs via htmlToNoteText", () => {
+      expect(
+        resolveClipboardPaste(
+          "<ul><li>Code:</li></ul><pre>\ta = 1;\n\t\tb = 2;</pre>",
+          "Code:\n\ta = 1;\n\t\tb = 2;",
+        ),
+      ).toEqual({
+        insertText: "- Code:\n  a = 1;\n    b = 2;",
+        pasteCheckText: "- Code:\n  a = 1;\n    b = 2;",
+      });
+    });
+
+    it("keeps tabs untouched for ChronoNote's own data-chrononote copy", () => {
+      const ownHtml = '<html><body><!--StartFragment--><div data-chrononote=""><ul><li>item</li></ul></div><!--EndFragment--></body></html>';
+      expect(resolveClipboardPaste(ownHtml, "\t- item\tmore")).toEqual({
+        insertText: null,
+        pasteCheckText: "\t- item\tmore",
+      });
+    });
+
+    it("does not treat prose mentioning data-chrononote as ChronoNote's own copy", () => {
+      expect(resolveClipboardPaste("<p>about data-chrononote</p>", "\titem")).toEqual({
+        insertText: "  item",
+        pasteCheckText: "  item",
+      });
+    });
   });
 });

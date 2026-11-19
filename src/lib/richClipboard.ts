@@ -159,6 +159,18 @@ export function noteTextToHtml(text: string): string | null {
  * what the paste-forward link (§86) compares, so `htmlToNoteText` leaves it to the plain text. */
 const OWN_HTML_ATTR = "data-chrononote";
 
+/** Replaces every tab character with two spaces (ChronoNote's indentation width). */
+export function tabsToTwoSpaces(text: string): string {
+  return text.replace(/\t/g, "  ");
+}
+
+/** True when `html` carries ChronoNote's own clipboard marker (`data-chrononote`). */
+export function isOwnChronoNoteHtml(html: string): boolean {
+  if (!html || typeof html !== "string" || !html.includes(OWN_HTML_ATTR)) return false;
+  const doc = new DOMParser().parseFromString(html, "text/html");
+  return doc.querySelector(`[${OWN_HTML_ATTR}]`) !== null;
+}
+
 const BLOCK_TAGS = new Set([
   "P", "DIV", "H1", "H2", "H3", "H4", "H5", "H6",
   "LI", "TR", "TD", "TH", "BLOCKQUOTE", "PRE", "TABLE", "TBODY", "THEAD"
@@ -632,5 +644,5 @@ export function htmlToNoteText(html: string): string | null {
     lines.pop();
   }
 
-  return lines.join("\n");
+  return tabsToTwoSpaces(lines.join("\n"));
 }
