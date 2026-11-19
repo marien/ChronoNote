@@ -161,7 +161,7 @@ const OWN_HTML_ATTR = "data-chrononote";
 
 const BLOCK_TAGS = new Set([
   "P", "DIV", "H1", "H2", "H3", "H4", "H5", "H6",
-  "LI", "TR", "BR", "BLOCKQUOTE", "PRE", "TABLE", "TBODY", "THEAD"
+  "LI", "TR", "TD", "TH", "BLOCKQUOTE", "PRE", "TABLE", "TBODY", "THEAD"
 ]);
 
 function isBlockElement(el: Element): boolean {
@@ -562,7 +562,7 @@ export function htmlToNoteText(html: string): string | null {
         : indent + "  ";
 
       if (itemLines.length > 0) {
-        addLine(indent + markerStr + itemLines[0]);
+        addLine((indent + markerStr + itemLines[0]).trimEnd());
         for (let i = 1; i < itemLines.length; i++) {
           if (itemLines[i] === "") {
             addLine("");
@@ -608,6 +608,7 @@ export function htmlToNoteText(html: string): string | null {
       }
     } else {
       wordCounters = [];
+      wordParents = [];
       ariaParents = [];
       const blockLines = extractLines(el);
       if (blockLines.length === 0) {

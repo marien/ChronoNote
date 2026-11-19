@@ -279,6 +279,39 @@ describe("richClipboard", () => {
         '<p class="MsoListParagraph" style="mso-list:l0 level2 lfo1">a.  sub item</p>';
       expect(htmlToNoteText(outlookSpaces)).toBe("1. text\n   1. sub item");
     });
+
+    it("extracts lists inside table cells (td and th) in cell order", () => {
+      expect(htmlToNoteText("<table><tr><td><ul><li>Item</li></ul></td></tr></table>")).toBe("- Item");
+      expect(htmlToNoteText("<table><tr><th><ul><li>Header</li></ul></th></tr></table>")).toBe("- Header");
+      expect(
+        htmlToNoteText("<table><tr><td>Name</td><td><ul><li>a</li><li>b</li></ul></td></tr></table>")
+      ).toBe("Name\n- a\n- b");
+    });
+
+    it("resets wordParents on non-list block interruption before a level 2 mso-list item", () => {
+      const html =
+        '<p style="mso-list:l0 level1 lfo1"><span style="mso-list:Ignore">1.</span>First</p>' +
+        "<p>Break</p>" +
+        '<p style="mso-list:l0 level2 lfo1"><span style="mso-list:Ignore">a.</span>Sub</p>';
+      expect(htmlToNoteText(html)).toBe("1. First\nBreak\n  1. Sub");
+    });
+
+    it("handles <br> inside a non-list div without inserting an extra blank line", () => {
+      expect(htmlToNoteText("<ul><li>x</li></ul><div>a<br>b</div>")).toBe("- x\na\nb");
+      expect(htmlToNoteText("<ul><li>x</li></ul><div>a<br><br>b</div>")).toBe("- x\na\n\nb");
+    });
+
+    it("does not leave a trailing space on an empty mso-list marker line before <br>", () => {
+      expect(
+        htmlToNoteText('<p class="MsoListParagraph" style="mso-list:l0 level1 lfo1">1.<br>next</p>')
+      ).toBe("1.\n   next");
+      expect(
+        htmlToNoteText('<p class="MsoListParagraph" style="mso-list:l0 level1 lfo1">•<br>next</p>')
+      ).toBe("-\n  next");
+      expect(
+        htmlToNoteText('<p class="MsoListParagraph" style="mso-list:l0 level1 lfo1"><span style="mso-list:Ignore">1.</span><br>next</p>')
+      ).toBe("1.\n   next");
+    });
   });
 
   describe("noteTextToHtml", () => {

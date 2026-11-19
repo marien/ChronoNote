@@ -35,6 +35,7 @@ Unordered list items (`<ul><li>`), Word/Outlook bullet paragraphs, and items wit
 | `<p class="MsoListParagraph" style="mso-list:l0 level1 lfo1">o One space after o</p>` | `- o One space after o` |
 | `<p class="MsoListParagraph" style="mso-list:l0 level1 lfo1"><span style="mso-list:Ignore">•</span></p>` | `-` |
 | `<p class="MsoListParagraph" style="mso-list:l0 level1 lfo1">•</p>` | `-` |
+| `<table><tr><td><ul><li>Item</li></ul></td></tr></table>` | `- Item` |
 
 ### P3. Numbered items convert to N. from order, start, and value
 
@@ -81,6 +82,7 @@ In Word/Outlook `mso-list` paragraphs, plain numeric markers keep their number, 
 | `<div><h1 style="mso-list:l0 level1 lfo1"><span style="mso-list:Ignore">a.</span>Heading item</h1></div>` | `1. Heading item` |
 | `<div><h2 style="mso-list:l0 level1 lfo1"><span style="mso-list:Ignore">a.</span>H2</h2><h3 style="mso-list:l0 level1 lfo1"><span style="mso-list:Ignore">b.</span>H3</h3><h4 style="mso-list:l0 level1 lfo1"><span style="mso-list:Ignore">c.</span>H4</h4><h5 style="mso-list:l0 level1 lfo1"><span style="mso-list:Ignore">d.</span>H5</h5><h6 style="mso-list:l0 level1 lfo1"><span style="mso-list:Ignore">e.</span>H6</h6></div>` | `1. H2↵2. H3↵3. H4↵4. H5↵5. H6` |
 | `<p style="mso-list:l0 level1 lfo1"><span style="mso-list:Ignore">1.</span>First</p><div><pre>code</pre></div><p style="mso-list:l0 level2 lfo1"><span style="mso-list:Ignore">a.</span>Orphan sub</p>` | `1. First↵code↵··1. Orphan sub` |
+| `<p style="mso-list:l0 level1 lfo1"><span style="mso-list:Ignore">1.</span>First</p><p>Break</p><p style="mso-list:l0 level2 lfo1"><span style="mso-list:Ignore">a.</span>Sub</p>` | `1. First↵Break↵··1. Sub` |
 
 ### P5. Nested lists indent under their parent's text column and restart numbering at 1
 
@@ -145,6 +147,8 @@ Non-list blocks become lines with runs of spaces, tabs, and newlines collapsed t
 | `<ul><li>Item</li></ul><pre>↵hello↵</pre>` | `- Item↵hello` |
 | `<ul><li>&lt;![if !supportLists]&gt;text&lt;![endif]&gt;</li></ul>` | `- text` |
 | `&lt;![if !supportLists]&gt;text&lt;![endif]&gt;<ul><li>Item</li></ul>` | `text↵- Item` |
+| `<table><tr><td>Name</td><td><ul><li>a</li><li>b</li></ul></td></tr></table>` | `Name↵- a↵- b` |
+| `<ul><li>x</li></ul><div>a<br>b</div>` | `- x↵a↵b` |
 
 ### P8. Converted pastes go through the standard plain-text paste handling
 
@@ -222,6 +226,7 @@ When a Word/Outlook `mso-list` paragraph has no `mso-list:Ignore` span and its v
 | `<p class="MsoListParagraph" style="mso-list:l0 level1 lfo1">10.  ten</p>` | `10. ten` |
 | `<p class="MsoListParagraph" style="mso-list:l0 level1 lfo1">ii.  second</p>` | `1. second` |
 | `<p class="MsoListParagraph" style="mso-list:l0 level1 lfo1">1.</p>` | `1.` |
+| `<p class="MsoListParagraph" style="mso-list:l0 level1 lfo1">1.<br>next</p>` | `1.↵···next` |
 | `<p class="MsoListParagraph" style="mso-list:l0 level1 lfo1">foo 1. bar</p>` | `- foo 1. bar` |
 | `<p class="MsoListParagraph" style="mso-list:l0 level1 lfo1">foo • bar</p>` | `- foo • bar` |
 
