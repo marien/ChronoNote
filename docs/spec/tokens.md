@@ -130,7 +130,7 @@ An action symbol (`#`, `v`, `>`, `x`) or topic symbol (`o`, `.`, `,`) followed b
 
 ### N8. Topic tags (`(topic)`) and plain parenthesised words
 
-A single-token `(topic)` (not starting with `@`) immediately after a leading action/topic symbol or `=> <symbol>` produces `topicTag`; any other single-token `(word)` produces `paren` (consumed so it stays plain text), while `(@name)` produces `assignee` and multi-word parentheses produce no token.
+A single-token `(topic)` (not starting with `@`) immediately after a leading action/topic symbol or `=> <symbol>` produces `topicTag`; any other single-token `(word)` produces `paren` (consumed so it stays plain text), while `(@name)` produces `assignee` and multi-word parentheses produce no token. A line has at most one topic tag (§422): a second `(word)` in a tag position, such as after `=> # `, is a `paren`.
 
 | Line | Tokens |
 | :--- | :--- |
@@ -147,6 +147,7 @@ A single-token `(topic)` (not starting with `@`) immediately after a leading act
 | `- (word) item` | `bullet:- 0-2 · paren 2-8` |
 | `a => (word) item` | `arrow 2-5 · paren 5-11` |
 | `(word) => # (tag) act` | `paren 0-6 · arrow 7-10 · consequence:# 10-12 · topicTag 12-17` |
+| `# (a) text => # (b) task` | `action:# 0-2 · topicTag 2-5 · arrow 11-14 · consequence:# 14-16 · paren 16-19` |
 
 ### N9. Due dates (`by:YYYY-MM-DD`) and due words (`by:<word>`)
 
