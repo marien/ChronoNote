@@ -9,7 +9,7 @@
 //
 //   --before <ref>   Also capture the gallery of <ref> (in a temporary worktree) and review the pairs: findings are
 //                    then marked new or already there. Use the branch's base, e.g. --before main.
-//   --only <list>    Review only these variants (dark, light, german, dark-150, phone).
+//   --only <list>    Review only these variants (dark, light, german, dark-150, phone, marien, light-125).
 //   --model <name>   The model agy runs (default gemini-3.8-flash-high: separate budget, has image input).
 //   --skip-capture   Review the images already in test-results/visual/ (after a manual capture).
 //   --task <name>    The change this review belongs to, for the cost log (default: visual-review).
@@ -33,7 +33,7 @@ import { chromium } from "@playwright/test";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const OUT = path.join(ROOT, "test-results", "visual");
-const VARIANTS = ["dark", "light", "german", "dark-150", "phone"];
+const VARIANTS = ["dark", "light", "german", "dark-150", "phone", "marien", "light-125"];
 
 const args = process.argv.slice(2);
 const opt = (name) => {
@@ -134,11 +134,12 @@ Intended design, NOT defects:
 - "peek" shows the app reduced to one section of a note (normally a small always-on-top window); its background may be
   see-through-looking or solid.
 - The "phone" variant is a 390 px wide touch layout with a bottom app bar; "dark-150" is 150% display scaling;
-  "german" uses German labels, which are longer.
+  "light-125" is light theme at 125% scaling (1536x864); "marien" is dark theme, Dutch UI, 125% scaling (1536x864),
+  reduced motion; "german" uses German labels, which are longer.
 
 Report real problems only: text clipped or cut mid-word, text or controls overlapping, elements outside their container
 or off screen, broken alignment (e.g. a glyph not on the text line, a control misaligned with its row), illegible
-contrast, empty areas where content obviously failed to render, untranslated English in the German variant.`;
+contrast, empty areas where content obviously failed to render, untranslated English in the German or Dutch variant.`;
 
 /** Contact sheets: several labelled screenshots in one image. An agent that opens images one by one carries every
  * image it has seen into each next step, so cost grows with the square of the count (11 phone screenshots: 320k
