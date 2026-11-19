@@ -42,4 +42,13 @@ others, and come back with a findings page like the editor review (decisions per
 - 2026-11-19: Marien uses the dark theme: the `marien` variant is dark, Dutch, 125 %, reduced motion.
 - Phone: not answered yet; default, the model pass covers all phone screens and I look at the ones it flags plus the
   editor and the main dialogs (about 8).
-- Step 1 brief: `docs/briefs/wave-4/U5a-extend-gallery.md`.
+- Step 1 brief: `docs/briefs/wave-4/U5a-extend-gallery.md`. Done 2026-11-19: 30 states x 7 variants, 203 images.
+
+## Leads noted while capturing (U5a, to check in my pass)
+
+- Dark themes: the "Your name in minutes" input in Settings, Notes & Sync, has a white background.
+- The Actions shortcut (`Ctrl+Shift+A` as Playwright sends it) left the whole note selected behind the Actions pane
+  in several variants: check whether that happens in the app or only in the test's key event.
+- Phone, person view: a long "last mentions" row is clipped at the right edge without an ellipsis.
+- Phone, rename preview: a setext underline in the diff wraps its last `=` onto a line of its own.
+- Phone, calendar review: a tall empty area between the removed-meeting controls and the footer.
