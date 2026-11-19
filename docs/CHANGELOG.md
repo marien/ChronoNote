@@ -540,3 +540,7 @@ line, and this index is regenerated with `node scripts/changelog-index.mjs`.
 - §515 Security findings of 2026-11-18: the audit's advisory lookup, and two CodeQL patterns
 - §516 Tests for the first mutation gaps (M1, M2)
 - §517 Four list-paste fixes (M3)
+- §518 The token rules as tables that run (T1d)
+- §519 Tests for the calendar sync and paste-over-marker gaps (M5)
+- §520 A hand-typed `[canceled]` counts as cancelled in any case
+- §521 Tests for the numbered-list key gaps (M4)
