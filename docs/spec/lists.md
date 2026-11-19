@@ -73,6 +73,16 @@ Pressing `Tab` on a non-first numbered item indents it to the nearest preceding 
 | `1. a↵‸2. b↵3. c` | Tab | `1. a↵‸   1. b↵2. c` |
 | `1. a↵   1.1. b↵2. c↵   1. d‸` | Tab | `1. a↵   1.1. b↵2. c↵     1. d‸` |
 | `1. a↵2. b‸` | Tab, Tab | `1. a↵     1. b‸` |
+| `intro↵↵1. a↵2. b‸` | Tab | `intro↵↵1. a↵   1. b‸` |
+| `1. a↵   1. x↵- sub‸` | Tab | `1. a↵   1. x↵   - sub‸` |
+| `1. a↵   1) x↵2. b‸` | Tab | `1. a↵   1) x↵   1. b‸` |
+| `1. a↵- bullet↵2. b‸↵3. c` | Tab | `1. a↵- bullet↵  1. b‸↵2. c` |
+| `  ! - bullet↵1. a↵  1. b‸` | Tab | `  ! - bullet↵1. a↵    1. b‸` |
+| `- bullet↵  - sub↵1. a‸` | Tab | `- bullet↵  - sub↵  1. a‸` |
+| `1. a↵   1. b‸↵2. c` | Tab | `1. a↵     1. b‸↵2. c` |
+| `1. a‸↵   1.1. sub1↵   1.2. sub2` | Tab | `  1. a‸↵     1.1. sub1↵     1.2. sub2` |
+| `! - bullet↵  - sub↵1. a‸` | Tab | `! - bullet↵  - sub↵    1. a‸` |
+| `1. a↵     1. x↵2. b‸` | Tab | `1. a↵     1. x↵   1. b‸` |
 
 ### L6. Tab adopts dotted numbering when the block already uses dotted sub-items
 
@@ -87,6 +97,13 @@ When another item in the same list block with a numbered parent and the same del
 | `1. a↵   1.1. x↵2. b↵3. c‸d↵   3.1. e` | Tab | `1. a↵   1.1. x↵2. b↵   2.1. c‸d↵   2.2. e` |
 | `1. a↵   1.1. x↵↵1. b↵2. c‸` | Tab | `1. a↵   1.1. x↵↵1. b↵   1. c‸` |
 | `1. a↵   1.1. x↵1) p↵2) q‸` | Tab | `1. a↵   1.1. x↵1) p↵   1) q‸` |
+| `intro↵↵1. a↵   1.1. sub↵2. b‸` | Tab | `intro↵↵1. a↵   1.1. sub↵   1.2. b‸` |
+| `1. a↵   1.1. sub1↵   1. sub2↵2. x↵3. b‸` | Tab | `1. a↵   1.1. sub1↵   1.2. sub2↵2. x↵   2.1. b‸` |
+| `1. a↵   1. sub↵2. x↵3. b‸` | Tab | `1. a↵   1. sub↵2. x↵   1. b‸` |
+| `1.1. x↵1. a↵2. b‸` | Tab | `1.1. x↵1. a↵   1. b‸` |
+| `1. a↵   1.1. x↵2. b↵3. c↵4. d↵5. e↵6. f↵7. g↵8. h↵9. i↵10. j↵   - sub↵11. k‸` | Tab | `1. a↵   1.1. x↵2. b↵3. c↵4. d↵5. e↵6. f↵7. g↵8. h↵9. i↵10. j↵   - sub↵    1. k‸` |
+| `- bullet↵  1.1. a↵  1.2. b‸` | Tab | `- bullet↵  1.1. a↵       1.1.1. b‸` |
+| `10.1. a↵   - sub↵10.2. b‸` | Tab | `10.1. a↵   - sub↵      10.1. b‸` |
 
 ### L7. Tab on the first item of a group shifts the whole group without renumbering
 
@@ -102,6 +119,7 @@ Pressing `Tab` on the first item of a group moves the whole group and its subtre
 | `  - bullet↵1. item‸` | Tab | `  - bullet↵  1. item‸` |
 | `⇥- bullet↵1. item‸` | Tab | `⇥- bullet↵  1. item‸` |
 | `1. abc‸d↵2. e` | Tab | `  1. abc‸d↵  2. e` |
+| `1. a‸↵   1. sub↵2. b` | Tab | `  1. a‸↵     1. sub↵  2. b` |
 
 ### L8. Shift-Tab outdents a sub-item to its parent or shifts an indented group back
 
@@ -116,6 +134,20 @@ Pressing `Shift-Tab` outdents a sub-item to its parent's indent to continue the 
 | `  1. a‸↵  2. b` | Shift-Tab | `1. a‸↵2. b` |
 | `  4) a‸↵     4.1) sub↵  5) b` | Shift-Tab | `4) a‸↵   4.1) sub↵5) b` |
 | `1. a‸↵2. b` | Shift-Tab | `1. a‸↵2. b` |
+| `   1. a↵   2. b‸` | Shift-Tab | `   1. a↵ 1. b‸` |
+| ` 1. a‸↵ 2. b↵   2.1. sub` | Shift-Tab | `1. a‸↵2. b↵  2.1. sub` |
+| `  4. a↵  5. b‸↵    4. sub` | Shift-Tab | `  4. a↵1. b‸↵    1. sub` |
+| `  1. a‸↵  1.1. b↵  1) other` | Shift-Tab | `1. a‸↵1.1. b↵  1) other` |
+| `1. a↵   4. b‸↵   5. c↵2. d` | Shift-Tab | `1. a↵2. b‸↵   1. c↵3. d` |
+| `4. a↵5. b↵   4. c‸↵   5. d` | Shift-Tab | `4. a↵5. b↵6. c‸↵   1. d` |
+| `- a↵  1.1. b‸` | Shift-Tab | `- a↵1.1. b‸` |
+| `1. a↵   1.1) b‸` | Shift-Tab | `1. a↵1.1) b‸` |
+| `1.1. a↵   1. b‸` | Shift-Tab | `1.1. a↵1. b‸` |
+| `1.1. a↵   1.1.1. b‸` | Shift-Tab | `1.1. a↵1.2. b‸` |
+| `  1. a‸↵  1.1. b↵  - other` | Shift-Tab | `1. a‸↵1.1. b↵  - other` |
+| `  1. a‸↵  1.1. b↵  1.1) other` | Shift-Tab | `1. a‸↵1.1. b↵  1.1.1) other` |
+| `  1.1. a‸↵  1.2. b↵  1. c` | Shift-Tab | `1.1. a‸↵1.2. b↵  1. c` |
+| `1. a↵   - b‸` | Shift-Tab | `1. a↵- b‸` |
 
 ### L9. Tab and Shift-Tab on a selection move the selected lines together
 
@@ -131,6 +163,24 @@ With a multi-line selection (excluding a trailing line whose selection ends at c
 | `1. a↵«   4. b↵   5. c»↵   6. d` | Shift-Tab | `1. a↵«2. b↵3. c»↵   1. d` |
 | `1. a↵«   1.1. b↵   1.2. c»↵   1.3. d` | Shift-Tab | `1. a↵«2. b↵3. c»↵   3.1. d` |
 | `1. a↵   1.1. b↵«      1.1.1. c↵      1.1.2. d»↵      1.1.3. e` | Shift-Tab | `1. a↵   1.1. b↵«   1.2. c↵   1.3. d»↵      1.3.1. e` |
+| `1. a↵«   cont↵2. b»` | Tab | `1. a↵«      cont↵   1. b»` |
+| `1. a↵«cont1↵cont2»` | Tab | `1. a↵  «cont1↵  cont2»` |
+| `1. a↵   1. b↵«   2. c↵   3. d»` | Tab | `1. a↵   1. b↵«      1. c↵      2. d»` |
+| `1. a↵«   1. x↵2. b»` | Tab | `1. a↵«     1. x↵  1. b»` |
+| `4. a↵«5. b↵6. c»` | Tab | `4. a↵«   1. b↵   2. c»` |
+| `1. a↵«2. b↵3. c»↵4. d↵   4.1. e` | Tab | `1. a↵«   1.1. b↵   1.2. c»↵2. d↵   2.1. e` |
+| `1. a↵   - b↵   1.1. x↵«2. c↵3. d»` | Tab | `1. a↵   - b↵   1.1. x↵   1.«2. c↵   1.3. d»` |
+| `1) a↵   1.1) x↵1. p↵«2. q↵3. r»` | Tab | `1) a↵   1.1) x↵1. p↵«   1. q↵   2. r»` |
+| `- bullet↵  1.1. x↵1. a↵«2. b↵3. c»` | Tab | `- bullet↵  1.1. x↵1. a↵«   1. b↵   2. c»` |
+| `«   1. a↵   2. b»` | Shift-Tab | `« 1. a↵ 2. b»` |
+| `4. a↵«   1. b↵   2. c»` | Shift-Tab | `4. a↵«5. b↵6. c»` |
+| `1.1. a↵«   1.1.1. b↵   1.1.2. c»` | Shift-Tab | `1.1. a↵«1.2. b↵1.3. c»` |
+| `- a↵«  1.1. b↵  1.2. c»` | Shift-Tab | `- a↵«1.1. b↵1.2. c»` |
+| `1. a↵«   1.1. b↵   - note»` | Shift-Tab | `1. a↵«2. b↵- note»` |
+| `1. a↵«   1.1. b↵      1.1.1. c»` | Shift-Tab | `1. a↵«2. b↵   2.1. c»` |
+| `1. a↵«   1.1. b↵   1.1) c»` | Shift-Tab | `1. a↵«2. b↵1.1) c»` |
+| `1.1. a↵«   1.1.1. b↵   1. c»` | Shift-Tab | `1.1. a↵«1.2. b↵1. c»` |
+| `1. a↵«2. b↵3. c»↵   4) d` | Tab | `1. a↵«   1. b↵   2. c»↵   4) d` |
 
 ### L10. Backspace on an empty sub-item under a numbered parent promotes it
 
@@ -146,6 +196,11 @@ Pressing `Backspace` on an empty sub-item (numbered or bullet) whose parent is n
 | `- a↵  1. ‸` | Backspace | `- a↵  ‸` |
 | `1. ‸` | Backspace | `‸` |
 | `1. a↵2. ‸` | Backspace | `1. a↵   ‸` |
+| `intro↵↵1. a↵   1. ‸` | Backspace | `intro↵↵1. a↵2. ‸` |
+| `1. a↵   4. ‸↵   5. b` | Backspace | `1. a↵2. ‸↵   1. b` |
+| `1. a↵   1. ‸ ` | Backspace | `1. a↵   1.‸ ` |
+| `1. a↵   -‸` | Backspace | `1. a↵   ‸` |
+| `1. a↵   # -‸` | Backspace | `1. a↵   # ‸` |
 
 ### L11. Backspace at text start converts the marker to continuation spaces, and a second Backspace outdents
 
@@ -176,6 +231,9 @@ Pressing `Enter` on an empty sub-item under a numbered parent promotes it to the
 | `- a↵  1. ‸` | Enter | `- a↵‸` |
 | `1. a↵2. ‸↵3. b` | Enter | `1. a↵‸↵1. b` |
 | `4. a↵5. ‸↵6. c` | Enter | `4. a↵‸↵1. c` |
+| `intro↵↵1. a↵   1. ‸` | Enter | `intro↵↵1. a↵2. ‸` |
+| `intro↵↵1. a↵2. ‸↵3. b` | Enter | `intro↵↵1. a↵‸↵1. b` |
+| `1. a↵   4. ‸↵   5. b` | Enter | `1. a↵2. ‸↵   1. b` |
 
 ### L13. Renumbering keeps groups consecutive on split, join, and deletion
 
@@ -191,6 +249,20 @@ Renumbering keeps groups consecutive (splitting keeps the first part's start and
 | `1. a‸↵3. b` | Enter | `1. a↵2. ‸↵3. b` |
 | `1. a↵   25‸↵3. c` | Backspace | `1. a↵   2‸↵3. c` |
 | `1. a↵23‸. b↵4. c` | Backspace | `1. a↵2‸. b↵4. c` |
+| `1. a‸↵3. c` | paste "↵" | `1. a↵‸↵1. c` |
+| `1. a‸↵↵4. x↵6. y` | paste "↵2. b" | `1. a↵2. b‸↵↵4. x↵6. y` |
+| `intro↵↵«4. a↵»5. b↵6. c` | Backspace | `intro↵↵‸4. b↵5. c` |
+| `one↵two↵three↵↵«4. a↵»5. b↵6. c` | Backspace | `one↵two↵three↵↵‸4. b↵5. c` |
+| `intro↵↵1‸2. twelve` | Enter | `intro↵↵1↵‸2. twelve` |
+| `1. a↵   1. b↵   ‸2. c` | Enter | `1. a↵   1. b↵   ↵‸1. c` |
+| `1. a↵2.‸ b↵3. c` | Enter | `1. a↵2.↵‸ b↵1. c` |
+| `1. a↵2«3. b↵»4. c` | Backspace | `1. a↵2‸. c` |
+| `1. a↵   «x»↵2. b` | Backspace | `1. a↵   ‸↵1. b` |
+| `1. a↵   «25»↵2. c` | paste " " | `1. a↵    ‸↵1. c` |
+| `1. a↵«x»↵2. c` | paste "5. mid" | `1. a↵2. mid‸↵3. c` |
+| `1. a↵«2. b»↵3. c` | paste "note" | `1. a↵note‸↵1. c` |
+| `4. a↵«5. b»↵6. c` | paste "x" | `4. a↵x‸↵1. c` |
+| `1. a↵   «x»↵3. c` | paste "y" | `1. a↵   y‸↵3. c` |
 
 ### L14. Width changes between one and two digits shift sub-items and continuation lines
 
@@ -216,6 +288,8 @@ On a continuation line, a line whose number was removed, or plain text directly 
 | `1. a↵   - x↵   b‸↵2. c` | Shift-Tab | `1. a↵   - x↵b‸↵1. c` |
 | `1. a↵note‸↵1. b` | Tab | `1. a↵   note‸↵2. b` |
 | `4) a↵text‸↵1) b↵2) c` | Tab | `4) a↵   text‸↵5) b↵6) c` |
+| `intro↵↵1. a↵cont‸` | Tab | `intro↵↵1. a↵   cont‸` |
+| `intro↵↵1. a↵ ‸b` | Tab | `intro↵↵1. a↵   ‸b` |
 
 ### L16. A bullet and a numbered item are exclusive per line
 
@@ -259,6 +333,37 @@ When a block contains at least one flat sub-item, `Tab` deepens a non-first item
 | `1. a↵1.1. b↵2. «c↵3. d»↵4. e` | Tab | `1. a↵1.1. b↵1.2. «c↵1.3. d»↵2. e` |
 | `1. a↵1.1. b↵«1.2. c↵1.3. d»↵1.4. e↵2. f` | Shift-Tab | `1. a↵1.1. b↵«2. c↵3. d»↵3.1. e↵4. f` |
 | `1. a↵1.1. b↵1) c‸` | Tab | `1. a↵1.1. b↵1) c‸` |
+| `intro↵↵1. a↵1.1. b↵2. c‸` | Tab | `intro↵↵1. a↵1.1. b↵1.2. c‸` |
+| `  1. a↵  1.1. b↵1. x↵  2. c‸` | Tab | `  1. a↵  1.1. b↵1. x↵  2. c‸` |
+| `1. a↵1.1. b↵   1. sub↵2. c‸` | Tab | `1. a↵1.1. b↵   1. sub↵1.2. c‸` |
+| `1. a↵1.1. b↵- note↵2. c‸` | Tab | `1. a↵1.1. b↵- note↵1.2. c‸` |
+| `1. a↵1.1. b↵1.1.1. x↵1.2. c↵1.2.1. d‸` | Tab | `1. a↵1.1. b↵1.1.1. x↵1.2. c↵1.2.1. d‸` |
+| `1. a↵1.1. b↵1.2. c‸↵   1. sub↵   - note↵1.3. d` | Tab | `1. a↵1.1. b↵1.1.1. c‸↵   1. sub↵   - note↵1.2. d` |
+| `9. a↵9.1. b↵10. c‸↵    sub` | Tab | `9. a↵9.1. b↵9.2. c‸↵    sub` |
+| `1. a↵1.1. b↵«2. c↵3. d»↵↵1. next` | Tab | `1. a↵1.1. b↵1.«2. c↵1.3. d»↵↵1. next` |
+| `1. a↵1.1. b↵«- note↵2. c»` | Tab | `1. a↵1.1. b↵     «- note↵     1. c»` |
+| `1. a↵1.1. b↵«2. c↵- note»` | Tab | `1. a↵1.1. b↵«     1. c↵     - note»` |
+| `1. a↵1.1. b↵«2. c↵   3. d»` | Tab | `1. a↵1.1. b↵«     1. c↵        1. d»` |
+| `1. a↵1.1. b↵«2. c↵1) d»` | Tab | `1. a↵1.1. b↵«     1. c↵     1) d»` |
+| `1. a↵1.1. b↵«1.2. c↵2. d»` | Tab | `1. a↵1.1. b↵«     1.1.1. c↵     1.1.2. d»` |
+| `1. a↵1.1. b↵   1. c‸` | Shift-Tab | `1. a↵1.1. b↵2. c‸` |
+| `1. a↵1.1. b‸↵   1. sub↵   - note↵1.2. c` | Shift-Tab | `1. a↵2. b‸↵   1. sub↵   - note↵2.1. c` |
+| `1. a↵1.4. b‸↵1.5. c` | Shift-Tab | `1. a↵2. b‸↵2.1. c` |
+| `1. a↵1.1. b‸↵2. c↵2.4. d` | Shift-Tab | `1. a↵2. b‸↵3. c↵3.4. d` |
+| `4. a↵4.1. b↵4.2. c‸↵4.3. d` | Shift-Tab | `4. a↵4.1. b↵5. c‸↵5.1. d` |
+| `1. a↵1.1. b↵1.‸2. c` | Tab | `1. a↵1.1. b↵1.‸1.1. c` |
+| `  1. a↵  1.1. b↵  1.2. c‸↵    cont↵  1.2.1. sub↵  1.3. d` | Tab | `  1. a↵  1.1. b↵  1.1.1. c‸↵    cont↵  1.1.1.1. sub↵  1.2. d` |
+| `  1. a↵  1.1. b↵  1.2. c‸↵1. x↵  1.1.1. y` | Tab | `  1. a↵  1.1. b↵  1.1.1. c‸↵1. x↵  1.1. y` |
+| `1. a↵1.1. b↵1.2. c‸↵1) other↵1.2.1. sub` | Tab | `1. a↵1.1. b↵1.1.1. c‸↵1) other↵1.1.1.1. sub` |
+| `1. old↵x↵1. a↵«1.1. b↵1.2. c↵1.3. d↵1.4. e»` | Shift-Tab | `1. old↵x↵1. a↵«2. b↵3. c↵4. d↵5. e»` |
+| `1. a↵1.1. b↵2. c↵   1. sub↵3. d‸` | Tab | `1. a↵1.1. b↵2. c↵   1. sub↵2.1. d‸` |
+| `  1. a↵  1.1. b↵  1.2. c‸↵- x↵  4.1.1. y` | Tab | `  1. a↵  1.1. b↵  1.1.1. c‸↵- x↵  4.1.1. y` |
+| `1. a↵1.1. b↵1.2. c‸↵   1. sub↵1.2.1. child↵1.3. d` | Tab | `1. a↵1.1. b↵1.1.1. c‸↵   1. sub↵1.1.1.1. child↵1.2. d` |
+| `1. a↵1.1. b↵1.2. c‸↵   1.1. sub↵1.3. d` | Tab | `1. a↵1.1. b↵1.1.1. c‸↵   1.1.1.1. sub↵1.2. d` |
+| `1. a↵1.1. b↵2. c‸↵   1. sub↵3. d` | Tab | `1. a↵1.1. b↵1.2. c‸↵   1. sub↵2. d` |
+| `1. a↵1.1. b↵1.2. c‸↵1.1) other↵1.3. d` | Tab | `1. a↵1.1. b↵1.1.1. c‸↵1.1) other↵1.2. d` |
+| `1. a↵1.1. b‸↵   1.1. sub↵1.2. c` | Shift-Tab | `1. a↵2. b‸↵   2.1. sub↵2.1. c` |
+| `1. a↵1.1. b‸↵1.1) other↵1.2. c` | Shift-Tab | `1. a↵2. b‸↵1.1) other↵2.1. c` |
 
 ### L19. Deleting a flat sub-item's parent keeps the sub-item's prefix
 
