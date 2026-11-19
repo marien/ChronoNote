@@ -37,7 +37,9 @@ others, and come back with a findings page like the editor review (decisions per
   starts after the weekly reset (2026-11-20, 01:00) and after X1/X2 are merged, so the screens show them.
 - Step 1 can start as soon as X1/X2 are done (it captures the app as it then is).
 
-## Open questions for Marien
+## Decisions
 
-- Which theme do you use day to day (light, dark, or following Windows)? That becomes the `marien` variant.
-- Phone: include it in my own pass (about 27 more images), or leave the phone to the model pass?
+- 2026-11-19: Marien uses the dark theme: the `marien` variant is dark, Dutch, 125 %, reduced motion.
+- Phone: not answered yet; default, the model pass covers all phone screens and I look at the ones it flags plus the
+  editor and the main dialogs (about 8).
+- Step 1 brief: `docs/briefs/wave-4/U5a-extend-gallery.md`.
