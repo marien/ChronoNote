@@ -27,7 +27,7 @@ import {
   withFromLink,
   withToLink,
 } from "./paste";
-import { currentDateISO, tabs } from "./stores";
+import { currentDateISO, languageMode, tabs, toastMessage } from "./stores";
 import type { NoteTab } from "./types";
 
 function tab(id: string, filename: string, content: string, isScratchpad = false): NoteTab {
@@ -90,6 +90,8 @@ describe("paste-forward state and edge rules", () => {
   beforeEach(() => {
     apiMock.writeNote.mockClear();
     currentDateISO.set("2026-09-15");
+    languageMode.set("en");
+    toastMessage.set("");
     tabs.set([]);
     setPendingPasteFrom(null);
     vi.useFakeTimers();
@@ -100,6 +102,8 @@ describe("paste-forward state and edge rules", () => {
     vi.useRealTimers();
     notifyTabClosed("src");
     notifyTabClosed("today");
+    languageMode.set("system");
+    toastMessage.set("");
     setPendingPasteFrom(null);
   });
 
@@ -223,5 +227,153 @@ describe("paste-forward state and edge rules", () => {
 
     onEditorRedo("today", "", "# task (<2026-08-01#Standup)");
     expect(get(tabs)[0].content).toBe("Standup\n=======\nmore prep\n> task (>2026-09-15)\n");
+  });
+
+  it("ignores undo and redo when no link exists, when already in that state, in another tab, or on unrelated redos", () => {
+    tabs.set([
+      tab("other", "2026-08-02.txt", "# unrelated"),
+      tab("today", "2026-09-15.txt", ""),
+      tab("src", "2026-08-01.txt", "# task"),
+    ]);
+
+    // No link yet: neither should throw or change anything.
+    onEditorUndo("today", "# task", "");
+    onEditorRedo("today", "", "# task");
+    expect(get(tabs)[2].content).toBe("# task");
+
+    recordCopiedAction("# task", "src", 0);
+    handlePasteIntoTab("today", "# task");
+    expect(get(tabs)[2].content).toBe("> task (>2026-09-15)");
+
+    // Not reverted yet: redo is a no-op.
+    onEditorRedo("today", "", "# task (<2026-08-01)");
+    expect(get(tabs)[2].content).toBe("> task (>2026-09-15)");
+    expect(_pasteDeferLinkForTest()?.reverted).toBe(false);
+
+    // Undo finds src even when other tabs precede it in the store.
+    onEditorUndo("today", "# task (<2026-08-01)", "");
+    expect(get(tabs)[2].content).toBe("# task");
+    expect(_pasteDeferLinkForTest()?.reverted).toBe(true);
+
+    // Already reverted: a second undo is a no-op and keeps the link alive.
+    toastMessage.set("");
+    onEditorUndo("today", "# task (<2026-08-01)", "");
+    expect(get(toastMessage)).toBe("");
+    expect(_pasteDeferLinkForTest()?.reverted).toBe(true);
+
+    // Redo in a different tab or for an edit where the block was already present or stays absent is ignored.
+    onEditorRedo("other", "", "# task (<2026-08-01)");
+    onEditorRedo("today", "# task (<2026-08-01)", "# task (<2026-08-01)\nextra");
+    onEditorRedo("today", "plain", "still plain");
+    expect(get(tabs)[2].content).toBe("# task");
+    expect(_pasteDeferLinkForTest()?.reverted).toBe(true);
+
+    // Valid redo finds src even after other tabs, and re-defers it.
+    onEditorRedo("today", "", "# task (<2026-08-01)");
+    expect(get(tabs)[2].content).toBe("> task (>2026-09-15)");
+    expect(_pasteDeferLinkForTest()?.reverted).toBe(false);
+
+    // Undo again, then hand-edit src so openBlock is gone before redo: link is dropped.
+    onEditorUndo("today", "# task (<2026-08-01)", "");
+    tabs.set([
+      tab("other", "2026-08-02.txt", "# unrelated"),
+      tab("today", "2026-09-15.txt", ""),
+      tab("src", "2026-08-01.txt", "x task"),
+    ]);
+    onEditorRedo("today", "", "# task (<2026-08-01)");
+    expect(get(tabs)[2].content).toBe("x task");
+    expect(_pasteDeferLinkForTest()).toBeNull();
+  });
+
+  it("uses sourceOffset on undo and redo to disambiguate identical action lines", () => {
+    const content = "# task\n# task";
+    tabs.set([
+      tab("src", "2026-08-01.txt", content),
+      tab("today", "2026-09-15.txt", ""),
+    ]);
+    recordCopiedAction("# task", "src", 7);
+    handlePasteIntoTab("today", "# task");
+    expect(get(tabs)[0].content).toBe("# task\n> task (>2026-09-15)");
+
+    onEditorUndo("today", "# task (<2026-08-01)", "");
+    expect(get(tabs)[0].content).toBe("# task\n# task");
+
+    onEditorRedo("today", "", "# task (<2026-08-01)");
+    expect(get(tabs)[0].content).toBe("# task\n> task (>2026-09-15)");
+
+    // When an earlier identical deferred line exists, undo flips only the one at sourceOffset.
+    const alreadyDeferred = "> task (>2026-09-15)\n# task";
+    const secondOffset = alreadyDeferred.indexOf("# task");
+    tabs.set([
+      tab("src", "2026-08-01.txt", alreadyDeferred),
+      tab("today", "2026-09-15.txt", ""),
+    ]);
+    recordCopiedAction("# task", "src", secondOffset);
+    handlePasteIntoTab("today", "# task");
+    expect(get(tabs)[0].content).toBe("> task (>2026-09-15)\n> task (>2026-09-15)");
+
+    onEditorUndo("today", "# task (<2026-08-01)", "");
+    expect(get(tabs)[0].content).toBe("> task (>2026-09-15)\n# task");
+  });
+
+  it("shows count/filename toasts and matches multi-line pasted blocks on undo and redo", () => {
+    tabs.set([
+      tab("src", "2026-08-01.txt", "# one\n# two"),
+      tab("today", "2026-09-15.txt", ""),
+    ]);
+    recordCopiedAction("# one\n# two", "src", 0);
+    handlePasteIntoTab("today", "# one\n# two");
+    expect(get(toastMessage)).toBe("2 original tasks on 2026-08-01.txt marked deferred");
+    expect(get(tabs)[0].content).toBe("> one (>2026-09-15)\n> two (>2026-09-15)");
+
+    onEditorUndo("today", "# one (<2026-08-01)\n# two (<2026-08-01)", "");
+    expect(get(toastMessage)).toBe("2 deferred tasks on 2026-08-01.txt restored to open");
+    expect(get(tabs)[0].content).toBe("# one\n# two");
+
+    onEditorRedo("today", "", "# one (<2026-08-01)\n# two (<2026-08-01)");
+    expect(get(toastMessage)).toBe("2 tasks on 2026-08-01.txt deferred again");
+    expect(get(tabs)[0].content).toBe("> one (>2026-09-15)\n> two (>2026-09-15)");
+  });
+
+  it("uses next-line lookahead (not previous line) when building multi-line pastedBlock", () => {
+    const copied = "=========\n# Heading";
+    tabs.set([
+      tab("src", "2026-08-01.txt", copied),
+      tab("today", "2026-09-15.txt", ""),
+    ]);
+    recordCopiedAction(copied, "src", 0);
+    handlePasteIntoTab("today", copied);
+    expect(_pasteDeferLinkForTest()?.pastedBlock).toBe("=========\n# Heading (<2026-08-01)");
+  });
+
+  it("reads source section from effectiveOffset and appends forward link when copy ends with a newline", () => {
+    const srcText = "First\n=====\n# other\n\nSecond\n======\n# task\nrest";
+    const offset = srcText.indexOf("# task");
+    tabs.set([
+      tab("src", "2026-08-01.txt", srcText),
+      tab("today", "2026-09-15.txt", ""),
+    ]);
+    recordCopiedAction("# task\n", "src", offset);
+    const fromSuffixes = handlePasteIntoTab("today", "# task\n");
+    expect(fromSuffixes).toEqual([" (<2026-08-01#Second)", ""]);
+    expect(get(tabs)[0].content).toBe("First\n=====\n# other\n\nSecond\n======\n> task (>2026-09-15)\nrest");
+  });
+
+  it("rewrites locale due-date words (today/tomorrow) in pastedBlock and matches them on redo", () => {
+    languageMode.set("nl");
+    tabs.set([
+      tab("src", "2026-08-01.txt", "# task by:vandaag\n# next by:morgen"),
+      tab("today", "2026-09-15.txt", ""),
+    ]);
+    recordCopiedAction("# task by:vandaag\n# next by:morgen", "src", 0);
+    handlePasteIntoTab("today", "# task by:vandaag\n# next by:morgen");
+    const expectedPasted = "# task by:2026-09-15 (<2026-08-01)\n# next by:2026-09-16 (<2026-08-01)";
+    expect(_pasteDeferLinkForTest()?.pastedBlock).toBe(expectedPasted);
+
+    onEditorUndo("today", expectedPasted, "");
+    expect(get(tabs)[0].content).toBe("# task by:vandaag\n# next by:morgen");
+
+    onEditorRedo("today", "", expectedPasted);
+    expect(get(tabs)[0].content).toBe("> task by:vandaag (>2026-09-15)\n> next by:morgen (>2026-09-15)");
   });
 });

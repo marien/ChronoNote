@@ -29,9 +29,11 @@ const apiMock = vi.hoisted(() => ({
   writePhoneOutbox: vi.fn(async (_content: string) => {}),
   setPhoneCompanion: vi.fn(async (_on: boolean) => ({})),
   saveScratchpadDrafts: vi.fn(async (_drafts: Record<string, string>) => {}), // flushAllPendingSaves saves drafts too
+  appendLog: vi.fn(async (_level: string, _msg: string) => {}),
 }));
 vi.mock("./tauriApi", () => apiMock);
 
+import { scheduleSave } from "./persistence";
 import { phoneCompanionEnabled, resetPhoneCompanionForTests } from "./phoneCompanion";
 import {
   phoneConflicts,
@@ -679,6 +681,367 @@ describe("processPhoneInbox", () => {
       expect(await phoneConflictNote("2099-01-01")).toBe("");
       apiMock.readNoteWithMetadata.mockRejectedValueOnce(new Error("read failed"));
       expect(await phoneConflictNote(TODAY)).toBe("");
+    });
+  });
+
+  describe("data safety and edge rules", () => {
+    it("saves the ledger with a trailing newline and omits reason on applied entries", async () => {
+      disk.inbox = inboxOf([addLine("r1", "o x")]);
+      const run = await processPhoneInbox();
+      expect(disk.ledger?.endsWith("\n")).toBe(true);
+      expect(run!.applied).toHaveLength(1);
+      expect("reason" in run!.applied[0]).toBe(false);
+    });
+
+    it("emits one outbox result per distinct request id when an id is repeated in the inbox", async () => {
+      disk.inbox = inboxOf([addLine("r1", "o x"), addLine("r1", "o y")]);
+      const run = await processPhoneInbox();
+      expect(run!.applied.map((e) => e.request.id)).toEqual(["r1"]);
+      expect(lastOutbox().results).toEqual([{ id: "r1", result: "applied", at: expect.any(String) }]);
+    });
+
+    it("skips requests with an empty string id silently without recording them in the ledger or outbox", async () => {
+      disk.inbox = inboxOf([{ id: "", type: "addLine", date: TODAY, text: "o bad" }, addLine("r1", "o ok")]);
+      const run = await processPhoneInbox();
+      expect(disk.files[NOTE]).not.toContain("o bad");
+      expect(disk.files[NOTE]).toContain("o ok");
+      expect(Object.keys(ledger().handled)).toEqual(["r1"]);
+      expect(run!.rejected).toEqual([]);
+      expect(lastOutbox().results.map((r) => r.id)).toEqual(["r1"]);
+    });
+
+    it("sorts run results in inbox order when requests for multiple dates are interleaved", async () => {
+      disk.files["2026-10-31.txt"] = "Day\n\nStandup\n=======\n";
+      disk.inbox = inboxOf([
+        addLine("r1", "o first", { date: TODAY }),
+        addLine("r2", "o middle", { date: "2026-10-31" }),
+        addLine("r3", "o last", { date: TODAY }),
+      ]);
+      const run = await processPhoneInbox();
+      expect(run!.applied.map((e) => e.request.id)).toEqual(["r1", "r2", "r3"]);
+    });
+
+    it("calls readAgendaForDate only when a note's batch includes an addLine request", async () => {
+      disk.inbox = inboxOf([setState("s1", "# a", "done", { n: 5 })]);
+      await processPhoneInbox();
+      expect(apiMock.readAgendaForDate).not.toHaveBeenCalled();
+
+      disk.files[NOTE] = "A\n===\n# a\n\nC\n===\n# c\n";
+      apiMock.readAgendaForDate.mockResolvedValueOnce(["A", "B", "C"]);
+      disk.inbox = inboxOf([
+        setState("s2", "# a", "done", { section: "A", n: 3 }),
+        addLine("a1", "o x", { section: "B" }),
+      ]);
+      await processPhoneInbox();
+      expect(apiMock.readAgendaForDate).toHaveBeenCalledWith(TODAY);
+      expect(disk.files[NOTE]).toBe("A\n===\nv a\n\nB\n===\no x\n\nC\n===\n# c\n");
+    });
+
+    it("modifies only the matching open tab when other dated tabs are open, and skips writing when unchanged", async () => {
+      tabs.set([
+        { id: "t-other", filename: "2026-10-29.txt", isScratchpad: false, content: "Day\n\nStandup\n=======\n# other\n" },
+        { id: "t-today", filename: NOTE, isScratchpad: false, content: "Day\n\nStandup\n=======\nv a\n" },
+      ]);
+      disk.inbox = inboxOf([setState("s1", "# a", "done", { n: 5 })]);
+      const run = await processPhoneInbox();
+      expect(run!.applied).toHaveLength(1);
+      expect(apiMock.writeNote).not.toHaveBeenCalled();
+      expect(get(tabs)[0].content).toBe("Day\n\nStandup\n=======\n# other\n");
+
+      // Only the other date is open: request for TODAY goes to disk, leaving t-other untouched.
+      tabs.set([{ id: "t-other", filename: "2026-10-29.txt", isScratchpad: false, content: "other content\n" }]);
+      disk.inbox = inboxOf([addLine("r2", "o disk")]);
+      await processPhoneInbox();
+      expect(get(tabs)[0].content).toBe("other content\n");
+      expect(disk.files[NOTE]).toContain("o disk");
+    });
+
+    it("fails safely and leaves requests unhandled if an open tab closes while pending saves flush", async () => {
+      const tab = { id: "t1", filename: NOTE, isScratchpad: false, content: "Day\n\nStandup\n=======\n# a\n" };
+      tabs.set([tab]);
+      scheduleSave(tab);
+      apiMock.writeNote.mockImplementationOnce(async (name: string, content: string) => {
+        disk.files[name] = content;
+        tabs.set([]); // user closes the tab during the flush
+        return { exists: true, contentHash: null, sizeBytes: null, modifiedMs: null };
+      });
+      disk.inbox = inboxOf([addLine("r1", "o from phone")]);
+
+      const run = await processPhoneInbox();
+      expect(run!.applied).toEqual([]);
+      expect(disk.ledger === null || !("r1" in ledger().handled)).toBe(true);
+      expect(disk.files[NOTE]).not.toContain("o from phone");
+
+      // Next run applies it to disk after all.
+      await processPhoneInbox();
+      expect(disk.files[NOTE]).toContain("o from phone");
+      expect(ledger().handled.r1.result).toBe("applied");
+    });
+
+    it("logs warnings on note write failure and ledger save failure", async () => {
+      disk.inbox = inboxOf([addLine("r1", "o x")]);
+      apiMock.writeNote.mockRejectedValueOnce(new Error("disk full"));
+      await processPhoneInbox();
+      expect(apiMock.appendLog).toHaveBeenCalledWith("WARN", expect.stringContaining(`applying to ${NOTE} failed`));
+
+      apiMock.appendLog.mockClear();
+      apiMock.writePhoneLedger.mockRejectedValueOnce(new Error("ledger locked"));
+      await processPhoneInbox();
+      expect(apiMock.appendLog).toHaveBeenCalledWith("WARN", expect.stringContaining("saving the ledger failed"));
+    });
+
+    it("rebuilds the outbox with a fresh disk read after processPhoneInbox", async () => {
+      disk.inbox = inboxOf([addLine("r1", "o x")]);
+      await processPhoneInbox();
+      expect(apiMock.readNote).toHaveBeenCalledWith(NOTE);
+    });
+
+    it("retries on the next pollPhoneInbox when a note write failed", async () => {
+      disk.inbox = inboxOf([addLine("r1", "o retry")]);
+      apiMock.writeNote.mockRejectedValueOnce(new Error("disk full"));
+      await pollPhoneInbox();
+      expect(disk.files[NOTE]).not.toContain("o retry");
+
+      const retryRun = await pollPhoneInbox();
+      expect(retryRun).not.toBeNull();
+      expect(retryRun!.applied.map((e) => e.request.id)).toEqual(["r1"]);
+      expect(disk.files[NOTE]).toContain("o retry");
+    });
+
+    it("keeps held conflicts populated and skips unchanged broken, unreadable, or missing inboxes on poll", async () => {
+      disk.ledger = JSON.stringify({
+        format: 1,
+        handled: {
+          c1: { result: "conflict", reason: "lineChanged", at: "2026-10-30T09:00:00+01:00", request: setState("c1", "# gone", "done") },
+        },
+      });
+
+      // Missing inbox: populates held conflicts without logging a warning, and polls once until changed.
+      disk.inbox = null;
+      await pollPhoneInbox();
+      expect(get(phoneConflicts).map((e) => e.request.id)).toEqual(["c1"]);
+      expect(apiMock.appendLog).not.toHaveBeenCalled();
+      expect(await pollPhoneInbox()).toBeNull();
+
+      // Broken inbox: logs one warning for the broken streak, skips unchanged polls.
+      disk.inbox = "{ bad json";
+      await pollPhoneInbox();
+      expect(get(phoneConflicts).map((e) => e.request.id)).toEqual(["c1"]);
+      expect(apiMock.appendLog).toHaveBeenCalledTimes(1);
+      expect(apiMock.appendLog).toHaveBeenLastCalledWith("WARN", expect.stringContaining("not a valid inbox file"));
+      expect(await pollPhoneInbox()).toBeNull();
+
+      // Different broken text: runs (new key) but does not repeat the warning while still broken.
+      disk.inbox = "[]";
+      await pollPhoneInbox();
+      expect(apiMock.appendLog).toHaveBeenCalledTimes(1);
+
+      // Valid inbox resets warnedBroken; a subsequent unreadable inbox logs again.
+      disk.inbox = inboxOf([addLine("r1", "o ok")]);
+      await pollPhoneInbox();
+      expect(disk.files[NOTE]).toContain("o ok");
+
+      // Unreadable inbox: logs the read error once and skips polling while the same error repeats.
+      try {
+        apiMock.readPhoneInbox.mockRejectedValue(new Error("inbox too large"));
+        await pollPhoneInbox();
+        expect(apiMock.appendLog).toHaveBeenCalledTimes(2);
+        expect(apiMock.appendLog).toHaveBeenLastCalledWith("WARN", expect.stringContaining("inbox too large"));
+
+        expect(await pollPhoneInbox()).toBeNull();
+
+        apiMock.readPhoneInbox.mockRejectedValue(new Error("permission denied"));
+        expect(await pollPhoneInbox()).not.toBeNull();
+        expect(apiMock.appendLog).toHaveBeenCalledTimes(2); // still in the same broken streak
+
+        // Valid inbox resets warnedBroken again; a subsequent broken inbox logs.
+        apiMock.readPhoneInbox.mockImplementation(async () => disk.inbox);
+        disk.inbox = inboxOf([addLine("r1", "o ok"), addLine("r2", "o ok2")]);
+        await pollPhoneInbox();
+
+        disk.inbox = "{ broken again";
+        await pollPhoneInbox();
+        expect(apiMock.appendLog).toHaveBeenCalledTimes(3);
+        expect(await pollPhoneInbox()).toBeNull();
+      } finally {
+        apiMock.readPhoneInbox.mockImplementation(async () => disk.inbox);
+      }
+    });
+
+    it("queues one rerun while in progress and skips the rerun if phone companion turns off mid-run", async () => {
+      let releaseRead!: (v: string | null) => void;
+      let markReadStarted!: () => void;
+      const readStarted = new Promise<void>((r) => {
+        markReadStarted = r;
+      });
+      apiMock.readPhoneInbox.mockImplementationOnce(
+        () =>
+          new Promise<string | null>((resolve) => {
+            releaseRead = resolve;
+            markReadStarted();
+          }),
+      );
+
+      const first = processPhoneInbox();
+      await readStarted;
+      disk.inbox = inboxOf([addLine("r1", "o first"), addLine("r2", "o second")]);
+      const second = processPhoneInbox();
+      releaseRead(inboxOf([addLine("r1", "o first")]));
+
+      const [rFirst, rSecond] = await Promise.all([first, second]);
+      expect(rFirst!.applied.map((e) => e.request.id)).toEqual(["r2"]);
+      expect(rSecond).toEqual(rFirst);
+      expect(disk.files[NOTE]).toContain("o first");
+      expect(disk.files[NOTE]).toContain("o second");
+
+      // Turning off phone companion mid-run cancels the pending rerun.
+      let releaseSecondRead!: (v: string | null) => void;
+      let markSecondStarted!: () => void;
+      const secondStarted = new Promise<void>((r) => {
+        markSecondStarted = r;
+      });
+      apiMock.readPhoneInbox.mockImplementationOnce(
+        () =>
+          new Promise<string | null>((resolve) => {
+            releaseSecondRead = resolve;
+            markSecondStarted();
+          }),
+      );
+      const runA = processPhoneInbox();
+      await secondStarted;
+      disk.inbox = inboxOf([addLine("r1", "o first"), addLine("r2", "o second"), addLine("r3", "o skipped")]);
+      processPhoneInbox();
+      phoneCompanionEnabled.set(false);
+      releaseSecondRead(inboxOf([addLine("r1", "o first"), addLine("r2", "o second")]));
+      await runA;
+      expect(disk.files[NOTE]).not.toContain("o skipped");
+    });
+
+    it("resetPhoneInboxForTests clears phoneInboxRun, phoneConflicts and broken-warning state", async () => {
+      disk.inbox = inboxOf([setState("c1", "# missing", "done")]);
+      await processPhoneInbox();
+      expect(get(phoneInboxRun)).not.toBeNull();
+      expect(get(phoneConflicts)).toHaveLength(1);
+
+      disk.inbox = "{ broken";
+      await processPhoneInbox();
+      expect(apiMock.appendLog).toHaveBeenCalledTimes(1);
+
+      resetPhoneInboxForTests();
+      expect(get(phoneInboxRun)).toBeNull();
+      expect(get(phoneConflicts)).toEqual([]);
+
+      await processPhoneInbox();
+      expect(apiMock.appendLog).toHaveBeenCalledTimes(2);
+    });
+
+    describe("resolvePhoneConflict additional safety rules", () => {
+      it("returns gone and writes nothing when phone companion is inactive or the conflict is not setState", async () => {
+        disk.inbox = inboxOf([setState("c1", "# nowhere", "done")]);
+        await processPhoneInbox();
+        apiMock.writePhoneOutbox.mockClear();
+
+        phoneCompanionEnabled.set(false);
+        expect(await resolvePhoneConflict("c1", "skip")).toBe("gone");
+        expect(apiMock.writePhoneOutbox).not.toHaveBeenCalled();
+
+        phoneCompanionEnabled.set(true);
+        resetPhoneInboxForTests();
+        disk.ledger = JSON.stringify({
+          format: 1,
+          handled: {
+            badConflict: { result: "conflict", reason: "lineChanged", at: "2026-10-30T09:00:00+01:00", request: addLine("badConflict", "o x") },
+          },
+        });
+        expect(await resolvePhoneConflict("badConflict", "add")).toBe("gone");
+        expect(apiMock.writePhoneOutbox).not.toHaveBeenCalled();
+      });
+
+      it("returns done on skip, updates outbox freshly, and falls back to ledger keys when inbox is missing", async () => {
+        disk.inbox = inboxOf([addLine("r1", "o x"), setState("c1", "# nowhere", "done")]);
+        await processPhoneInbox();
+        apiMock.readNote.mockClear();
+        apiMock.writePhoneOutbox.mockClear();
+
+        // Missing inbox while resolving falls back to ledger order.
+        disk.inbox = null;
+        expect(await resolvePhoneConflict("c1", "skip")).toBe("done");
+        expect(apiMock.readNote).toHaveBeenCalledWith(NOTE);
+        expect(apiMock.writePhoneOutbox).toHaveBeenCalled();
+        expect(lastOutbox().results.map((r) => r.id)).toEqual(["r1", "c1"]);
+      });
+
+      it("uses inbox request order (ignoring invalid/empty ids) and logs if saving the ledger fails during resolve", async () => {
+        disk.inbox = inboxOf([setState("c1", "# nowhere", "done")]);
+        await processPhoneInbox();
+        // Ledger insertion order is [c1, r1].
+        disk.inbox = inboxOf([setState("c1", "# nowhere", "done"), addLine("r1", "o x")]);
+        await processPhoneInbox();
+        // Reorder inbox to [r1, c1] with unreportable entries; resolve should still report in inbox order.
+        disk.inbox = inboxOf([{ type: "addLine" }, { id: "", type: "addLine", date: TODAY, text: "o bad" }, addLine("r1", "o x"), setState("c1", "# nowhere", "done")]);
+        apiMock.writePhoneLedger.mockRejectedValueOnce(new Error("ledger busy"));
+        expect(await resolvePhoneConflict("c1", "skip")).toBe("done");
+        expect(apiMock.appendLog).toHaveBeenCalledWith("WARN", expect.stringContaining("saving the ledger failed"));
+        expect(lastOutbox().results.map((r) => r.id)).toEqual(["r1", "c1"]);
+      });
+
+      it("add choice places a new section in agenda order and falls back to end if agenda fails", async () => {
+        disk.files[NOTE] = "A\n===\n# a\n\nC\n===\n# c\n";
+        disk.inbox = inboxOf([setState("c1", "# missing", "done", { section: "B" })]);
+        await processPhoneInbox();
+
+        apiMock.readAgendaForDate.mockResolvedValueOnce(["A", "B", "C"]);
+        expect(await resolvePhoneConflict("c1", "add")).toBe("done");
+        expect(disk.files[NOTE]).toBe("A\n===\n# a\n\nB\n===\nv missing\n\nC\n===\n# c\n");
+        expect(lastOutbox().results).toEqual([{ id: "c1", result: "applied", at: expect.any(String) }]);
+
+        // Fallback when readAgendaForDate rejects.
+        disk.files[NOTE] = "A\n===\n# a\n";
+        disk.inbox = inboxOf([setState("c2", "# missing", "done", { section: "D" })]);
+        await processPhoneInbox();
+        apiMock.readAgendaForDate.mockRejectedValueOnce(new Error("no agenda"));
+        expect(await resolvePhoneConflict("c2", "add")).toBe("done");
+        expect(disk.files[NOTE]).toBe("A\n===\n# a\n\nD\n===\nv missing\n");
+      });
+
+      it("validates line bounds, line state eligibility, concurrent note changes, and write failures when resolving to a line", async () => {
+        disk.files[NOTE] = "# first\nplain text\n> deferred\n";
+        disk.inbox = inboxOf([setState("c1", "# nowhere", "done")]);
+        await processPhoneInbox();
+        apiMock.writePhoneOutbox.mockClear();
+
+        // Out of bounds or non-actionable line -> noteChanged, no outbox write.
+        expect(await resolvePhoneConflict("c1", { line: -1, text: "# first" })).toBe("noteChanged");
+        expect(await resolvePhoneConflict("c1", { line: 3, text: "" })).toBe("noteChanged");
+        expect(await resolvePhoneConflict("c1", { line: 1, text: "plain text" })).toBe("noteChanged");
+        expect(await resolvePhoneConflict("c1", { line: 2, text: "> deferred" })).toBe("noteChanged");
+        expect(apiMock.writeNote).not.toHaveBeenCalled();
+        expect(apiMock.writePhoneOutbox).not.toHaveBeenCalled();
+
+        // Concurrent change on disk between phoneConflictNote read and updateNoteOnDisk read -> noteChanged.
+        apiMock.readNoteWithMetadata
+          .mockResolvedValueOnce({
+            content: "# first\nplain text\n> deferred\n",
+            metadata: { exists: true, contentHash: null, sizeBytes: null, modifiedMs: null },
+          })
+          .mockResolvedValueOnce({
+            content: "# changed concurrently\nplain text\n> deferred\n",
+            metadata: { exists: true, contentHash: null, sizeBytes: null, modifiedMs: null },
+          });
+        expect(await resolvePhoneConflict("c1", { line: 0, text: "# first" })).toBe("noteChanged");
+        expect(apiMock.writeNote).not.toHaveBeenCalled();
+        expect(apiMock.writePhoneOutbox).not.toHaveBeenCalled();
+
+        // Write failure on { line, text } -> failed.
+        apiMock.writeNote.mockRejectedValueOnce(new Error("disk full"));
+        expect(await resolvePhoneConflict("c1", { line: 0, text: "# first" })).toBe("failed");
+        expect(apiMock.writePhoneOutbox).not.toHaveBeenCalled();
+
+        // Line 0 boundary succeeds when note is unchanged.
+        expect(await resolvePhoneConflict("c1", { line: 0, text: "# first" })).toBe("done");
+        expect(disk.files[NOTE]).toBe("v first\nplain text\n> deferred\n");
+        expect(apiMock.writePhoneOutbox).toHaveBeenCalled();
+      });
     });
   });
 });
