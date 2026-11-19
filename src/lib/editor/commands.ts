@@ -14,6 +14,7 @@ import { cursorLineBoundaryBackward, isolateHistory, selectLineBoundaryBackward 
 import { lineStateAnnouncement } from "./glyphs";
 import { trimmed } from "./editorChanges";
 import { exitNumberedListSpec, moveEmptySubItemOutSpec, shiftTabCommand, tabCommand } from "./numberedListKeys";
+import { continuationOwner } from "../numberedLists";
 import { docLineWordSpans } from "./wordSpans";
 import { leadingMarkerCharEnd, leadingMarkerTextColumn } from "./wrapIndent";
 import { isTitleLine, tokenizeLine } from "../grammar/tokenize";
@@ -30,6 +31,8 @@ import {
   isTopicLikeLine,
   leadingMarkerIndent,
   leadingTopicTag,
+  nextLead,
+  nextNumberedMarker,
   numberedListEnter,
   parseNumberedItem,
   referenceColumn,
@@ -38,6 +41,7 @@ import {
   setTopicSymbolTo,
   topicLineEnter,
   withoutLineMarker,
+  type NumberedItem,
 } from "../tokens";
 
 export type LineToken = Parameters<NonNullable<EditorApi["applyToken"]>>[0];
@@ -348,10 +352,49 @@ function computeBulletContinuationSpec(state: EditorState, pos: number, insertBu
   const numbered = parseNumberedItem(line.text);
   if (numbered && col <= numbered.markerEnd) return plainNewline();
 
+  const findContinuationOwner = () => {
+    if (line.number <= 1 || !/^\s/.test(line.text) || line.text.trim() === "" || isTitleUnderline(line.text)) {
+      return null;
+    }
+    if (leadingMarkerCharEnd(line.text) !== null) return null;
+    let startLine = line.number;
+    while (startLine > 1 && state.doc.line(startLine - 1).text.trim() !== "") startLine--;
+    const run: string[] = [];
+    for (let n = startLine; n <= line.number; n++) run.push(state.doc.line(n).text);
+    return continuationOwner(run, run.length - 1);
+  };
+
   if (!insertBullet) {
     const contCol = leadingMarkerTextColumn(line.text);
-    return plainNewline(contCol ? " ".repeat(contCol) : "");
+    if (contCol !== null) return plainNewline(" ".repeat(contCol));
+    const owner = findContinuationOwner();
+    if (owner) {
+      const lineIndent = line.text.match(/^\s*/)![0];
+      return plainNewline(col < lineIndent.length ? "" : lineIndent);
+    }
+    return plainNewline("");
   }
+
+  const insertNumberedItem = (insert: string, baseItem: NumberedItem): TransactionSpec => {
+    // #123: an item inserted in the middle of a list pushes the colliding numbers after it down by one.
+    const following: string[] = [];
+    for (let n = line.number + 1; n <= state.doc.lines; n++) {
+      const text = state.doc.line(n).text;
+      if (text.trim() === "") break;
+      following.push(text);
+    }
+    const renumber = renumberAfterInsert(following, baseItem).map((r) => {
+      const l = state.doc.line(line.number + 1 + r.index);
+      return { from: l.from, to: l.to, insert: r.text };
+    });
+    return {
+      changes: [{ from: pos, to: pos, insert }, ...renumber],
+      selection: { anchor: pos + insert.length },
+      userEvent: "input",
+      annotations: isolateHistory.of("full"),
+      scrollIntoView: true,
+    };
+  };
 
   const exitOrPromote = () =>
     moveEmptySubItemOutSpec(state, line.from, line.number - 1, "input") ?? {
@@ -378,24 +421,7 @@ function computeBulletContinuationSpec(state: EditorState, pos: number, insertBu
       );
     }
     if (step && "insert" in step) {
-      // #123: an item inserted in the middle of a list pushes the colliding numbers after it down by one.
-      const following: string[] = [];
-      for (let n = line.number + 1; n <= state.doc.lines; n++) {
-        const text = state.doc.line(n).text;
-        if (text.trim() === "") break;
-        following.push(text);
-      }
-      const renumber = renumberAfterInsert(following, numbered).map((r) => {
-        const l = state.doc.line(line.number + 1 + r.index);
-        return { from: l.from, to: l.to, insert: r.text };
-      });
-      return {
-        changes: [{ from: pos, to: pos, insert: step.insert }, ...renumber],
-        selection: { anchor: pos + step.insert.length },
-        userEvent: "input",
-        annotations: isolateHistory.of("full"),
-        scrollIntoView: true,
-      };
+      return insertNumberedItem(step.insert, numbered);
     }
     return plainNewline();
   }
@@ -416,15 +442,26 @@ function computeBulletContinuationSpec(state: EditorState, pos: number, insertBu
 
   // §85 (#12): Enter on an action or consequence line continues it as `# ` / `=> # ` / `=> `.
   const edit = actionLineEnter(line.text, col, nextLine);
-  if (edit === null) return null;
-  if ("removeSymbol" in edit) return exitOrPromote();
-  if ("plain" in edit) return plainNewline();
-  return {
-    changes: { from: pos, to: pos, insert: edit.insert },
-    selection: { anchor: pos + edit.insert.length },
-    userEvent: "input",
-    scrollIntoView: true,
-  };
+  if (edit !== null) {
+    if ("removeSymbol" in edit) return exitOrPromote();
+    if ("plain" in edit) return plainNewline();
+    return {
+      changes: { from: pos, to: pos, insert: edit.insert },
+      selection: { anchor: pos + edit.insert.length },
+      userEvent: "input",
+      scrollIntoView: true,
+    };
+  }
+
+  const owner = findContinuationOwner();
+  if (!owner) return null;
+  const lineIndent = line.text.match(/^\s*/)![0];
+  if (col < lineIndent.length) return plainNewline();
+  const { item } = owner;
+  if (item.kind === "bullet") {
+    return plainNewline(`${item.indent}${nextLead(item.lead)}${item.marker} `);
+  }
+  return insertNumberedItem(`\n${item.indent}${nextLead(item.lead)}${nextNumberedMarker(item)} `, item);
 }
 
 export function bulletContinuation(insertBullet: boolean) {

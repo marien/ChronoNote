@@ -1,7 +1,9 @@
 import { ACTION_SYMBOLS, TOPIC_SYMBOLS } from "./grammar/symbols";
 import {
   indentLen,
+  isTitleUnderline,
   LEAD_PREFIX_RE,
+  leadingMarkerCharEnd,
   nextNumberedMarker,
   nonListLineColumn,
   parseNumberedItem,
@@ -719,6 +721,33 @@ export function continuationStops(lines: string[], idx: number): number[] {
     limit = ind;
   }
   return [...stops].sort((a, b) => a - b);
+}
+
+/** The list item that non-empty continuation line `lines[idx]` belongs to, or null when `lines[idx]` is
+ * blank, is a title underline, has a marker of its own, or is not indented to at least the nearest item's
+ * text column (allowing only continuation lines or that item's sub-items in between). */
+export function continuationOwner(lines: string[], idx: number): { index: number; item: ParsedItem } | null {
+  if (idx <= 0 || idx >= lines.length) return null;
+  const line = lines[idx];
+  if (line.trim() === "" || isTitleUnderline(line) || leadingMarkerCharEnd(line) !== null) return null;
+  const myIndent = indentLen(line.match(/^\s*/)![0]);
+  if (myIndent === 0) return null;
+  let minIndent = myIndent;
+  for (let i = idx - 1; i >= 0; i--) {
+    const prev = lines[i];
+    if (prev.trim() === "" || isTitleUnderline(prev)) return null;
+    const item = parseListItem(prev);
+    if (!item) {
+      if (leadingMarkerCharEnd(prev) !== null) return null;
+      if (indentLen(prev.match(/^\s*/)![0]) < minIndent) return null;
+      continue;
+    }
+    const itemIndent = indentLen(item.indent);
+    if (itemIndent < minIndent) {
+      return myIndent >= textColumn(item) ? { index: i, item } : null;
+    }
+  }
+  return null;
 }
 
 /** Rule 4, first Backspace: the line's new text, or null when it does not apply. `col` = caret column. */

@@ -49,4 +49,15 @@ test.describe("numbered lists: browser wiring", () => {
     await page.keyboard.press("Backspace");
     expect(await activeTabContent(page)).toBe("1. a\nb");
   });
+
+  test("Shift+Enter starts a continuation line, and Enter on it starts the next item", async ({ page }) => {
+    await typeInEditor(page, "1. first");
+    await page.keyboard.press("Shift+Enter");
+    await page.keyboard.type("more");
+    await page.keyboard.press("Shift+Enter");
+    await page.keyboard.type("still more");
+    await page.keyboard.press("Enter");
+    await page.keyboard.type("second");
+    expect(await activeTabContent(page)).toBe("1. first\n   more\n   still more\n2. second");
+  });
 });
