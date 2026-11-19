@@ -430,3 +430,39 @@ A line with a state symbol and extra spaces aligning its text under the precedin
 | `o Budget↵1. a‸↵2. b↵o Hiring↵1. c` | Enter | `o Budget↵1. a↵2. ‸↵3. b↵o Hiring↵1. c` |
 | `o Budget↵1. a↵2. ‸b↵o Hiring↵1. c↵2. d` | Tab | `o Budget↵1. a↵   1. ‸b↵o Hiring↵1. c↵2. d` |
 | `1. a↵2. ‸b↵# call Sam↵1. c` | Tab | `1. a↵   1. ‸b↵# call Sam↵1. c` |
+
+### L24. Enter on a continuation line starts the next item, while Shift-Enter stays indented
+
+A non-empty line with no marker of its own whose indentation is at least the text column of the nearest list item above it (with only continuation lines or that item's sub-items between them) belongs to that item: `Enter` inserts the item's next sibling number or bullet at the item's indent (renumbering following items), `Shift-Enter` inserts a continuation line at the same indentation, and spaces-only lines or lines under action, topic, or `=> ` lines stay unchanged.
+
+| Before | Keys | After |
+| :--- | :--- | :--- |
+| `1. First↵   more‸` | Enter | `1. First↵   more↵2. ‸` |
+| `1. First↵   more‸↵2. Second` | Enter | `1. First↵   more↵2. ‸↵3. Second` |
+| `1. First↵   mo‸re` | Enter | `1. First↵   mo↵2. ‸re` |
+| `  1.1. Sub↵       more‸` | Enter | `  1.1. Sub↵       more↵  1.2. ‸` |
+| `- Bullet↵  more‸` | Enter | `- Bullet↵  more↵- ‸` |
+| `* Star↵  more‸` | Enter | `* Star↵  more↵* ‸` |
+| `1. First↵   more‸` | Shift-Enter | `1. First↵   more↵   ‸` |
+| `- Bullet↵  more‸` | Shift-Enter | `- Bullet↵  more↵  ‸` |
+| `1. First↵   1.1. Sub↵        more‸↵2. Second` | Enter | `1. First↵   1.1. Sub↵        more↵   1.2. ‸↵2. Second` |
+| `1. First↵   1.1. Sub↵        more‸` | Shift-Enter | `1. First↵   1.1. Sub↵        more↵        ‸` |
+| `1. First↵   - sub bullet↵     more‸` | Enter | `1. First↵   - sub bullet↵     more↵   - ‸` |
+| `1. First↵   1.1. Sub↵   more‸` | Enter | `1. First↵   1.1. Sub↵   more↵2. ‸` |
+| `9. Ninth↵   more‸` | Enter | `9. Ninth↵   more↵10. ‸` |
+| `9. Ninth↵   more‸↵10. Tenth` | Enter | `9. Ninth↵   more↵10. ‸↵11. Tenth` |
+| `8. Eighth↵   more‸↵9. Ninth↵   cont` | Enter | `8. Eighth↵   more↵9. ‸↵10. Ninth↵    cont` |
+| `1. First↵   line one↵   line two‸` | Enter | `1. First↵   line one↵   line two↵2. ‸` |
+| `v 1. Done↵     more‸` | Enter | `v 1. Done↵     more↵# 2. ‸` |
+| `1. First↵   mo«r»e` | Enter | `1. First↵   mo↵2. ‸e` |
+| `1. First↵   mo«r»e` | Shift-Enter | `1. First↵   mo↵   ‸e` |
+| `- Bullet↵  mo«re↵  ev»en` | Enter | `- Bullet↵  mo↵- ‸en` |
+| `1. First↵   ‸` | Enter | `1. First↵↵   ‸` |
+| `1. First↵   ‸` | Shift-Enter | `1. First↵   ↵‸` |
+| `# Task↵  more‸` | Enter | `# Task↵  more↵  ‸` |
+| `# Task↵  more‸` | Shift-Enter | `# Task↵  more↵‸` |
+| `o Topic↵  more‸` | Enter | `o Topic↵  more↵  ‸` |
+| `=> Follow↵   more‸` | Enter | `=> Follow↵   more↵   ‸` |
+| `  plain prose‸` | Enter | `  plain prose↵  ‸` |
+| `1. First↵‸   more` | Enter | `1. First↵↵‸   more` |
+| `1. First↵ ‸  more` | Shift-Enter | `1. First↵ ↵‸  more` |

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   backspaceContinuation,
   backspaceMarker,
+  continuationOwner,
   continuationStops,
   emptySubItemEnter,
   getAllListBlocks,
@@ -359,5 +360,29 @@ describe("NL-F rules in numberedLists.ts", () => {
     expect(apply(["9. a", "9.1. b"], [0], new Map([[0, 10]]))).toEqual(["10. a", "10.1. b"]);
     expect(apply(["1. a", "1.1) b", "1.2) c"], [0])).toEqual(["1. a", "1.1) b", "1.2) c"]);
     expect(emptySubItemEnter(["1. a", "1.1. b", "1.2. ", "2. e"], 2)).toBe("2. ");
+  });
+});
+
+describe("continuationOwner: finds the list item a continuation line belongs to", () => {
+  it("matches numbered and bullet items across multiple continuation lines and sub-items", () => {
+    expect(continuationOwner(["1. a", "   more"], 1)?.index).toBe(0);
+    expect(continuationOwner(["1. a", "   one", "     deeper", "   two"], 3)?.index).toBe(0);
+    expect(continuationOwner(["1. a", "   1.1. sub", "        sub cont"], 2)?.index).toBe(1);
+    expect(continuationOwner(["1. a", "   1.1. sub", "   outer cont"], 2)?.index).toBe(0);
+    expect(continuationOwner(["- b", "  more"], 1)?.index).toBe(0);
+    expect(continuationOwner(["\t1. a", "\t   more"], 1)?.index).toBe(0);
+  });
+
+  it("returns null for spaces-only, own-marker, shallow, blank-separated, or non-list-owned lines", () => {
+    expect(continuationOwner(["1. a", "   "], 1)).toBeNull();
+    expect(continuationOwner(["1. a", "   ! note"], 1)).toBeNull();
+    expect(continuationOwner(["1. a", "   ---"], 1)).toBeNull();
+    expect(continuationOwner(["1. a", "  less"], 1)).toBeNull();
+    expect(continuationOwner(["1. a", "", "   more"], 2)).toBeNull();
+    expect(continuationOwner(["# task", "  more"], 1)).toBeNull();
+    expect(continuationOwner(["o topic", "  more"], 1)).toBeNull();
+    expect(continuationOwner(["=> follow", "   more"], 1)).toBeNull();
+    expect(continuationOwner(["1. a", "   # sub-task", "     more"], 2)).toBeNull();
+    expect(continuationOwner(["  plain"], 0)).toBeNull();
   });
 });

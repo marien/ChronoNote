@@ -637,10 +637,10 @@ describe("editing table: Enter & Shift-Enter", () => {
     { label: "=== underline", input: "Title\n=====|", key: "Enter", expected: "Title\n=====\n|" },
     { label: "--- underline", input: "Sub\n---|", key: "Enter", expected: "Sub\n---\n|" },
     {
-      label: "continuation line under bullet (§23 smart-indent)",
+      label: "continuation line under bullet starts next bullet (X1)",
       input: "- item\n  conti|nued",
       key: "Enter",
-      expected: "- item\n  conti\n  |nued",
+      expected: "- item\n  conti\n- |nued",
     },
     ...([
       "3.5 hours",
@@ -831,7 +831,7 @@ describe("editing table: Enter & Shift-Enter", () => {
     { label: "Shift-Enter on indented prose", input: "  inde|nted", key: "Shift-Enter", expected: "  inde\n|nted" },
     { label: "Shift-Enter on a => # b", input: "a => # b|", key: "Shift-Enter", expected: "a => # b\n|" },
     { label: "Shift-Enter on === underline", input: "Title\n=====|", key: "Shift-Enter", expected: "Title\n=====\n|" },
-    { label: "Shift-Enter on continuation line", input: "- item\n  cont|", key: "Shift-Enter", expected: "- item\n  cont\n|" },
+    { label: "Shift-Enter on continuation line keeps indent", input: "- item\n  cont|", key: "Shift-Enter", expected: "- item\n  cont\n  |" },
     { label: "Shift-Enter on action title", input: "# Title|\n=======", key: "Shift-Enter", expected: "# Title\n|\n=======" },
     {
       label: "Shift-Enter on numbered item beside bullet aligns under its own text",

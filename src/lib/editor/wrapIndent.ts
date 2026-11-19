@@ -10,53 +10,10 @@ import {
   ViewPlugin,
   type ViewUpdate,
 } from "@codemirror/view";
-import { columnOf, isTitleLine, isTitleUnderline, tokenAfterArrow, tokenizeLine } from "../grammar/tokenize";
-import { parseNumberedItem } from "../tokens";
+import { columnOf, isTitleLine, isTitleUnderline } from "../grammar/tokenize";
+import { leadingMarkerCharEnd, leadingMarkerTextColumn } from "../tokens";
 
-/** Character offset in `lineText` right after any leading ChronoNote marker (`- `, `# `, `# ! - `, `o 1. `, `=> # `, etc.), or `null` when the line starts with plain/indented text. */
-export function leadingMarkerCharEnd(lineText: string): number | null {
-  const tokens = tokenizeLine(lineText);
-  const [first, second, third] = tokens;
-  if (first?.kind === "arrow" && lineText.slice(0, first.from).trim() === "") {
-    const after = tokenAfterArrow(lineText, tokens, 0);
-    if (after && (after.kind === "consequence" || after.kind === "consequenceTopic")) {
-      return after.to;
-    }
-    return first.to;
-  }
-  if (first && (first.kind === "action" || first.kind === "topic")) {
-    if (second?.kind === "bullet" && second.from === first.to) {
-      return second.to;
-    }
-    if (second?.kind === "emphasis" && second.from === first.to) {
-      if (third?.kind === "bullet" && third.from === second.from + 2) {
-        return third.to;
-      }
-      return second.from + 2;
-    }
-    const numbered = parseNumberedItem(lineText);
-    if (numbered && numbered.lead !== "") {
-      return numbered.markerEnd + 1;
-    }
-    return first.to;
-  }
-  if (first?.kind === "bullet") {
-    return first.to;
-  }
-  if (first?.kind === "emphasis") {
-    const emEnd = first.from + 2;
-    return second?.kind === "bullet" && second.from === emEnd ? second.to : emEnd;
-  }
-  const numbered = parseNumberedItem(lineText);
-  return numbered ? numbered.markerEnd + 1 : null;
-}
-
-/** Display column (with tabs expanded to 2 spaces) where text starts after any leading marker, or `null` when the line has no leading marker. */
-export function leadingMarkerTextColumn(lineText: string): number | null {
-  const charEnd = leadingMarkerCharEnd(lineText);
-  if (charEnd === null) return null;
-  return columnOf(lineText.slice(0, charEnd));
-}
+export { leadingMarkerCharEnd, leadingMarkerTextColumn };
 
 /**
  * Calculates the continuation indentation in characters (columns) for a line of text.
