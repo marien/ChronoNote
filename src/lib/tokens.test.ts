@@ -532,6 +532,11 @@ describe("normalizeHeaderTitle", () => {
     expect(normalizeHeaderTitle("[CANCELED] Weekly Sync")).toBe("Weekly Sync");
   });
 
+  it("strips a hand-typed [canceled] in any case, as calendar sync reads it", () => {
+    expect(normalizeHeaderTitle("[canceled] Weekly Sync")).toBe("Weekly Sync");
+    expect(normalizeHeaderTitle("[Canceled] Weekly Sync")).toBe("Weekly Sync");
+  });
+
   it("trims surrounding whitespace", () => {
     expect(normalizeHeaderTitle("  Weekly Sync  ")).toBe("Weekly Sync");
   });

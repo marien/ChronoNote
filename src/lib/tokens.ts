@@ -878,7 +878,7 @@ export function lineSectionRole(lines: string[], lineIdx: number): LineSectionRo
 export function normalizeHeaderTitle(rawHeader: string): string {
   return rawHeader
     .replace(/^\[\d{2}:\d{2}\s*-\s*\d{2}:\d{2}\]\s*/, "")
-    .replace(/^\[CANCELED\]\s*/, "")
+    .replace(/^\[CANCELED\]\s*/i, "")
     .trim();
 }
 
