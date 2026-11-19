@@ -22,3 +22,4 @@ then gets a line in its CHANGELOG section) or found broken (it then becomes a fi
 | 2026-11-18 | Clicking into an existing section title opens no suggestion list; typing in a title does, and a suggestion equal to the whole title is left out (#252) | dev build or next beta, `.agenda.json` with a meeting today, recurring titles | §499, §508 |
 | 2026-11-18 | Two invited people with the same first name are offered as `@DanaS` / `@DanaB` (no hyphen) (#254) | dev build or next beta, `.agenda.json` with `attendees` | §500 |
 | 2026-11-16 | New strings of §493-§498 in German, French, Polish, Spanish and Italian need a native speaker's look | `src/lib/i18n/locales/` | §493-§498 |
+| 2026-11-19 | Pasting lists from Teams/Outlook tables and Word: a list inside a table cell arrives (each cell on its own line), a sub-item after a plain paragraph gets 2 spaces, no blank line from a line break inside a block | dev build or next beta, copy from Teams, Outlook and Word | §517 |
