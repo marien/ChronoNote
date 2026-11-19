@@ -547,3 +547,4 @@ line, and this index is regenerated with `node scripts/changelog-index.mjs`.
 - §522 Calendar sync as tables that run (T1e)
 - §523 The tokenizer in the mutation set (M6)
 - §524 Tests for the remaining phone inbox and paste gaps (M7)
+- §525 Start-up measured before lazy dialogs (R3a)
