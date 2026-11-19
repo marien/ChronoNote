@@ -52,3 +52,21 @@ others, and come back with a findings page like the editor review (decisions per
 - Phone, person view: a long "last mentions" row is clipped at the right edge without an ellipsis.
 - Phone, rename preview: a setext underline in the diff wraps its last `=` onto a line of its own.
 - Phone, calendar review: a tall empty area between the removed-meeting controls and the footer.
+
+## Model pass (U5b, 2026-11-19)
+
+`npm run visual:review -- --task U5b` (gemini-3.8-flash-high) over 203 images: 16 findings (0 high, 14 medium,
+2 low), 428,720 tokens. Report in `test-results/visual/review.md` (local, not committed). Grouped, as leads:
+
+- **Person view, "Last mentions · by meeting":** the last row is clipped mid-word at the right edge, no ellipsis
+  (dark, dark-150, german, light, phone). In `marien` the date and section metadata of task rows is clipped too.
+- **Dark themes, Settings > Notes & Sync:** the "Your name in minutes" input has a white background (dark, phone).
+  Confirms the U5a lead.
+- **Untranslated strings:** "45m ago" / "1h ago" in Earlier versions (german, marien); "6 open" in the week review's
+  day headers (german).
+- **Light themes, search:** pills and glyphs in the selected result row vanish against the blue selection (light,
+  light-125).
+- **Phone, rename preview:** the setext underline wraps a lone `=` onto its own line. Confirms the U5a lead.
+- Low: "middle-click" untranslated in the Shortcuts dialog's close-tab row (german, marien).
+
+Not flagged by the model, still to check: the select-all behind the Actions pane, the phone calendar review gap.
