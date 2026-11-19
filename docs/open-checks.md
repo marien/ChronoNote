@@ -10,3 +10,4 @@ then gets a line in its CHANGELOG section) or found broken (it then becomes a fi
 |---|---|---|---|
 | 2026-11-15 | New strings of §481-§486 in German, French, Polish, Spanish and Italian need a native speaker's look | `src/lib/i18n/locales/` | none (the entries are seen; only the translations wait) |
 | 2026-11-16 | New strings of §493-§498 in German, French, Polish, Spanish and Italian need a native speaker's look | `src/lib/i18n/locales/` | none (the entries are seen; only the translations wait) |
+| 2026-11-19 | 0.39.0 on the phone and in the installed web app: it updates (cache `chrononote-webapp-shell-0.39.0`), opens on today's note, search words and saved searches work, OneDrive sync still runs | phone and the installed web app on a laptop | none (after-release check for the stable) |
