@@ -3,6 +3,7 @@ export default {
   testRunner: "vitest",
   mutate: [
     "src/lib/tokens.ts",
+    "src/lib/grammar/tokenize.ts",
     "src/lib/editor/numberedListKeys.ts",
     "src/lib/paste.ts",
     "src/lib/editor/clipboardPaste.ts",
@@ -27,4 +28,5 @@ export default {
   vitest: {
     related: true,
   },
+  ignorePatterns: ["src/lib/grammar/perf.test.ts"],
 };

@@ -130,7 +130,7 @@ An action symbol (`#`, `v`, `>`, `x`) or topic symbol (`o`, `.`, `,`) followed b
 
 ### N8. Topic tags (`(topic)`) and plain parenthesised words
 
-A single-token `(topic)` (not starting with `@`) immediately after a leading action/topic symbol or `=> <symbol>` produces `topicTag`; any other single-token `(word)` produces `paren` (consumed so it stays plain text), while `(@name)` produces `assignee` and multi-word parentheses produce no token.
+A single-token `(topic)` (not starting with `@`) immediately after a leading action/topic symbol or `=> <symbol>` produces `topicTag`; any other single-token `(word)` produces `paren` (consumed so it stays plain text), while `(@name)` produces `assignee` and multi-word parentheses produce no token. A line has at most one topic tag (§422): a second `(word)` in a tag position, such as after `=> # `, is a `paren`.
 
 | Line | Tokens |
 | :--- | :--- |
@@ -144,6 +144,10 @@ A single-token `(topic)` (not starting with `@`) immediately after a leading act
 | `(prose) line` | `paren 0-7` |
 | `# (@dana) task` | `action:# 0-2 · assignee 3-8` |
 | `# (two words) task` | `action:# 0-2` |
+| `- (word) item` | `bullet:- 0-2 · paren 2-8` |
+| `a => (word) item` | `arrow 2-5 · paren 5-11` |
+| `(word) => # (tag) act` | `paren 0-6 · arrow 7-10 · consequence:# 10-12 · topicTag 12-17` |
+| `# (a) text => # (b) task` | `action:# 0-2 · topicTag 2-5 · arrow 11-14 · consequence:# 14-16 · paren 16-19` |
 
 ### N9. Due dates (`by:YYYY-MM-DD`) and due words (`by:<word>`)
 
@@ -178,6 +182,16 @@ Inside an action part (leading `# v > x`, `=> <symbol>`, `=> @name`, or a plain 
 | `# task by:fri` | `action:# 0-2 · dueWord:fri 7-13` |
 | `# task by:fridy` | `action:# 0-2 · dueWord:fridy 7-15` |
 | `# task by:·` | `action:# 0-2` |
+| `notes => ask @dana by:2026-11-20` | `arrow 6-9 · assignee 13-18` |
+| `# task => (word) by:2026-11-20` | `action:# 0-2 · arrow 7-10 · paren 10-16 · due:2026-11-20 17-30` |
+| `# task => o topic by:2026-11-20` | `action:# 0-2 · arrow 7-10 · consequenceTopic:o 10-12` |
+| `# (by:2026-11-20)foo` | `action:# 0-2 · topicTag 2-17` |
+| `# by:@dana` | `action:# 0-2 · assignee 5-10` |
+| `# task by:2026-01-15` | `action:# 0-2 · due:2026-01-15 7-20` |
+| `# task by:2026.11.20` | `action:# 0-2 · dueWord:2026.11.20 7-20` |
+| `# task by:.` | `action:# 0-2` |
+| `# task by:x2026-11-20` | `action:# 0-2 · dueWord:x2026-11-20 7-21` |
+| `# task by:2026-11-20x` | `action:# 0-2 · dueWord:2026-11-20x 7-21` |
 
 ### N10. Emphasis lines (`! `) and emphasised bullets (`! - `, `! * `)
 
@@ -212,6 +226,7 @@ A non-blank line directly above a line of three or more `=` or `-` (with only op
 | `# Task↵--` | `action:# 0-2` |
 | `# Task↵--- x` | `action:# 0-2` |
 | `# Task↵- --` | `action:# 0-2` |
+| `# Task↵aaa` | `action:# 0-2` |
 | `====` | — |
 | `---` | — |
 | `↵---` | — |
@@ -337,6 +352,10 @@ Forward and backward links with valid calendar dates (with or without `#Section`
 | `task (>2026-11-20#)` | `paren 5-19` |
 | `task (>2026-02-30#Sync)` | `paren 5-23` |
 | `task (>2026-11-20#Sync` | — |
+| `task (>2026-11-20)(word)` | `forwardLink:>2026-11-20 5-18 · paren 18-24` |
+| `task (word) (>2026-11-20)` | `paren 5-11 · forwardLink:>2026-11-20 12-25` |
+| `task (word)(>2026-11-20)` | `paren 5-11 · forwardLink:>2026-11-20 11-24` |
+| `# (>2026-11-20#LongSection) @a` | `action:# 0-2 · forwardLink:>2026-11-20#LongSection 2-27 · assignee 28-30` |
 
 ### N24. Due-word rewriting, date tooltips, and compact date picker
 
