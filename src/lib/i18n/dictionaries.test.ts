@@ -6,7 +6,9 @@ import { fr } from "./locales/fr";
 import { pl } from "./locales/pl";
 import { es } from "./locales/es";
 import { it } from "./locales/it";
-import type { TranslationKey } from "./schema";
+import type { Dictionary, TranslationKey, TranslationParams } from "./schema";
+import { formatVersionRelativeTime } from "../versions";
+import { formatShortcut } from "../shortcuts";
 
 /** Sample params for the (currently few) keys whose dictionary function
  * takes a real argument — everything else is called with `undefined`.
@@ -69,8 +71,12 @@ const SAMPLE_PARAMS: Partial<Record<TranslationKey, unknown>> = {
   "calendarSyncReview.removedItem": { title: "Standup" },
   "syncConflicts.keepBothHint": { keepBothLabel: "Keep both" },
   "safetyModal.reason.dueOpen": { count: 2 },
-  "safetyModal.message": { filename: "2026-09-26.txt", reasons: "has 2 unresolved open action(s)" },
+  "safetyModal.message": { filename: "2026-09-26", reasons: "has 2 open actions" },
   "safetyModal.batchCloseMessage": { count: 3 },
+  "versions.ago.minutes": { count: 45 },
+  "versions.ago.hours": { count: 1 },
+  "versions.ago.days": { count: 2 },
+  "weekReview.count.open": { count: 3 },
   "searchModal.matchCount": { count: 5 },
   "searchModal.removeFilterAriaLabel": { label: "is:open" },
   "searchModal.noMatches": { query: "meeting" },
@@ -167,5 +173,45 @@ describe("i18n dictionaries", () => {
         expect(result.length, `${key} returned an empty string`).toBeGreaterThan(0);
       }
     }
+  });
+
+  test("F3: version age, middle-click shortcut extra, and week review open count translate in nl and de", () => {
+    const trFor = (dict: object) => <K extends TranslationKey>(key: K, params?: TranslationParams[K]) =>
+      (dict as Dictionary)[key](params as never);
+    const trEn = trFor(en);
+    const trNl = trFor(nl);
+    const trDe = trFor(de);
+    const now = 1_700_000_000_000;
+
+    expect(formatVersionRelativeTime(now - 45 * 60_000, trEn, now)).toBe("45 min ago");
+    expect(formatVersionRelativeTime(now - 60 * 60_000, trEn, now)).toBe("1 h ago");
+
+    const nlMin = formatVersionRelativeTime(now - 45 * 60_000, trNl, now);
+    const nlHr = formatVersionRelativeTime(now - 60 * 60_000, trNl, now);
+    expect(nlMin).toBe("45 min geleden");
+    expect(nlHr).toBe("1 uur geleden");
+    expect(nlMin).not.toBe("45 min ago");
+    expect(nlHr).not.toBe("1 h ago");
+
+    const deMin = formatVersionRelativeTime(now - 45 * 60_000, trDe, now);
+    const deHr = formatVersionRelativeTime(now - 60 * 60_000, trDe, now);
+    expect(deMin).toBe("vor 45 Min.");
+    expect(deHr).toBe("vor 1 Std.");
+    expect(deMin).not.toBe("45 min ago");
+    expect(deHr).not.toBe("1 h ago");
+
+    const closeEn = formatShortcut("closeTab", (k) => trEn(k as TranslationKey));
+    const closeNl = formatShortcut("closeTab", (k) => trNl(k as TranslationKey));
+    const closeDe = formatShortcut("closeTab", (k) => trDe(k as TranslationKey));
+    expect(closeEn).toContain("middle-click");
+    expect(closeNl).toContain("middelklik");
+    expect(closeNl).not.toContain("middle-click");
+    expect(closeDe).toContain("Mittelklick");
+    expect(closeDe).not.toContain("middle-click");
+
+    expect(trEn("weekReview.count.open", { count: 3 })).toBe("3 open");
+    expect(trNl("weekReview.count.open", { count: 3 })).toBe("3 open");
+    expect(trDe("weekReview.count.open", { count: 3 })).toBe("3 offen");
+    expect(trDe("weekReview.count.open", { count: 3 })).not.toBe("3 open");
   });
 });

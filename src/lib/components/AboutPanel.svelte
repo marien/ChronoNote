@@ -123,7 +123,7 @@
         <AppIcon size={48} />
         <div class="about-header-text">
           <div class="about-app-name">ChronoNote</div>
-          <div class="about-version-text">{$t("about.version.label")} v{$appVersion || "…"}</div>
+          <div class="about-version-text">{$t("about.version.label")} {$appVersion || "…"}</div>
           {#if $backendKind === "web"}
             <div class="about-web-hint-text">{$t("about.web.hint")}</div>
           {:else if agoText && ($updateStatus === "upToDate" || $updateStatus === "idle")}

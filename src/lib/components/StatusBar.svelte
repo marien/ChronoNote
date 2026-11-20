@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { onMount } from "svelte";
   import {
     backendKind,
     folderNameFromPath,
@@ -25,7 +26,7 @@
   import Icon from "../icons/Icon.svelte";
   import CloudStatusButton from "./CloudStatusButton.svelte";
   import { formatCombo, formatShortcut, shortcutById } from "../shortcuts";
-  import { t } from "../i18n";
+  import { locale, t } from "../i18n";
 
   function jumpToNextOpen() {
     editorApi?.jumpAdjacentOpenAction?.(1);
@@ -50,6 +51,67 @@
   const hasCentreMessage = $derived(Boolean(
     $toastMessage && !$isMobile && $toastMessage.length <= LONG_TOAST_CHARS,
   ));
+
+  let barEl = $state<HTMLDivElement>();
+  let leftEl = $state<HTMLDivElement>();
+  let centreEl = $state<HTMLDivElement>();
+  let rightEl = $state<HTMLDivElement>();
+  let msgCollapseLevel = $state(0);
+
+  function measureCentreFit() {
+    if (!barEl || !leftEl || !centreEl || !rightEl) return;
+    if (!hasCentreMessage) {
+      msgCollapseLevel = 0;
+      delete barEl.dataset.msgCollapse;
+      return;
+    }
+    if (barEl.clientWidth === 0) return;
+
+    const msgEl = centreEl.querySelector<HTMLElement>("#stat-message");
+    if (!msgEl) {
+      msgCollapseLevel = 0;
+      delete barEl.dataset.msgCollapse;
+      return;
+    }
+
+    let found = 4;
+    for (let level = 0; level <= 4; level++) {
+      if (level === 0) delete barEl.dataset.msgCollapse;
+      else barEl.dataset.msgCollapse = String(level);
+
+      const fits =
+        msgEl.scrollWidth <= centreEl.clientWidth + 1 &&
+        leftEl.scrollWidth <= leftEl.clientWidth + 1 &&
+        rightEl.scrollWidth <= rightEl.clientWidth + 1 &&
+        barEl.scrollWidth <= barEl.clientWidth + 1;
+      if (fits) {
+        found = level;
+        break;
+      }
+    }
+    msgCollapseLevel = found;
+  }
+
+  onMount(() => {
+    if (!barEl || typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(() => measureCentreFit());
+    ro.observe(barEl);
+    return () => ro.disconnect();
+  });
+
+  $effect(() => {
+    void hasCentreMessage;
+    void $toastMessage;
+    void $statusCounts;
+    void $dueSummary;
+    void $statusPos;
+    void $statusSelection;
+    void $statusWordCount;
+    void folderName;
+    void $syncConflicts;
+    void $locale;
+    measureCentreFit();
+  });
 
   const dueAriaLabel = $derived.by(() => {
     const parts: string[] = [];
@@ -84,8 +146,13 @@
   });
 </script>
 
-<div id="status-bar" class:has-centre-message={hasCentreMessage}>
-  <div class="status-zone status-left">
+<div
+  id="status-bar"
+  class:has-centre-message={hasCentreMessage}
+  data-msg-collapse={hasCentreMessage && msgCollapseLevel > 0 ? msgCollapseLevel : undefined}
+  bind:this={barEl}
+>
+  <div class="status-zone status-left" bind:this={leftEl}>
     <!-- §B4: the action counts lead, as buttons: open jumps to the next open action (Ctrl+J), the other two open
          the Action Drawer with every state listed. -->
     <button
@@ -140,7 +207,7 @@
     {/if}
   </div>
 
-  <div class="status-zone status-centre">
+  <div class="status-zone status-centre" bind:this={centreEl}>
     {#if $toastAction && $toastMessage && !$isMobile && $toastMessage.length <= LONG_TOAST_CHARS}
       <button type="button" id="stat-message" class="status-link" onclick={controller.runToastAction}>
         {$toastMessage}
@@ -159,7 +226,7 @@
     {/if}
   </div>
 
-  <div class="status-zone status-right">
+  <div class="status-zone status-right" bind:this={rightEl}>
     <!-- §B4: Notepad's order, divided by thin rules. The version moved out (About shows it). -->
     <span id="stat-pos" class="stat-tier2">{$t("statusBar.position", { line: $statusPos.line, col: $statusPos.col })}</span>
     {#if selectionLabel}
@@ -489,36 +556,40 @@
 }
 
 /* Centre message active (e.g. "Updated to v...", toast message):
-   The centre column takes significant space (~200-280px), so restore the
-   symmetrical minmax(0, 1fr) auto minmax(0, 1fr) grid to optically center the message, and immediately
-   collapse supplementary tiers to ensure the left zone and counts never collide. */
+   The message takes the free space in the middle (`auto minmax(0, 1fr) auto`), keeping full counts and folder
+   name whenever there is room; `measureCentreFit()` applies progressive `data-msg-collapse` tiers only when
+   the bar with the message present would otherwise overflow. */
 
 #status-bar.has-centre-message {
-  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  grid-template-columns: auto minmax(0, 1fr) auto;
 }
 
-#status-bar.has-centre-message .stat-tier0 {
+#status-bar.has-centre-message[data-msg-collapse="1"] .stat-tier0,
+#status-bar.has-centre-message[data-msg-collapse="2"] .stat-tier0,
+#status-bar.has-centre-message[data-msg-collapse="3"] .stat-tier0,
+#status-bar.has-centre-message[data-msg-collapse="4"] .stat-tier0 {
   display: none;
 }
 
-#status-bar.has-centre-message .stat-full {
+#status-bar.has-centre-message[data-msg-collapse="2"] .stat-full,
+#status-bar.has-centre-message[data-msg-collapse="3"] .stat-full,
+#status-bar.has-centre-message[data-msg-collapse="4"] .stat-full {
   display: none;
 }
 
-#status-bar.has-centre-message .stat-compact {
+#status-bar.has-centre-message[data-msg-collapse="2"] .stat-compact,
+#status-bar.has-centre-message[data-msg-collapse="3"] .stat-compact,
+#status-bar.has-centre-message[data-msg-collapse="4"] .stat-compact {
   display: inline;
 }
 
-@media (max-width: 920px) {
-  #status-bar.has-centre-message .stat-tier1 {
-    display: none;
-  }
+#status-bar.has-centre-message[data-msg-collapse="3"] .stat-tier1,
+#status-bar.has-centre-message[data-msg-collapse="4"] .stat-tier1 {
+  display: none;
 }
 
-@media (max-width: 680px) {
-  #status-bar.has-centre-message .stat-tier2 {
-    display: none;
-  }
+#status-bar.has-centre-message[data-msg-collapse="4"] .stat-tier2 {
+  display: none;
 }
 
 /* §102/§110: transient messages (the former floating toast) — the centre
@@ -529,6 +600,8 @@
   display: flex;
   align-items: center;
   gap: 6px;
+  max-width: 100%;
+  overflow: hidden;
   color: var(--status-fg);
   font-weight: 500;
 }

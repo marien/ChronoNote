@@ -20,6 +20,7 @@
     buildDrawerRows,
     buildDueDrawerRows,
     drawerTreeGuides,
+    formatActionDrawerCounter,
     type TreeGuide,
     collapseKey,
     nodeState,
@@ -827,7 +828,7 @@
       title={fullCounterText}
       aria-label={fullCounterText}
     >
-      {isNarrow ? `${uncompletedCount} · ${flatList.length}` : $t("actionDrawer.counterShort", { open: uncompletedCount, listed: flatList.length })}
+      {formatActionDrawerCounter(uncompletedCount, flatList.length, isNarrow, $t)}
     </span>
   </div>
   {#if scopeMenuOpen}

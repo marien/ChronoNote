@@ -44,6 +44,7 @@
   const tickedCount = $derived(tickedSet.size);
   const totalLines = $derived(plan.reduce((sum, entry) => sum + entry.lines.length, 0));
   const totalNotes = $derived(plan.length);
+  const hasUnderlines = $derived(plan.some((entry) => entry.lines.some((l) => isSetextUnderline(l.before))));
 
   async function rebuildPlan(nextTo: string) {
     const tSnapshot = target;
@@ -181,6 +182,9 @@
 
       <div class="rename-status">
         <span class="rename-summary">{$t("rename.modal.summary", { lines: totalLines, notes: totalNotes })}</span>
+        {#if hasUnderlines}
+          <span class="rename-underline-note">{$t("rename.modal.underlinesUpdated")}</span>
+        {/if}
       </div>
 
       <div class="modal-list rename-list">
@@ -195,11 +199,9 @@
               <span class="rename-row-date">{entry.dateISO ?? entry.filename.replace(/\.txt$/, "")}</span>
             </label>
             <div class="rename-row-lines note-font">
-              {#each entry.lines as line (line.lineIdx)}
+              {#each entry.lines.filter((l) => !isSetextUnderline(l.before)) as line (line.lineIdx)}
                 <div class="rename-row-line">
-                  {#if isSetextUnderline(line.before)}
-                    <del class="rename-del">{line.before}</del><ins class="rename-ins">{line.after}</ins>
-                  {:else if effectiveTarget}
+                  {#if effectiveTarget}
                     {#each diffRenameLine(line.before, effectiveTarget) as seg}
                       {#if seg.kind === "del"}
                         <del class="rename-del">{seg.text}</del>
@@ -284,6 +286,10 @@
   }
 
   .rename-status {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 4px 12px;
     padding: 2px 14px 8px;
     font-size: var(--type-caption);
     color: var(--muted);

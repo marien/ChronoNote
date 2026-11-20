@@ -16,6 +16,25 @@ import {
 } from "./persistence";
 import { ensureLoaded } from "./notesIndex";
 import { t } from "./i18n";
+import type { TranslationKey, TranslationParams } from "./i18n/schema";
+
+export type TranslateFn = <K extends TranslationKey>(key: K, params?: TranslationParams[K]) => string;
+
+/** Format a version's saved timestamp as a compact relative age ("just now", "45 min ago", "1 h ago", "2 d ago"). */
+export function formatVersionRelativeTime(
+  ms: number,
+  translate: TranslateFn = (key, params) => get(t)(key, params),
+  now: number = Date.now(),
+): string {
+  const diffSec = Math.max(0, Math.floor((now - ms) / 1000));
+  if (diffSec < 60) return translate("versions.ago.justNow", undefined);
+  const diffMin = Math.floor(diffSec / 60);
+  if (diffMin < 60) return translate("versions.ago.minutes", { count: diffMin });
+  const diffHr = Math.floor(diffMin / 60);
+  if (diffHr < 24) return translate("versions.ago.hours", { count: diffHr });
+  const diffDay = Math.floor(diffHr / 24);
+  return translate("versions.ago.days", { count: diffDay });
+}
 
 export const versionsTargetFilename = writable<string | null>(null);
 export const versionsList = writable<NoteVersion[]>([]);

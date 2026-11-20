@@ -19,7 +19,7 @@
     DRAWER_ROWS.map((row): [string, string] =>
       Array.isArray(row)
         ? [row[0], $t(SHORTCUT_LABEL_KEYS[row[1] as keyof typeof SHORTCUT_LABEL_KEYS])]
-        : [formatShortcut(row), $t(SHORTCUT_LABEL_KEYS[row as keyof typeof SHORTCUT_LABEL_KEYS])],
+        : [formatShortcut(row, (k) => $t(k as never)), $t(SHORTCUT_LABEL_KEYS[row as keyof typeof SHORTCUT_LABEL_KEYS])],
     ).filter(([keys]) => keys !== ""),
   );
 

@@ -10,6 +10,7 @@
     versionsList,
     versionsCurrentText,
     restoreVersion,
+    formatVersionRelativeTime,
   } from "../../versions";
   import * as api from "../../tauriApi";
 
@@ -95,18 +96,6 @@
     return `${y}-${m}-${day} ${h}:${min}:${s}`;
   }
 
-  function formatRelativeTime(ms: number): string {
-    const now = Date.now();
-    const diffSec = Math.floor((now - ms) / 1000);
-    if (diffSec < 60) return "just now";
-    const diffMin = Math.floor(diffSec / 60);
-    if (diffMin < 60) return `${diffMin}m ago`;
-    const diffHr = Math.floor(diffMin / 60);
-    if (diffHr < 24) return `${diffHr}h ago`;
-    const diffDay = Math.floor(diffHr / 24);
-    return `${diffDay}d ago`;
-  }
-
   function formatSize(bytes: number): string {
     if (bytes < 1024) return `${bytes} B`;
     return `${(bytes / 1024).toFixed(1)} KB`;
@@ -168,7 +157,7 @@
             >
               <div class="version-item-title">{formatTimestamp(v.savedMs)}</div>
               <div class="version-item-meta">
-                <span>{formatRelativeTime(v.savedMs)}</span>
+                <span>{formatVersionRelativeTime(v.savedMs, $t)}</span>
                 <span>{formatSize(v.sizeBytes)}</span>
               </div>
             </button>

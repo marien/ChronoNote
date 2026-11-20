@@ -143,6 +143,7 @@ export const en = {
   "shortcuts.reopenClosedTab.label": () => "Reopen most recently closed tab",
   "shortcuts.openDateNote.label": () => "Open/create a dated note",
   "shortcuts.closeTab.label": () => "Close current tab / close a tab",
+  "shortcuts.extra.middleClick": () => "middle-click",
   "shortcuts.cycleTab.label": () => "Next / previous tab",
   "shortcuts.indentDedent.label": () => "Indent / dedent (in editor)",
   "shortcuts.undoRedo.label": () => "Undo / redo (kept per tab)",
@@ -301,7 +302,7 @@ export const en = {
   "actionDrawer.modal.ariaLabel": () => "Actions",
   "actionDrawer.filterPlaceholder": () => "Filter actions…",
   "actionDrawer.counter": ({ open, listed }) => `${open} open / ${listed} listed`,
-  "actionDrawer.counterShort": ({ open, listed }) => `${open} open · ${listed}`,
+  "actionDrawer.counterShort": ({ open, listed }) => `${open} open · ${listed} listed`,
   "actionDrawer.group.expand": () => "Expand",
   "actionDrawer.group.collapse": () => "Collapse",
   "actionDrawer.group.progressTitle": ({ resolved, total }) => `${resolved} of ${total} done`,
@@ -576,14 +577,14 @@ export const en = {
 
   "common.cancel": () => "Cancel",
 
-  "safetyModal.ariaLabel": () => "Unresolved actions warning",
-  "safetyModal.title": () => "Unresolved Actions Warning",
-  "safetyModal.reason.dueOpen": ({ count }) => `has ${count} unresolved open action(s)`,
+  "safetyModal.ariaLabel": () => "Close with open actions?",
+  "safetyModal.title": () => "Close with open actions?",
+  "safetyModal.reason.dueOpen": ({ count }) => (count === 1 ? "has 1 open action" : `has ${count} open actions`),
   "safetyModal.reason.scratchpad": () =>
     "is a scratchpad — closing it will permanently discard its content, since scratchpads are never saved to disk",
   "safetyModal.reasonJoiner": () => " and ",
-  "safetyModal.message": ({ filename, reasons }) => `Tab "${filename}" ${reasons}. Are you sure you want to close it?`,
-  "safetyModal.closeAnyway": () => "Close Anyway",
+  "safetyModal.message": ({ filename, reasons }) => `${filename} ${reasons}.`,
+  "safetyModal.closeAnyway": () => "Close anyway",
   "safetyModal.batchCloseMessage": ({ count }) =>
     `Close ${count} tabs? Some tabs contain unresolved open actions or unsaved scratchpad drafts.`,
 
@@ -594,6 +595,7 @@ export const en = {
   "searchModal.noMatches": ({ query }) => `No matches for "${query}".`,
   "searchModal.emptySubtitle": () =>
     "Check your spelling or try using search operators like is:open, due: or #tag.",
+  "searchModal.emptyHint": () => "Search words, @name, is:open, due:",
   "searchModal.footer.open": () => "Open",
   "searchModal.footer.select": () => "Select",
   "searchModal.saveSearch": () => "Save this search",
@@ -626,9 +628,7 @@ export const en = {
   "conflictModal.title": ({ filename }) => `"${filename}" changed on disk`,
   "conflictModal.explanation.part1": () =>
     "This note was modified outside ChronoNote (another editor, or a sync client) while you had unsaved changes to it here. Choose which version to keep — the other one won't be lost unless you pick ",
-  "conflictModal.explanation.keepDiskRef": () => "Keep disk",
   "conflictModal.explanation.part2": () => " or ",
-  "conflictModal.explanation.keepMineRef": () => "Keep mine",
   "conflictModal.explanation.part3": () => " without saving a copy.",
   "conflictModal.keepDiskVersion": () => "Keep disk version",
   "conflictModal.saveMineAsCopy": () => "Save mine as a copy",
@@ -953,6 +953,10 @@ export const en = {
   "versions.restore": () => "Restore this version",
   "versions.current": () => "Current",
   "versions.hint": () => "Kept for 30 days: a version every few minutes while you edit today, one per earlier day, and every version replaced by an import or a conflict choice.",
+  "versions.ago.justNow": () => "just now",
+  "versions.ago.minutes": ({ count }) => `${count} min ago`,
+  "versions.ago.hours": ({ count }) => `${count} h ago`,
+  "versions.ago.days": ({ count }) => `${count} d ago`,
   "toast.versions.restored": () => "Version restored",
   "a11y.glyph.open": () => "Open action",
   "a11y.glyph.done": () => "Done",
@@ -1004,6 +1008,7 @@ export const en = {
   "weekReview.nextWeekLabel": ({ week }) => `week ${week} ›`,
   "weekReview.count.openAction": ({ count }) => `${count} open action`,
   "weekReview.count.openActions": ({ count }) => `${count} open actions`,
+  "weekReview.count.open": ({ count }) => `${count} open`,
   "weekReview.count.overdue": ({ count }) => `${count} overdue`,
   "weekReview.showDone.label": () => "Show done",
   "weekReview.showDone.title": () => "Show completed and cancelled items",
@@ -1093,6 +1098,7 @@ export const en = {
   "rename.modal.to": () => "To",
   "rename.modal.summary": ({ lines, notes }) =>
     `${lines === 1 ? "1 line" : `${lines} lines`} in ${notes === 1 ? "1 note" : `${notes} notes`}`,
+  "rename.modal.underlinesUpdated": () => "Underlines are updated with their titles.",
   "rename.modal.confirm": ({ count }) => (count === 1 ? "Rename in 1 note" : `Rename in ${count} notes`),
   "rename.invalid.name": () => "Enter a name using letters, digits, _ or -.",
   "rename.invalid.topic": () => "Enter a topic with no spaces or parentheses.",

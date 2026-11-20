@@ -142,6 +142,28 @@ function hasDueOpenActions(tab: NoteTab, open: number): boolean {
  * scratchpad with real content — since scratchpads are never written to disk,
  * closing one with content still in it would destroy that content
  * permanently with zero warning. */
+export function formatSafetyCloseMessage(
+  filename: string,
+  dueOpenCount: number | null,
+  isNonEmptyScratchpad: boolean,
+  translate: <K extends keyof import("./i18n/schema").TranslationParams>(
+    key: K,
+    params: import("./i18n/schema").TranslationParams[K],
+  ) => string = (key, params) => get(t)(key, params),
+): string {
+  const reasons: string[] = [];
+  if (dueOpenCount !== null) {
+    reasons.push(translate("safetyModal.reason.dueOpen", { count: dueOpenCount }));
+  }
+  if (isNonEmptyScratchpad) {
+    reasons.push(translate("safetyModal.reason.scratchpad", undefined));
+  }
+  return translate("safetyModal.message", {
+    filename: filename.replace(/\.txt$/, ""),
+    reasons: reasons.join(translate("safetyModal.reasonJoiner", undefined)),
+  });
+}
+
 export function requestTabClose(tabId: string) {
   const tab = get(tabs).find((t) => t.id === tabId);
   if (!tab) return;
@@ -158,20 +180,9 @@ export function requestTabClose(tabId: string) {
     return;
   }
 
-  const translate = get(t);
-  const reasons: string[] = [];
-  if (dueOpen) {
-    reasons.push(translate("safetyModal.reason.dueOpen", { count: counts.open }));
-  }
-  if (isNonEmptyScratchpad) {
-    reasons.push(translate("safetyModal.reason.scratchpad", undefined));
-  }
   pendingCloseTabId.set(tabId);
   safetyMessage.set(
-    translate("safetyModal.message", {
-      filename: tab.filename,
-      reasons: reasons.join(translate("safetyModal.reasonJoiner", undefined)),
-    }),
+    formatSafetyCloseMessage(tab.filename, dueOpen ? counts.open : null, isNonEmptyScratchpad),
   );
   modal.set("safety");
 }

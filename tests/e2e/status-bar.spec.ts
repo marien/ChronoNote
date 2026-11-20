@@ -355,5 +355,35 @@ test.describe("Dutch and German status bar collapse & center message non-overlap
     expect(fired).toBe(true);
     await expect(toast).toHaveCount(0);
   });
+
+  test("F21: transient message keeps full counts and folder name at 1536 px and fits at 800 px", async ({ page }) => {
+    await page.setViewportSize({ width: 1536, height: 864 });
+    await seedApp(page, {
+      seed: {
+        notes: { [todayFilename()]: "# taak een\nv taak twee\n> taak drie" },
+        languageMode: "nl",
+      },
+    });
+    await page.evaluate(() => window.__CHRONO_MOCK__!.debug!.showToast("Notulen gekopieerd."));
+
+    const bar = page.locator("#status-bar");
+    await expect(bar).toHaveClass(/has-centre-message/);
+    await expect(bar.locator("#stat-message")).toContainText("Notulen gekopieerd.");
+    await expect(bar.locator("#stat-open .stat-full")).toBeVisible();
+    await expect(bar.locator("#stat-forwarded .stat-full")).toBeVisible();
+    await expect(bar.locator("#stat-closed .stat-full")).toBeVisible();
+    await expect(bar.locator(".status-folder-name")).toBeVisible();
+    expect(await bar.evaluate((el) => el.scrollWidth > el.clientWidth)).toBe(false);
+
+    await page.setViewportSize({ width: 800, height: 600 });
+    await expect(bar.locator("#stat-message")).toBeVisible();
+    await expect(bar.locator("#stat-open .stat-full")).toBeVisible();
+    expect(await bar.evaluate((el) => el.scrollWidth > el.clientWidth)).toBe(false);
+    const leftBox = (await bar.locator(".status-left").boundingBox())!;
+    const msgBox = (await bar.locator("#stat-message").boundingBox())!;
+    const rightBox = (await bar.locator(".status-right").boundingBox())!;
+    expect(leftBox.x + leftBox.width).toBeLessThanOrEqual(msgBox.x);
+    expect(msgBox.x + msgBox.width).toBeLessThanOrEqual(rightBox.x);
+  });
 });
 

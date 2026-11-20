@@ -271,7 +271,7 @@
       />
       {#if searching}
         <span class="modal-spinner" aria-label={$t("searchModal.searchingAriaLabel")}>⟳</span>
-      {:else}
+      {:else if query.trim()}
         <span class="modal-counter">{$t("searchModal.matchCount", { count: flatList.length })}</span>
       {/if}
       {#if query.trim()}
@@ -359,7 +359,9 @@
       onscroll={onScroll}
       style="position: relative; overflow-y: auto;"
     >
-      {#if flatList.length === 0 && query.trim() && !searching}
+      {#if !query.trim() && !searching}
+        <div class="search-empty-hint">{$t("searchModal.emptyHint")}</div>
+      {:else if flatList.length === 0 && query.trim() && !searching}
         <EmptyState
           icon="search"
           title={$t("searchModal.noMatches", { query })}
@@ -452,3 +454,11 @@
     {/if}
   </div>
 </div>
+
+<style>
+  .search-empty-hint {
+    padding: 12px 14px;
+    font-size: var(--type-caption);
+    color: var(--muted);
+  }
+</style>

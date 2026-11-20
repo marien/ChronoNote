@@ -204,7 +204,7 @@
       {@const tail = row.section ? ` · ${dateLabel} · ${row.section}` : ` · ${dateLabel}`}
       <!-- svelte-ignore a11y_click_events_have_key_events -->
       <div
-        class="modal-item action-row person-row {idx === selectedIndex ? 'selected' : ''}"
+        class="modal-item action-row person-row person-action-row {idx === selectedIndex ? 'selected' : ''}"
         role="option"
         aria-selected={idx === selectedIndex}
         data-idx={idx}
@@ -212,22 +212,26 @@
         onclick={() => jumpToRow(row.filename, row.lineIdx, idx)}
         onmouseenter={() => (selectedIndex = idx)}
       >
-        <div class="modal-item-main">
+        <div class="person-action-main">
           <span class="{g.cls ?? ''} item-glyph">{g.char}</span>
-          <span class="item-text" title={`${row.text}${tail}`}>
-            {#each parseGlyphLine(row.line, { today: $currentDateISO, ...textRangeFor(row) }) as part}
-              {#if part.parts}
-                <span class={part.cls ?? ""} title={part.title}>
-                  {#each part.parts as subPart}
-                    <span class={subPart.cls ?? ""} title={subPart.title}>{subPart.text}</span>
-                  {/each}
-                </span>
-              {:else}
-                <span class={part.cls ?? ""} title={part.title}>{part.text}</span>
-              {/if}
-            {/each}
-            <span class="person-row-tail" title={row.dateISO ?? row.filename}>{tail}</span>
-          </span>
+          <div class="person-action-body">
+            <span class="item-text person-action-text" title={`${row.text}${tail}`}>
+              {#each parseGlyphLine(row.line, { today: $currentDateISO, ...textRangeFor(row) }) as part}
+                {#if part.parts}
+                  <span class={part.cls ?? ""} title={part.title}>
+                    {#each part.parts as subPart}
+                      <span class={subPart.cls ?? ""} title={subPart.title}>{subPart.text}</span>
+                    {/each}
+                  </span>
+                {:else}
+                  <span class={part.cls ?? ""} title={part.title}>{part.text}</span>
+                {/if}
+              {/each}
+            </span>
+            <span class="person-action-meta" title={row.section ? `${row.dateISO ?? row.filename} · ${row.section}` : (row.dateISO ?? row.filename)}>
+              <span class="person-meta-date">{dateLabel}</span>{#if row.section}<span class="person-meta-sep" aria-hidden="true">·</span><span class="person-meta-section">{row.section}</span>{/if}
+            </span>
+          </div>
         </div>
       </div>
     {/each}
@@ -294,10 +298,8 @@
             onclick={() => jumpToRow(row.filename, row.lineIdx, idx)}
             onmouseenter={() => (selectedIndex = idx)}
           >
-            <div class="modal-item-main">
-              <span class="item-text person-mention-text" title={`${mainText}${countTail}`}>
-                {mainText}<span class="person-row-tail">{countTail}</span>
-              </span>
+            <div class="person-mention-main" title={`${mainText}${countTail}`}>
+              <span class="person-meta-date">{dateLabel}</span>{#if row.title}<span class="person-meta-sep" aria-hidden="true">·</span><span class="person-mention-title">{row.title}</span>{/if}<span class="person-meta-sep" aria-hidden="true">·</span><span class="person-mention-count">{$t("personView.lines", { count: row.count })}</span>
             </div>
           </div>
         {/each}
@@ -376,23 +378,111 @@
 .person-row {
   margin: 0 6px;
   padding-left: 14px;
+  flex-wrap: nowrap;
+  row-gap: 0;
+  align-content: center;
 }
 .person-mention-row {
   padding-left: 16px;
+}
+.person-action-main {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1 1 0;
+  min-width: 0;
+}
+.person-action-body {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex: 1 1 0;
+  min-width: 0;
 }
 .item-glyph {
   flex: none;
 }
 .item-text {
+  flex: 1 1 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   min-width: 0;
   padding: 1px 0.4ch 1px 1px;
 }
-.person-row-tail {
+.person-action-meta {
+  flex: 0 1 auto;
+  max-width: 48%;
+  min-width: 0;
+  margin-left: auto;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  color: var(--muted);
+  font-size: var(--type-caption);
+  font-weight: 400;
+}
+.person-meta-date {
+  flex: none;
+  white-space: nowrap;
+}
+.person-meta-sep {
+  flex: none;
+  color: var(--muted);
+}
+.person-meta-section {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.person-mention-main {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  flex: 1 1 0;
+  min-width: 0;
+  overflow: hidden;
+}
+.person-mention-title {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.person-mention-count {
+  flex: none;
+  white-space: nowrap;
   color: var(--muted);
   font-weight: 400;
+}
+@media (max-width: 599px) {
+  .person-action-row {
+    height: auto;
+    padding-top: 6px;
+    padding-bottom: 6px;
+  }
+  .person-action-main {
+    align-items: flex-start;
+  }
+  .person-action-main .item-glyph {
+    margin-top: 3px;
+  }
+  .person-action-body {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 2px;
+  }
+  .person-action-text {
+    flex: none;
+    width: 100%;
+  }
+  .person-action-meta {
+    max-width: 100%;
+    margin-left: 0;
+  }
 }
 .person-empty {
   padding: 5px 16px 8px;

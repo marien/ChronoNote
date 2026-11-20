@@ -546,7 +546,7 @@
             >
               <span class="band-title d" title={row.date}>{$noteDateLabel(row.date)}</span>
               <small>
-                {row.openCount} open
+                {$t("weekReview.count.open", { count: row.openCount })}
                 {#if row.overdueCount > 0}
                   {" · "}
                   <span class="over">{$t("weekReview.count.overdue", { count: row.overdueCount })}</span>

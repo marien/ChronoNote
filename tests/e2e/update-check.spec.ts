@@ -291,10 +291,10 @@ test.describe("About: the version card", () => {
     await seedApp(page, seed({ updateCheck: "none" }));
     const about = await openViaShortcut(page, "ControlOrMeta+Shift+Comma", "about");
     await expect(about.locator(".modal-title .modal-counter")).toHaveCount(0);
-    await expect(page.locator(".settings-page-title")).not.toContainText("v0.3.0");
+    await expect(page.locator(".settings-page-title")).not.toContainText("0.3.0");
     const card = about.locator(".about-version-card");
-    await expect(card).toContainText("v0.3.0"); // the mock's default appVersion
-    await expect(card).toContainText("Version");
+    await expect(card).toContainText("Version 0.3.0"); // the mock's default appVersion
+    await expect(card).not.toContainText("Version v0.3.0");
     await expect(card).toBeVisible();
   });
 
@@ -327,7 +327,7 @@ test.describe("About: the version card", () => {
     const about = await openViaShortcut(page, "ControlOrMeta+Shift+Comma", "about");
     await expect(about.locator(".about-status-chip")).toContainText("Update available");
     await expect(about.locator(".about-version-card")).toHaveAttribute("data-tone", "accent");
-    await expect(about.locator(".about-version-card")).toContainText("v0.3.0");
+    await expect(about.locator(".about-version-card")).toContainText("Version 0.3.0");
     await expect(about).toContainText("v9.9.9");
     await expect(about.getByRole("button", { name: "What's changed" })).toBeVisible();
     await expect(about.getByRole("button", { name: /Release notes/ })).toBeVisible();
@@ -345,7 +345,7 @@ test.describe("About: the version card", () => {
     await seedApp(page, seed({ backendKind: "web" }));
     const about = await openViaShortcut(page, "ControlOrMeta+Shift+Comma", "about");
     await expect(about.locator(".about-status-chip")).toContainText("Always current");
-    await expect(about.locator(".about-version-card")).toContainText("v0.3.0");
+    await expect(about.locator(".about-version-card")).toContainText("Version 0.3.0");
     await about.getByRole("button", { name: /Release notes/ }).click();
     expect(await page.evaluate(() => window.__CHRONO_MOCK__!.openedUrls)).toContain(
       "https://github.com/marien/ChronoNote/releases/tag/v0.3.0",
