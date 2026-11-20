@@ -996,7 +996,7 @@
 {:else}
   <div class="overlay" role="presentation" use:closeOnOutsideClick={controller.closeAllModals}>
     <div
-      class="modal-card modal-lg"
+      class="modal-card modal-lg sheet-full"
       role="dialog"
       aria-modal="true"
       use:focusTrap

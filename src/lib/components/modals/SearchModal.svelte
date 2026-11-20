@@ -258,7 +258,7 @@
 </script>
 
 <div class="overlay" role="presentation" use:closeOnOutsideClick={controller.closeAllModals}>
-  <div class="modal-card modal-lg" role="dialog" aria-modal="true" use:focusTrap use:sheetSwipe aria-label={$t("shortcuts.crossTabSearch.label")}>
+  <div class="modal-card modal-lg sheet-full" role="dialog" aria-modal="true" use:focusTrap use:sheetSwipe aria-label={$t("shortcuts.crossTabSearch.label")}>
     <div class="modal-input-wrap">
       <Icon name="search" size={15} />
       <input

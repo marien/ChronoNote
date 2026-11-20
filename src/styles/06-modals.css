@@ -71,7 +71,10 @@
     max-height: 92dvh;
     box-sizing: border-box;
   }
-  .modal-card.history-modal-card {
+  /* Sheets whose list changes as you type or browse keep the full height, so the search box doesn't
+     jump; every other sheet sizes to its content (U5 F10). */
+  .modal-card.history-modal-card,
+  .modal-card.sheet-full {
     height: 92dvh !important;
     max-height: 92dvh !important;
   }
@@ -79,6 +82,9 @@
     flex: 0 1 auto;
     min-height: 0;
     max-height: none;
+  }
+  .modal-card.sheet-full .modal-list {
+    flex: 1;
   }
   .modal-card::before {
     content: "";

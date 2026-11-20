@@ -214,7 +214,7 @@
 
 <div class="overlay" role="presentation" use:closeOnOutsideClick={onClose}>
   <div
-    class="modal-card settings-modal-card onedrive-picker-card modal-lg"
+    class="modal-card settings-modal-card onedrive-picker-card modal-lg sheet-full"
     role="dialog"
     aria-modal="true"
     use:focusTrap
