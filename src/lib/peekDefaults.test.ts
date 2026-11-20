@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { PEEK_DEFAULTS, PEEK_MAX_FADE_SECONDS, clampPeek } from "./peekDefaults";
+import { PEEK_DEFAULTS, PEEK_MAX_FADE_SECONDS, clampPeek, displayAccelerator } from "./peekDefaults";
 
 describe("Peek defaults", () => {
   it("starts in focus at 95%, fades to 50% after 3 seconds", () => {
@@ -19,5 +19,14 @@ describe("Peek defaults", () => {
     // US-International AltGr letters: q w e r t y u i o p a s d l z c n m (and x on Polish). A global Ctrl+Alt+<one of
     // those> blocks that character in every app.
     expect(PEEK_DEFAULTS.callShortcut).toMatch(/^CommandOrControl\+Alt\+[BFGHJKV]$/);
+  });
+});
+
+describe("displayAccelerator", () => {
+  it("shows CommandOrControl and CmdOrCtrl as Ctrl, leaves the rest alone", () => {
+    expect(displayAccelerator("CommandOrControl+Alt+J")).toBe("Ctrl+Alt+J");
+    expect(displayAccelerator("CmdOrCtrl+Shift+Y")).toBe("Ctrl+Shift+Y");
+    expect(displayAccelerator("Ctrl+Alt+K")).toBe("Ctrl+Alt+K");
+    expect(displayAccelerator(PEEK_DEFAULTS.callShortcut)).toBe("Ctrl+Alt+J");
   });
 });

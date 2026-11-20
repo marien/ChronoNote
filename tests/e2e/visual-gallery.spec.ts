@@ -527,7 +527,14 @@ for (const v of VARIANTS) {
       const tabs = container.locator('[role="tab"]');
       await tabs.nth(0).click();
       await expect(tabs.nth(0)).toHaveAttribute("aria-selected", "true");
-      await shot(page, v.name, "settings-appearance");
+      // Appearance is the tab Settings opens on (the "settings" shot), so show its lower half here.
+      await container.evaluate((root) => {
+        const scrollers = [root, ...root.querySelectorAll<HTMLElement>("*")].filter(
+          (el) => el.scrollHeight > el.clientHeight + 4 && getComputedStyle(el).overflowY !== "visible",
+        );
+        for (const el of scrollers) el.scrollTop = el.scrollHeight;
+      });
+      await shot(page, v.name, "settings-appearance-end");
 
       await tabs.nth(1).click();
       await expect(tabs.nth(1)).toHaveAttribute("aria-selected", "true");

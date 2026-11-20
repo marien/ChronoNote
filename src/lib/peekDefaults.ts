@@ -35,3 +35,9 @@ export function clampPeek(peek: PeekConfig): PeekConfig {
     dockHeight: Math.min(Math.max(PEEK_MIN_DOCK_HEIGHT, Math.round(peek.dockHeight)), PEEK_MAX_DOCK_HEIGHT),
   };
 }
+
+/** The accelerator as Settings shows it: `CommandOrControl` / `CmdOrCtrl` read as `Ctrl` (the app runs on Windows).
+ * Display only; the stored value keeps its spelling until the user edits the field (both spellings register). */
+export function displayAccelerator(accelerator: string): string {
+  return accelerator.replace(/\b(?:CommandOrControl|CommandOrCtrl|CmdOrControl|CmdOrCtrl)\b/gi, "Ctrl");
+}

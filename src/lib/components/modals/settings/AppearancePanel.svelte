@@ -24,6 +24,7 @@
   import { PEEK_DEFAULTS, peekSettings, type PeekHeaderMode } from "../../../peek";
   import { occurrenceHint, setOccurrenceHint } from "../../../occurrences";
   import { locale, t, REVIEWED_LOCALES, type SupportedLocale } from "../../../i18n";
+  import { displayAccelerator } from "../../../peekDefaults";
   import type { ColorMode, LanguageMode, ThemeMode } from "../../../types";
   import type { TabLabelStyle } from "../../../generated/tauri-types";
 
@@ -341,7 +342,7 @@
       <input
         type="text"
         class="find-input s-input"
-        value={$peekSettings.callShortcut}
+        value={displayAccelerator($peekSettings.callShortcut)}
         aria-label={$t("peek.settings.callShortcut.label")}
         onchange={(e) => peekSettings.update((s) => ({ ...s, callShortcut: e.currentTarget.value.trim() }))}
       />

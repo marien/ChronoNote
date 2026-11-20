@@ -1276,6 +1276,16 @@ textarea.modal-input.import-textarea {
   cursor: pointer;
 }
 
+/* Three long labels (the conflict dialog, German "Festplattenversion behalten"): each button as wide as its label,
+   never wrapped inside; on a narrow screen the buttons flow onto more rows instead. */
+.dialog-buttons.fit-labels {
+  flex-wrap: wrap;
+}
+.dialog-buttons.fit-labels .dialog-btn {
+  flex: 1 1 auto;
+  white-space: nowrap;
+}
+
 .dialog-btn:hover:not(:disabled) {
   background: color-mix(in srgb, var(--surface-raised) 85%, var(--text));
 }

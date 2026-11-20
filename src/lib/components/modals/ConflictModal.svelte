@@ -13,7 +13,7 @@
 
 {#if info}
   <div class="overlay">
-    <div class="modal-card modal-md dialog-card" role="dialog" aria-modal="true" use:focusTrap aria-label={$t("conflictModal.ariaLabel")}>
+    <div class="modal-card modal-md dialog-card" style="--modal-width: 640px;" role="dialog" aria-modal="true" use:focusTrap aria-label={$t("conflictModal.ariaLabel")}>
       <div class="dialog-body">
         <h2 class="dialog-title">{$t("conflictModal.title", { filename: info.filename })}</h2>
         <div>
@@ -22,7 +22,7 @@
           )}<em>{$t("conflictModal.keepMyVersion")}</em>{$t("conflictModal.explanation.part3")}
         </div>
       </div>
-      <div class="dialog-buttons">
+      <div class="dialog-buttons fit-labels">
         <button class="dialog-btn accent" bind:this={keepDiskBtn} onclick={controller.resolveConflictKeepDisk}>
           {$t("conflictModal.keepDiskVersion")}
         </button>
