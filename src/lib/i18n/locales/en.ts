@@ -956,7 +956,7 @@ export const en = {
   "versions.ago.justNow": () => "just now",
   "versions.ago.minutes": ({ count }) => `${count} min ago`,
   "versions.ago.hours": ({ count }) => `${count} h ago`,
-  "versions.ago.days": ({ count }) => `${count} d ago`,
+  "versions.ago.days": ({ count }) => (count === 1 ? "1 day ago" : `${count} days ago`),
   "toast.versions.restored": () => "Version restored",
   "a11y.glyph.open": () => "Open action",
   "a11y.glyph.done": () => "Done",

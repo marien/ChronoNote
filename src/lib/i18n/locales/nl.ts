@@ -965,7 +965,7 @@ export const nl = {
   "versions.ago.justNow": () => "zojuist",
   "versions.ago.minutes": ({ count }) => `${count} min geleden`,
   "versions.ago.hours": ({ count }) => `${count} uur geleden`,
-  "versions.ago.days": ({ count }) => `${count} d geleden`,
+  "versions.ago.days": ({ count }) => (count === 1 ? "1 dag geleden" : `${count} dagen geleden`),
   "toast.versions.restored": () => "Versie teruggezet",
   "a11y.glyph.open": () => "Open actie",
   "a11y.glyph.done": () => "Voltooid",

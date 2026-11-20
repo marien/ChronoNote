@@ -640,7 +640,7 @@ export const de = {
   "conflictModal.explanation.part2": () => " oder ",
   "conflictModal.explanation.part3": () => " ohne eine Kopie zu speichern.",
   "conflictModal.keepDiskVersion": () => "Festplattenversion behalten",
-  "conflictModal.saveMineAsCopy": () => "Meine als Kopie",
+  "conflictModal.saveMineAsCopy": () => "Als Kopie speichern",
   "conflictModal.keepMyVersion": () => "Meine Version behalten",
 
   "unsavedScratchpads.ariaLabel": () => "Nicht gespeicherter Notizblock-Inhalt",
