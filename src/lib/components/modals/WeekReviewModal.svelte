@@ -8,6 +8,7 @@
     weekReviewYear,
     weekReviewWeek,
     weekReviewShowDone,
+    windowWidth,
     showToast,
   } from "../../stores";
   import { ensureLoaded, notesIndex } from "../../notesIndex";
@@ -16,6 +17,7 @@
   import { closeOnOutsideClick } from "../../actions/closeOnOutsideClick";
   import {
     buildWeekReview,
+    formatCompactWeekRange,
     formatWeekRange,
     isoYearAndWeek,
     type WeekReviewItem,
@@ -47,6 +49,8 @@
     docked?: boolean;
   }
   let { docked = false }: Props = $props();
+
+  const isCompactHeader = $derived(!docked && $windowWidth < 600);
 
   const ROW_INSET = 18;
   const TREE_INDENT = 24;
@@ -394,11 +398,43 @@
   }
 </script>
 
+{#snippet reviewTools()}
+  <button
+    type="button"
+    class="icon-btn modal-copy-btn"
+    aria-label={$t("listCopy.button")}
+    title={$t("listCopy.button")}
+    disabled={flatList.length === 0}
+    onclick={() => void copyList()}
+  >
+    <Icon name="copy" size={14} />
+  </button>
+  <HelpPopoverButton
+    title={$t("weekReview.help.buttonTitle")}
+    hints={[
+      { keys: "Enter", label: $t("weekReview.footer.goToLine") },
+      { keys: "Shift+Enter", label: $t("weekReview.footer.forwardToToday") },
+      { keys: "Ctrl+Space", label: $t("weekReview.footer.changeState") },
+      { keys: "←/→", label: $t("weekReview.footer.prevNextWeek") },
+      { keys: "Home", label: $t("weekReview.footer.thisWeek") },
+    ]}
+    onCloseFocus={() => {
+      if (!$isMobile) listEl?.focus();
+    }}
+  />
+{/snippet}
+
 {#snippet modalContent()}
-  {@const weekTitle = $t("weekReview.header.weekTitle", {
-    week: $weekReviewWeek,
-    range: formatWeekRange($locale, reviewModel.mondayISO, reviewModel.sundayISO),
-  })}
+  {@const currentYear = Number($currentDateISO.slice(0, 4))}
+  {@const weekTitle = isCompactHeader
+    ? $t("weekReview.header.weekTitleCompact", {
+        week: $weekReviewWeek,
+        range: formatCompactWeekRange($locale, reviewModel.mondayISO, reviewModel.sundayISO, currentYear),
+      })
+    : $t("weekReview.header.weekTitle", {
+        week: $weekReviewWeek,
+        range: formatWeekRange($locale, reviewModel.mondayISO, reviewModel.sundayISO),
+      })}
   <div class="modal-title week-review-header">
     <div class="week-review-title-group">
       <Icon name="actions" size={16} />
@@ -424,29 +460,9 @@
       >
         <Icon name="chevron-right" size={12} />
       </button>
-      <button
-        type="button"
-        class="icon-btn modal-copy-btn"
-        aria-label={$t("listCopy.button")}
-        title={$t("listCopy.button")}
-        disabled={flatList.length === 0}
-        onclick={() => void copyList()}
-      >
-        <Icon name="copy" size={14} />
-      </button>
-      <HelpPopoverButton
-        title={$t("weekReview.help.buttonTitle")}
-        hints={[
-          { keys: "Enter", label: $t("weekReview.footer.goToLine") },
-          { keys: "Shift+Enter", label: $t("weekReview.footer.forwardToToday") },
-          { keys: "Ctrl+Space", label: $t("weekReview.footer.changeState") },
-          { keys: "←/→", label: $t("weekReview.footer.prevNextWeek") },
-          { keys: "Home", label: $t("weekReview.footer.thisWeek") },
-        ]}
-        onCloseFocus={() => {
-          if (!$isMobile) listEl?.focus();
-        }}
-      />
+      {#if !isCompactHeader}
+        {@render reviewTools()}
+      {/if}
       <button
         type="button"
         class="icon-btn modal-close-btn"
@@ -641,6 +657,11 @@
       </div>
     {/if}
   </div>
+  {#if isCompactHeader}
+    <div class="modal-footer week-review-footer">
+      {@render reviewTools()}
+    </div>
+  {/if}
 {/snippet}
 
 {#if docked}
@@ -793,5 +814,9 @@
 .step-number {
   color: var(--text-tertiary, var(--muted));
   font-weight: 600;
+}
+.week-review-footer {
+  justify-content: flex-end;
+  gap: 8px;
 }
 </style>

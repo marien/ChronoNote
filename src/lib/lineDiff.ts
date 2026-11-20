@@ -9,10 +9,10 @@ export interface DiffRow {
   changed: boolean;
 }
 
-/** Splits into lines, ignoring the empty piece a trailing newline leaves. */
+/** Splits into lines (normalizing CRLF), ignoring the empty piece a trailing newline leaves. */
 function toLines(s: string): string[] {
   if (s === "") return [];
-  const lines = s.split("\n");
+  const lines = s.split(/\r?\n/);
   if (lines[lines.length - 1] === "") lines.pop();
   return lines;
 }

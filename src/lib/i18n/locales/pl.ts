@@ -371,7 +371,7 @@ export const pl = {
     "Przenosi zaznaczone wiersze na koniec tej sekcji jak Cały wiersz, z otwartymi pozycjami oznaczonymi tu jako odłożone, i otwiera tam każdy punkt agendy (o), także omówione.",
   "history.takeover.hint": () =>
     "Przenosi zaznaczone wiersze na koniec tej sekcji — oznaczone jako odłożone (») w tym wystąpieniu, bez usuwania.",
-  "history.takeover.none": () => "Brak innego miejsca do przeniesienia z tego wystąpienia.",
+  "history.takeover.none": () => "To jedyny raz, gdy ta sekcja się pojawia.",
   "history.body.selectPrompt": () => "Wybierz wystąpienie, aby je przejrzeć.",
   "history.footer.selectLine": () => "Wybierz wiersz",
   "history.footer.switchDate": () => "Inna data",
@@ -619,6 +619,7 @@ export const pl = {
   "searchModal.unsaveSearch": () => "Usuń z zapisanych wyszukiwań",
   "searchModal.savedSearchChip": ({ query }) => `Zapisane wyszukiwanie: ${query}`,
   "searchModal.savedSearchesRow": () => "Zapisane wyszukiwania",
+  "searchModal.removeSavedSearchAriaLabel": ({ query }) => `Usuń zapisane wyszukiwanie: ${query}`,
 
   "datePicker.ariaLabel": () => "Przejdź do daty",
   "datePicker.jumpPlaceholder": () => "Idź do: dziś, -2, 2026-09-05",
@@ -1041,6 +1042,7 @@ export const pl = {
   "weekReview.modal.title": () => "Przegląd tygodnia",
   "weekReview.modal.ariaLabel": () => "Przegląd tygodnia",
   "weekReview.header.weekTitle": ({ week, range }) => `Tydzień ${week} · ${range}`,
+  "weekReview.header.weekTitleCompact": ({ week, range }) => `Tydz. ${week} · ${range}`,
   "weekReview.prevWeek": () => "Poprzedni tydzień",
   "weekReview.nextWeek": () => "Następny tydzień",
   "weekReview.prevWeekLabel": ({ week }) => `‹ tydzień ${week}`,

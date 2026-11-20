@@ -368,7 +368,7 @@ export const nl = {
     "Verplaatst de geselecteerde regel(s) naar het einde van die sectie, zoals Hele regel, met open punten hier als doorgeschoven gemarkeerd, en zet elk agendapunt (o) daar open, ook besproken punten.",
   "history.takeover.hint": () =>
     "Verplaatst de geselecteerde regel(s) naar het einde van die sectie — gemarkeerd als doorgeschoven (») in deze gelegenheid, niet verwijderd.",
-  "history.takeover.none": () => "Er is nergens anders heen om dit vanuit deze gelegenheid over te zetten.",
+  "history.takeover.none": () => "Deze sectie komt alleen hier voor.",
   "history.body.selectPrompt": () => "Selecteer een gelegenheid om te bekijken.",
   "history.footer.selectLine": () => "Regel selecteren",
   "history.footer.switchDate": () => "Andere datum",
@@ -604,6 +604,7 @@ export const nl = {
   "searchModal.unsaveSearch": () => "Uit bewaarde zoekopdrachten halen",
   "searchModal.savedSearchChip": ({ query }) => `Bewaarde zoekopdracht: ${query}`,
   "searchModal.savedSearchesRow": () => "Bewaarde zoekopdrachten",
+  "searchModal.removeSavedSearchAriaLabel": ({ query }) => `Bewaarde zoekopdracht verwijderen: ${query}`,
 
   "datePicker.ariaLabel": () => "Naar datum springen",
   "datePicker.jumpPlaceholder": () => "Ga naar: vandaag, -2, 2026-09-05",
@@ -1007,6 +1008,7 @@ export const nl = {
   "weekReview.modal.title": () => "Weekoverzicht",
   "weekReview.modal.ariaLabel": () => "Weekoverzicht",
   "weekReview.header.weekTitle": ({ week, range }) => `Week ${week} · ${range}`,
+  "weekReview.header.weekTitleCompact": ({ week, range }) => `Wk ${week} · ${range}`,
   "weekReview.prevWeek": () => "Vorige week",
   "weekReview.nextWeek": () => "Volgende week",
   "weekReview.prevWeekLabel": ({ week }) => `‹ week ${week}`,

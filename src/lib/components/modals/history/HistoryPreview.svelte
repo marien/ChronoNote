@@ -177,8 +177,8 @@
   background: var(--surface-raised);
   border-radius: var(--radius-control);
   padding: 7px 9px;
-  flex: 1 1 auto;
-  min-height: 0;
+  flex: 0 1 auto;
+  min-height: calc(4.5em + 14px);
   overflow-y: auto;
 }
 

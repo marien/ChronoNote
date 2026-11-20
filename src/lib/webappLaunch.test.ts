@@ -2,12 +2,16 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from "vitest";
 import {
   shouldApplyMobileDefaults,
+  resolveTextWidth,
   parseWebappLaunchOpen,
   readMobileDefaultsApplied,
   writeMobileDefaultsApplied,
+  readTextWidthChosen,
+  writeTextWidthChosen,
   handleWebappLaunch,
   resetWebappLaunchHandledForTesting,
   MOBILE_DEFAULTS_KEY,
+  TEXT_WIDTH_CHOSEN_KEY,
 } from "./webappLaunch";
 import * as tabs from "./tabs";
 import * as actions from "./actions";
@@ -67,6 +71,59 @@ describe("shouldApplyMobileDefaults (D1)", () => {
 
     const config2 = { wordWrap: false, fontSize: 13, readableLineLength: true };
     expect(shouldApplyMobileDefaults(config2, true, "web", false)).toBe(true);
+  });
+});
+
+describe("resolveTextWidth (F14)", () => {
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
+  it("defaults to wrap on phone when the user has never chosen a value", () => {
+    expect(resolveTextWidth({ wordWrap: false, readableLineLength: false }, true, false)).toEqual({
+      wordWrap: true,
+      readableLineLength: false,
+    });
+    expect(resolveTextWidth(null, true, false)).toEqual({
+      wordWrap: true,
+      readableLineLength: false,
+    });
+  });
+
+  it("keeps an explicit 'full' choice on phone", () => {
+    expect(resolveTextWidth({ wordWrap: false, readableLineLength: false }, true, true)).toEqual({
+      wordWrap: false,
+      readableLineLength: false,
+    });
+  });
+
+  it("keeps wrap and reading column choices on phone and desktop", () => {
+    expect(resolveTextWidth({ wordWrap: true, readableLineLength: false }, true, true)).toEqual({
+      wordWrap: true,
+      readableLineLength: false,
+    });
+    expect(resolveTextWidth({ wordWrap: false, readableLineLength: true }, true, true)).toEqual({
+      wordWrap: true,
+      readableLineLength: true,
+    });
+    expect(resolveTextWidth({ wordWrap: true, readableLineLength: false }, false, true)).toEqual({
+      wordWrap: true,
+      readableLineLength: false,
+    });
+  });
+
+  it("leaves desktop default as full when nothing was chosen", () => {
+    expect(resolveTextWidth({ wordWrap: false, readableLineLength: false }, false, false)).toEqual({
+      wordWrap: false,
+      readableLineLength: false,
+    });
+  });
+
+  it("persists and reads explicit text width choice in localStorage", () => {
+    expect(readTextWidthChosen()).toBe(false);
+    writeTextWidthChosen();
+    expect(localStorage.getItem(TEXT_WIDTH_CHOSEN_KEY)).toBe("true");
+    expect(readTextWidthChosen()).toBe(true);
   });
 });
 

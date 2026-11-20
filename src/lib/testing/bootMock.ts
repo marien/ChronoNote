@@ -4,6 +4,7 @@
  * clearly behind a single dynamic import. Testing-only. */
 import { get } from "svelte/store";
 import * as controller from "../controller";
+import { writeTextWidthChosen } from "../webappLaunch";
 import { installMockTauri, type MockBackend, type MockSeed } from "./mockBackend";
 import { scenario, SCENARIO_NAMES, type ScenarioName } from "./scenarios";
 
@@ -35,6 +36,10 @@ export function bootMockBackend(params: URLSearchParams): MockBackend {
   if (seed && (theme === "light" || theme === "dark")) seed = { ...seed, themeMode: theme };
 
   const backend = installMockTauri(seed);
+
+  if (seed?.wordWrap !== undefined || seed?.readableLineLength !== undefined) {
+    writeTextWidthChosen();
+  }
 
   if (seed?.backendKind) {
     controller.backendKind.set(seed.backendKind);

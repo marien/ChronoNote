@@ -6,6 +6,7 @@ import {
   isEmphasisLine,
   isTopicLine,
   parseSearchQuery,
+  pickContextBefore,
   removeChipFromQuery,
   runSearch,
   splitQuery,
@@ -158,6 +159,27 @@ describe("runSearch 3-line context extraction and operator filtering", () => {
     expect(results[0].lineIdx).toBe(1);
     expect(results[0].contextBefore).toBe("Header line 1");
     expect(results[0].contextAfter).toBe("Context line after task");
+  });
+
+  it("pickContextBefore shows section title instead of setext underline (=== or ---) and keeps prose otherwise", () => {
+    const lines = [
+      "Top priorities",
+      "==============",
+      "# ask @Dana about the release checklist",
+      "- today: prep slides",
+      "# book user-testing",
+      "Sub section",
+      "-----------",
+      "# nested hit",
+      "",
+      "====",
+      "# orphan underline hit",
+    ];
+    expect(pickContextBefore(lines, 0)).toBeUndefined();
+    expect(pickContextBefore(lines, 2)).toBe("Top priorities");
+    expect(pickContextBefore(lines, 4)).toBe("- today: prep slides");
+    expect(pickContextBefore(lines, 7)).toBe("Sub section");
+    expect(pickContextBefore(lines, 10)).toBe("====");
   });
 
   it("handles boundary lines without crashing (top of file has no contextBefore, bottom has no contextAfter)", () => {

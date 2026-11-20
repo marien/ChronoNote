@@ -27,6 +27,7 @@ import {
 import { computeEffectiveSpellLanguages, languagesChanged } from "../editor/spellcheck";
 import { refreshAgendaFileExists } from "../calendarSyncActions";
 import { locale, t } from "../i18n";
+import { writeTextWidthChosen } from "../webappLaunch";
 import type { ColorMode, LanguageMode, StartupTabMode, ThemeMode } from "../types";
 import type { TabLabelStyle } from "../generated/tauri-types";
 import {
@@ -70,6 +71,7 @@ export async function setLanguageMode(mode: LanguageMode) {
 }
 
 export async function setWordWrap(enabled: boolean) {
+  writeTextWidthChosen();
   wordWrap.set(enabled);
   try {
     await api.setWordWrap(enabled);
@@ -118,6 +120,7 @@ export async function setSpellLanguages(languages: string[] | null) {
 }
 
 export async function setReadableLineLength(enabled: boolean) {
+  writeTextWidthChosen();
   readableLineLength.set(enabled);
   // §110: "limit line width" owns word-wrap while it's on — turning it on
   // force-enables wrap; the Settings wrap toggle is disabled meanwhile.

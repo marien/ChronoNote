@@ -115,7 +115,7 @@
 
 <div class="overlay" role="presentation" use:closeOnOutsideClick={controller.closeAllModals}>
   <div
-    class="modal-card modal-md dialog-card"
+    class="modal-card versions-modal-card dialog-card"
     role="dialog"
     aria-modal="true"
     use:focusTrap
@@ -235,12 +235,16 @@
 </div>
 
 <style>
+  .versions-modal-card {
+    --modal-width: 1100px;
+    container-type: inline-size;
+  }
   .versions-layout {
     display: flex;
     gap: 12px;
     padding: 0 12px;
     min-height: 280px;
-    max-height: 45vh;
+    max-height: 60vh;
   }
   @media (max-width: 600px) {
     .versions-layout {
@@ -250,7 +254,7 @@
     }
   }
   .versions-sidebar {
-    width: 190px;
+    width: 180px;
     flex-shrink: 0;
     display: flex;
     flex-direction: column;
@@ -300,10 +304,37 @@
   .versions-diff-pane {
     flex: 1;
     min-width: 0;
+    min-height: 0;
     display: flex;
     flex-direction: column;
     gap: 4px;
     overflow-y: auto;
+  }
+  .versions-modal-card .conflict-versions {
+    flex-direction: column;
+    flex-wrap: nowrap;
+    min-height: 0;
+  }
+  .versions-modal-card .conflict-version {
+    flex: 0 0 auto;
+    min-width: 0;
+  }
+  .versions-modal-card .conflict-text {
+    font-size: var(--type-caption);
+  }
+  @container (min-width: 900px) {
+    .versions-modal-card .conflict-versions {
+      flex-direction: row;
+    }
+    .versions-modal-card .conflict-version {
+      flex: 1 1 0;
+      min-height: 0;
+    }
+    .versions-modal-card .conflict-text {
+      max-height: none;
+      flex: 1;
+      min-height: 0;
+    }
   }
   .versions-footer {
     padding: 12px;

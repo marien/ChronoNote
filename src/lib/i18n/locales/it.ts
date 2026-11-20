@@ -371,7 +371,7 @@ export const it = {
     "Sposta le righe selezionate alla fine di quella sezione come Riga intera, con gli elementi aperti contrassegnati qui come inoltrati, e apre lì ogni punto dell'agenda (o), anche quelli già trattati.",
   "history.takeover.hint": () =>
     "Sposta le righe selezionate alla fine di quella sezione — contrassegnata come inoltrata (») in questa ricorrenza, non eliminata.",
-  "history.takeover.none": () => "Nessun altro luogo a cui riportare questo da questa ricorrenza.",
+  "history.takeover.none": () => "Questa è l'unica volta in cui questa sezione compare.",
   "history.body.selectPrompt": () => "Seleziona una ricorrenza per sfogliarla.",
   "history.footer.selectLine": () => "Seleziona riga",
   "history.footer.switchDate": () => "Altra data",
@@ -615,6 +615,7 @@ export const it = {
   "searchModal.unsaveSearch": () => "Rimuovi dalle ricerche salvate",
   "searchModal.savedSearchChip": ({ query }) => `Ricerca salvata: ${query}`,
   "searchModal.savedSearchesRow": () => "Ricerche salvate",
+  "searchModal.removeSavedSearchAriaLabel": ({ query }) => `Rimuovi ricerca salvata: ${query}`,
 
   "datePicker.ariaLabel": () => "Vai alla data",
   "datePicker.jumpPlaceholder": () => "Vai a: oggi, -2, 2026-09-05",
@@ -1023,6 +1024,7 @@ export const it = {
   "weekReview.modal.title": () => "Riepilogo settimanale",
   "weekReview.modal.ariaLabel": () => "Riepilogo settimanale",
   "weekReview.header.weekTitle": ({ week, range }) => `Settimana ${week} · ${range}`,
+  "weekReview.header.weekTitleCompact": ({ week, range }) => `Sett. ${week} · ${range}`,
   "weekReview.prevWeek": () => "Settimana precedente",
   "weekReview.nextWeek": () => "Settimana successiva",
   "weekReview.prevWeekLabel": ({ week }) => `‹ settimana ${week}`,

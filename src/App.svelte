@@ -70,6 +70,27 @@
   let bootError = $state("");
 
   onMount(() => {
+    // Touch-first devices only (any browser whose primary input is coarse —
+    // phones/tablets hitting the web app or demo). Deliberately NOT
+    // width-based: the desktop window's minimum width (640px) is below any
+    // sensible width threshold, and a narrow desktop window has its own
+    // designed behaviour (the top bar collapses into "More actions", #56)
+    // that the mobile layout would otherwise replace.
+    // Set before initApp() so boot defaults (e.g. phone text-width wrap) see the real isMobile value.
+    const mediaQuery = window.matchMedia("(pointer: coarse)");
+    const updateMobile = () => isMobile.set(mediaQuery.matches);
+    const updateWidth = () => {
+      const w = window.innerWidth;
+      windowInnerWidth = w;
+      windowWidth.set(w);
+    };
+    const onWindowResize = () => {
+      updateMobile();
+      updateWidth();
+    };
+    updateMobile();
+    updateWidth();
+
     controller.initApp().then(
       () => {
         ready = true;
@@ -86,25 +107,6 @@
 
     const { noteEscapeStart, onKeydown } = createWindowKeyboardHandler(() => dockedPane);
     window.addEventListener("keydown", noteEscapeStart, true);
-    // Touch-first devices only (any browser whose primary input is coarse —
-    // phones/tablets hitting the web app or demo). Deliberately NOT
-    // width-based: the desktop window's minimum width (640px) is below any
-    // sensible width threshold, and a narrow desktop window has its own
-    // designed behaviour (the top bar collapses into "More actions", #56)
-    // that the mobile layout would otherwise replace.
-    const mediaQuery = window.matchMedia("(pointer: coarse)");
-    const updateMobile = () => isMobile.set(mediaQuery.matches);
-    const updateWidth = () => {
-      const w = window.innerWidth;
-      windowInnerWidth = w;
-      windowWidth.set(w);
-    };
-    const onWindowResize = () => {
-      updateMobile();
-      updateWidth();
-    };
-    updateMobile();
-    updateWidth();
     mediaQuery.addEventListener("change", updateMobile);
     window.addEventListener("resize", onWindowResize);
     window.addEventListener("orientationchange", onWindowResize);
