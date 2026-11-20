@@ -99,6 +99,7 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
   shortcut label and a text field that ignores the dark theme.</p>
   <p>Batches A and C are small and safe; B needs a little design work per item. My proposal is A and C as one PR, then
   B as a second, then a beta.</p>
+  <p><b>Decided 20 November 2026:</b> Marien approved all 21. Built as two PRs: U5-1 (A, C and D) and U5-2 (B).</p>
 
   <div class="bar" role="region" aria-label="Your decisions">
     <div class="counts"><span><b id="c-approve">0</b> approved</span><span><b id="c-discuss">0</b> discuss</span><span><b id="c-reject">0</b> rejected</span><span><b id="c-open">0</b> undecided</span></div>
@@ -111,7 +112,7 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
   <h2>A. Defects</h2>
   <p>Things that are wrong in any reading. All recommended.</p>
 
-  <div class="proposal" data-id="F1" data-adv="rec" data-title="Forward shortcut label reads ArrowRight">
+  <div class="proposal" data-decision="approved" data-id="F1" data-adv="rec" data-title="Forward shortcut label reads ArrowRight">
     <div class="phead"><span class="pid">F1</span><h3>Forward shortcut label reads "ArrowRight"</h3></div>
     <p class="where">Command palette and Shortcuts dialog, every language and theme</p>
     <div class="shots"><figure><img src="u5-review/f01-shortcut-label.png" alt="Shortcuts dialog: Terug Ctrl+Alt+Left, Vooruit Ctrl+Alt+ArrowRight" width="550" height="80"></figure></div>
@@ -121,7 +122,7 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
     </div>
   </div>
 
-  <div class="proposal" data-id="F2" data-adv="rec" data-title="White name field in the dark theme">
+  <div class="proposal" data-decision="approved" data-id="F2" data-adv="rec" data-title="White name field in the dark theme">
     <div class="phead"><span class="pid">F2</span><h3>White "Your name in minutes" field in the dark theme</h3></div>
     <p class="where">Settings, Notes &amp; sync: dark, dark-150, yours, phone</p>
     <div class="shots"><figure><img src="u5-review/f02-white-input.png" alt="A bright white text field in the dark settings page" width="890" height="98"></figure></div>
@@ -131,7 +132,7 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
     </div>
   </div>
 
-  <div class="proposal" data-id="F3" data-adv="rec" data-title="Untranslated words">
+  <div class="proposal" data-decision="approved" data-id="F3" data-adv="rec" data-title="Untranslated words">
     <div class="phead"><span class="pid">F3</span><h3>Untranslated "ago", "middle-click" and "open"</h3></div>
     <p class="where">Earlier versions (Dutch, German), Shortcuts dialog (Dutch, German), week review day headers (German)</p>
     <div class="shots"><figure><img src="u5-review/f03-ago.png" alt="Earlier versions list showing 45m ago and 1h ago in a Dutch UI" width="252" height="185"></figure></div>
@@ -141,7 +142,7 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
     </div>
   </div>
 
-  <div class="proposal" data-id="F4" data-adv="rec" data-title="Pills vanish in the selected search row">
+  <div class="proposal" data-decision="approved" data-id="F4" data-adv="rec" data-title="Pills vanish in the selected search row">
     <div class="phead"><span class="pid">F4</span><h3>Names and arrows vanish in the selected search row</h3></div>
     <p class="where">Search: light and light-125 (unreadable); in dark it's weak but readable</p>
     <div class="shots"><figure><img src="u5-review/f04-search-selected-light.png" alt="Selected search result in blue; the @Dana pill and the arrow are invisible" width="718" height="100"></figure></div>
@@ -151,7 +152,7 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
     </div>
   </div>
 
-  <div class="proposal" data-id="F5" data-adv="rec" data-title="Person view clips rows">
+  <div class="proposal" data-decision="approved" data-id="F5" data-adv="rec" data-title="Person view clips rows">
     <div class="phead"><span class="pid">F5</span><h3>The person view clips its rows</h3></div>
     <p class="where">Person view: every setup; worst on the phone</p>
     <div class="shots">
@@ -164,7 +165,7 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
     </div>
   </div>
 
-  <div class="proposal" data-id="F6" data-adv="rec" data-title="Rename preview: dangling =">
+  <div class="proposal" data-decision="approved" data-id="F6" data-adv="rec" data-title="Rename preview: dangling =">
     <div class="phead"><span class="pid">F6</span><h3>Rename preview on the phone leaves a lone "="</h3></div>
     <p class="where">Rename everywhere, phone</p>
     <div class="shots"><figure><img class="phone" src="u5-review/f06-rename-phone.png" alt="Rename preview rows where the underline wraps a single = onto a third line" width="390" height="140"></figure></div>
@@ -174,7 +175,7 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
     </div>
   </div>
 
-  <div class="proposal" data-id="F7" data-adv="rec" data-title="Conflict dialog names buttons that don't exist">
+  <div class="proposal" data-decision="approved" data-id="F7" data-adv="rec" data-title="Conflict dialog names buttons that don't exist">
     <div class="phead"><span class="pid">F7</span><h3>The conflict dialog names buttons that don't exist</h3></div>
     <p class="where">Changed-on-disk dialog, every language</p>
     <div class="shots"><figure><img src="u5-review/f07-conflict.png" alt="Conflict dialog text mentions Schijf behouden and Mijn versie; the buttons say Schijfversie behouden and Mijn versie behouden" width="698" height="316"></figure></div>
@@ -187,7 +188,7 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
   <h2>B. Layout</h2>
   <p>Nothing is broken here, but space is wasted or crowded. These need a small design choice each.</p>
 
-  <div class="proposal" data-id="F8" data-adv="rec" data-title="Search context line shows an underline">
+  <div class="proposal" data-decision="approved" data-id="F8" data-adv="rec" data-title="Search context line shows an underline">
     <div class="phead"><span class="pid">F8</span><h3>Search shows a heading underline as context</h3></div>
     <p class="where">Search results, every setup</p>
     <div class="shots"><figure><img src="u5-review/f08-search-context.png" alt="Search results where the grey context line above a hit is just ======" width="896" height="450"></figure></div>
@@ -197,7 +198,7 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
     </div>
   </div>
 
-  <div class="proposal" data-id="F9" data-adv="call" data-title="Saved search chips shown twice">
+  <div class="proposal" data-decision="approved" data-id="F9" data-adv="call" data-title="Saved search chips shown twice">
     <div class="phead"><span class="pid">F9</span><h3>Saved searches: the same chip twice</h3></div>
     <p class="where">Search with saved searches, every setup</p>
     <div class="shots"><figure><img src="u5-review/f09-search-chips.png" alt="Search header with chips @Dana and is:open, then a second row with is:open and a cross" width="896" height="190"></figure></div>
@@ -207,7 +208,7 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
     </div>
   </div>
 
-  <div class="proposal" data-id="F10" data-adv="rec" data-title="Phone sheets fill the screen when content is short">
+  <div class="proposal" data-decision="approved" data-id="F10" data-adv="rec" data-title="Phone sheets fill the screen when content is short">
     <div class="phead"><span class="pid">F10</span><h3>Phone sheets fill the screen with little in them</h3></div>
     <p class="where">Phone: calendar review, also rename, settings</p>
     <div class="shots"><figure><img class="phone" src="u5-review/f10-phone-sheet.png" alt="Phone calendar review sheet: three rows at the top and a large empty area above the Sync button" width="390" height="740"></figure></div>
@@ -217,7 +218,7 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
     </div>
   </div>
 
-  <div class="proposal" data-id="F11" data-adv="rec" data-title="Phone week review title cut off">
+  <div class="proposal" data-decision="approved" data-id="F11" data-adv="rec" data-title="Phone week review title cut off">
     <div class="phead"><span class="pid">F11</span><h3>Phone week review: the title is cut off</h3></div>
     <p class="where">Week review, phone</p>
     <div class="shots"><figure><img class="phone" src="u5-review/f11-phone-week-title.png" alt="Phone week review header: Week 36 · Aug 31 - Sep 6, 2… next to four buttons" width="390" height="100"></figure></div>
@@ -227,7 +228,7 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
     </div>
   </div>
 
-  <div class="proposal" data-id="F12" data-adv="rec" data-title="Section history with one date">
+  <div class="proposal" data-decision="approved" data-id="F12" data-adv="rec" data-title="Section history with one date">
     <div class="phead"><span class="pid">F12</span><h3>Section history with one date: a big empty box</h3></div>
     <p class="where">Section history, every setup</p>
     <div class="shots"><figure><img src="u5-review/f12-history-one-date.png" alt="Section history panel with one date, a tall preview box holding two lines, and a sentence at the bottom" width="575" height="1000" style="max-height:520px;width:auto"></figure></div>
@@ -237,7 +238,7 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
     </div>
   </div>
 
-  <div class="proposal" data-id="F13" data-adv="opt" data-title="Earlier versions dialog: wider, highlight only changes">
+  <div class="proposal" data-decision="approved" data-id="F13" data-adv="opt" data-title="Earlier versions dialog: wider, highlight only changes">
     <div class="phead"><span class="pid">F13</span><h3>Earlier versions: cramped, and everything is highlighted</h3></div>
     <p class="where">Earlier versions, desktop</p>
     <div class="shots"><figure><img src="u5-review/f13-earlier-versions.png" alt="Earlier versions dialog: narrow preview where lines wrap, the whole current version highlighted yellow" width="698" height="662"></figure></div>
@@ -247,7 +248,7 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
     </div>
   </div>
 
-  <div class="proposal" data-id="F14" data-adv="call" data-title="Phone: long lines run off the screen">
+  <div class="proposal" data-decision="approved" data-id="F14" data-adv="call" data-title="Phone: long lines run off the screen">
     <div class="phead"><span class="pid">F14</span><h3>Phone: long lines run off the screen</h3></div>
     <p class="where">Editor, phone, with text width "Full"</p>
     <div class="shots"><figure><img class="phone" src="u5-review/f14-phone-long-lines.png" alt="Phone editor where two long lines are cut at the right edge" width="390" height="130"></figure></div>
@@ -259,7 +260,7 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 
   <h2>C. Wording</h2>
 
-  <div class="proposal" data-id="F15" data-adv="rec" data-title="Safety dialog: sentence case and plurals">
+  <div class="proposal" data-decision="approved" data-id="F15" data-adv="rec" data-title="Safety dialog: sentence case and plurals">
     <div class="phead"><span class="pid">F15</span><h3>Close warning: Title Case and "actie(s)"</h3></div>
     <p class="where">Closing a tab with open actions, every language</p>
     <div class="shots"><figure><img src="u5-review/f15-safety.png" alt="Dialog titled Waarschuwing: Niet-afgehandelde Acties with buttons Annuleren and Toch Sluiten" width="548" height="246"></figure></div>
@@ -269,7 +270,7 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
     </div>
   </div>
 
-  <div class="proposal" data-id="F16" data-adv="rec" data-title="About: Versie v0.3.0">
+  <div class="proposal" data-decision="approved" data-id="F16" data-adv="rec" data-title="About: Versie v0.3.0">
     <div class="phead"><span class="pid">F16</span><h3>About: "Versie v0.3.0"</h3></div>
     <p class="where">Settings, About</p>
     <div class="shots"><figure><img src="u5-review/f16-about-version.png" alt="About card: ChronoNote, Versie v0.3.0, Up-to-date" width="890" height="119"></figure></div>
@@ -279,7 +280,7 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
     </div>
   </div>
 
-  <div class="proposal" data-id="F17" data-adv="rec" data-title="Actions count says the same number twice">
+  <div class="proposal" data-decision="approved" data-id="F17" data-adv="rec" data-title="Actions count says the same number twice">
     <div class="phead"><span class="pid">F17</span><h3>Actions count: "13 open · 13"</h3></div>
     <p class="where">Actions pane, docked and drawer</p>
     <div class="shots"><figure><img src="u5-review/f20-actions-count.png" alt="Actions pane filter row ending in 13 open · 13" width="862" height="45"></figure></div>
@@ -289,7 +290,7 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
     </div>
   </div>
 
-  <div class="proposal" data-id="F18" data-adv="opt" data-title="Empty search says 0 matches">
+  <div class="proposal" data-decision="approved" data-id="F18" data-adv="opt" data-title="Empty search says 0 matches">
     <div class="phead"><span class="pid">F18</span><h3>Empty search says "0 matches"</h3></div>
     <p class="where">Search, before you type</p>
     <div class="shots"><figure><img src="u5-review/f21-search-empty.png" alt="Search box with placeholder Zoeken and 0 overeenkomsten" width="896" height="154"></figure></div>
@@ -302,7 +303,7 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
   <h2>D. Polish</h2>
   <p>Small things I noticed. Optional.</p>
 
-  <div class="proposal" data-id="F19" data-adv="opt" data-title="Tree line tick above a same-indent arrow">
+  <div class="proposal" data-decision="approved" data-id="F19" data-adv="opt" data-title="Tree line tick above a same-indent arrow">
     <div class="phead"><span class="pid">F19</span><h3>A tiny tick above an arrow under an action</h3></div>
     <p class="where">Editor, an <code>=&gt; @name</code> line right under an action at the same indent</p>
     <div class="shots"><figure><img src="u5-review/f19-tree-tick.png" alt="Editor lines; above the blue arrow on the @Dana line is a short vertical tick" width="430" height="135"></figure></div>
@@ -312,7 +313,7 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
     </div>
   </div>
 
-  <div class="proposal" data-id="F20" data-adv="opt" data-title="Settings opens with a focus box on the first tab">
+  <div class="proposal" data-decision="approved" data-id="F20" data-adv="opt" data-title="Settings opens with a focus box on the first tab">
     <div class="phead"><span class="pid">F20</span><h3>Settings opens with a focus box on the first tab</h3></div>
     <p class="where">Settings, desktop</p>
     <div class="shots"><figure><img src="u5-review/f17-settings-tab-focus.png" alt="Settings tabs; Weergave has a rectangle around it on top of its underline" width="890" height="60"></figure></div>
@@ -322,7 +323,7 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
     </div>
   </div>
 
-  <div class="proposal" data-id="F21" data-adv="opt" data-title="Status bar drops its words while a message shows">
+  <div class="proposal" data-decision="approved" data-id="F21" data-adv="opt" data-title="Status bar drops its words while a message shows">
     <div class="phead"><span class="pid">F21</span><h3>Status bar drops its words while a message shows</h3></div>
     <p class="where">Status bar, after Copy as minutes and other confirmations</p>
     <div class="shots"><figure><img src="u5-review/f18-status-toast.png" alt="Status bar with 2, 0, 0 counts without words, Notulen gekopieerd in the middle" width="1920" height="30"></figure></div>
@@ -390,6 +391,9 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
     Object.keys(c).forEach(function (k) { var el = document.getElementById("c-" + k); if (el) el.textContent = c[k]; });
   }
   count();
+  if (cards.every(function (c) { return c.dataset.decision; })) {
+    var bar = document.querySelector(".bar"); bar.hidden = true; bar.nextElementSibling.hidden = true;
+  }
   var words = { approve: "Approve", discuss: "Discuss", reject: "Reject" };
   document.getElementById("copy").addEventListener("click", function () {
     var lines = ["Design pass (U5) decisions:"];
