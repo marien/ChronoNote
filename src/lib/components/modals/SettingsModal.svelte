@@ -41,6 +41,10 @@
   ]);
   // Left/Right move between the tabs (and select them, as the tab pattern does).
   function onTabsKeydown(e: KeyboardEvent) {
+    if (e.key === "Tab") {
+      suppressTabFocusRing = false;
+      return;
+    }
     if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
     const list = e.currentTarget as HTMLElement;
     const i = settingsTabs.findIndex((tab) => tab.value === activeSettingsTab);
@@ -50,6 +54,12 @@
     e.preventDefault();
     void tick().then(() => list.querySelector<HTMLElement>('[aria-selected="true"]')?.focus());
   }
+  function onTabsFocusOut(e: FocusEvent) {
+    const list = e.currentTarget as HTMLElement;
+    if (!e.relatedTarget || !(e.relatedTarget instanceof Node) || !list.contains(e.relatedTarget)) {
+      suppressTabFocusRing = false;
+    }
+  }
   // #71: the status bar's folder icon/name opens Settings landed
   // directly on this tab (`openSettingsOnNotesFolder`, `menu.ts`) —
   // consumed once here so a later plain Settings open still starts on
@@ -58,10 +68,12 @@
   const openedOnNotesFolder = initialSettingsTab !== null;
   let focusNotesFolderOnOpen = $state(initialSettingsTab === "calendar");
   let activeSettingsTab: string = $state(initialSettingsTab ?? "appearance");
+  let suppressTabFocusRing = $state(false);
   settingsInitialTab.set(null);
 
   onMount(() => {
     if (page && !openedOnNotesFolder) {
+      suppressTabFocusRing = true;
       void tick().then(() => {
         document.querySelector<HTMLElement>('.settings-page [role="tab"][aria-selected="true"]')?.focus();
       });
@@ -83,15 +95,17 @@
   });
 </script>
 {#snippet tabsStrip()}
-  <div class="settings-tabs" role="tablist" tabindex="-1" onkeydown={onTabsKeydown}>
+  <div class="settings-tabs" role="tablist" tabindex="-1" onkeydown={onTabsKeydown} onfocusout={onTabsFocusOut}>
     {#each settingsTabs as tab (tab.value)}
       <button
         type="button"
         role="tab"
         class="settings-tab"
+        class:suppress-focus-ring={suppressTabFocusRing}
         aria-selected={tab.value === activeSettingsTab}
         tabindex={tab.value === activeSettingsTab ? 0 : -1}
         onclick={() => {
+          suppressTabFocusRing = false;
           activeSettingsTab = tab.value;
           focusNotesFolderOnOpen = false;
         }}
@@ -213,6 +227,15 @@
   color: var(--text);
   font-weight: 600;
   border-bottom-color: var(--tab-active-border);
+}
+
+.settings-tab:focus-visible {
+  color: var(--status-fg);
+  border-bottom-color: var(--tab-active-border);
+}
+
+.settings-tab.suppress-focus-ring:focus-visible {
+  box-shadow: none;
 }
 
 @media (max-width: 600px) {

@@ -39,17 +39,38 @@ describe("treeConnectors", () => {
     ]);
   });
 
-  it("connects unindented => # children where col equals parent's col", () => {
+  it("produces no connector when every child is a same-indent arrow line (no indented child)", () => {
     const lines = ["# onboard Lee", "=> # laptop", "=> # accounts"];
+    expect(treeConnectors(actionTree(lines))).toEqual([]);
+
+    const delegatedOnly = ["# book user-testing sessions", "=> @Dana confirm the CI matrix"];
+    expect(treeConnectors(actionTree(delegatedOnly))).toEqual([]);
+  });
+
+  it("keeps the connector when a group has both same-indent arrow children and an indented child", () => {
+    const lines = ["# onboard Lee", "  # laptop", "=> # accounts"];
     const connectors = treeConnectors(actionTree(lines));
     expect(connectors).toEqual([
       {
         parentLineIdx: 0,
         parentCol: 0,
         children: [
-          { lineIdx: 1, col: 0 },
+          { lineIdx: 1, col: 2 },
           { lineIdx: 2, col: 0 },
         ],
+        resolved: false,
+      },
+    ]);
+  });
+
+  it("draws no connector for parent with only same-indent arrow child, even when that arrow child has an indented child", () => {
+    const lines = ["# parent", "=> # arrow child", "  # nested child"];
+    const connectors = treeConnectors(actionTree(lines));
+    expect(connectors).toEqual([
+      {
+        parentLineIdx: 1,
+        parentCol: 0,
+        children: [{ lineIdx: 2, col: 2 }],
         resolved: false,
       },
     ]);

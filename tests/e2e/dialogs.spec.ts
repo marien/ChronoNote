@@ -26,7 +26,7 @@ test.describe("confirmation dialogs (§C2)", () => {
     // Title is a heading inside .dialog-body
     const heading = safety.locator(".dialog-body h2.dialog-title");
     await expect(heading).toBeVisible();
-    await expect(heading).toHaveText("Unresolved Actions Warning");
+    await expect(heading).toHaveText("Close with open actions?");
 
     // First button in .dialog-buttons is Cancel with class accent and has focus
     const firstBtn = safety.locator(".dialog-buttons .dialog-btn").first();

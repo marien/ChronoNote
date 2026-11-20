@@ -143,6 +143,7 @@ export type TranslationParams = {
   "shortcuts.reopenClosedTab.label": undefined;
   "shortcuts.openDateNote.label": undefined;
   "shortcuts.closeTab.label": undefined;
+  "shortcuts.extra.middleClick": undefined;
   "shortcuts.cycleTab.label": undefined;
   "shortcuts.indentDedent.label": undefined;
   "shortcuts.undoRedo.label": undefined;
@@ -584,6 +585,7 @@ export type TranslationParams = {
   "searchModal.removeFilterAriaLabel": { label: string };
   "searchModal.noMatches": { query: string };
   "searchModal.emptySubtitle": undefined;
+  "searchModal.emptyHint": undefined;
   "searchModal.footer.open": undefined;
   "searchModal.footer.select": undefined;
   "searchModal.saveSearch": undefined;
@@ -621,19 +623,12 @@ export type TranslationParams = {
   // Conflict modal (`ConflictModal.svelte`) — a note changed on disk
   // while it had unsaved edits open. The explanatory paragraph weaves
   // two <em>-wrapped button-name references mid-sentence, split into
-  // `.partN` keys around each literal `<em>`, same shape as the
-  // Shortcuts drawer's "Delegated"/section-headers cases. The em-wrapped
-  // references get their own short keys rather than reusing
-  // `.keepDiskVersion`/`.keepMyVersion` below — the paragraph's own
-  // wording ("Keep disk"/"Keep mine") is intentionally shorter than the
-  // full button labels ("Keep disk version"/"Keep my version"), not a
-  // literal quote of them.
+  // `.partN` keys around `conflictModal.keepDiskVersion` and
+  // `conflictModal.keepMyVersion` directly so they can never drift.
   "conflictModal.ariaLabel": undefined;
   "conflictModal.title": { filename: string };
   "conflictModal.explanation.part1": undefined;
-  "conflictModal.explanation.keepDiskRef": undefined;
   "conflictModal.explanation.part2": undefined;
-  "conflictModal.explanation.keepMineRef": undefined;
   "conflictModal.explanation.part3": undefined;
   "conflictModal.keepDiskVersion": undefined;
   "conflictModal.saveMineAsCopy": undefined;
@@ -963,6 +958,10 @@ export type TranslationParams = {
   "versions.restore": undefined;
   "versions.current": undefined;
   "versions.hint": undefined;
+  "versions.ago.justNow": undefined;
+  "versions.ago.minutes": { count: number };
+  "versions.ago.hours": { count: number };
+  "versions.ago.days": { count: number };
   "toast.versions.restored": undefined;
   "a11y.glyph.open": undefined;
   "a11y.glyph.done": undefined;
@@ -1014,6 +1013,7 @@ export type TranslationParams = {
   "weekReview.nextWeekLabel": { week: number };
   "weekReview.count.openAction": { count: number };
   "weekReview.count.openActions": { count: number };
+  "weekReview.count.open": { count: number };
   "weekReview.count.overdue": { count: number };
   "weekReview.showDone.label": undefined;
   "weekReview.showDone.title": undefined;
@@ -1104,6 +1104,7 @@ export type TranslationParams = {
   "rename.modal.from": undefined;
   "rename.modal.to": undefined;
   "rename.modal.summary": { lines: number; notes: number };
+  "rename.modal.underlinesUpdated": undefined;
   "rename.modal.confirm": { count: number };
   "rename.invalid.name": undefined;
   "rename.invalid.topic": undefined;

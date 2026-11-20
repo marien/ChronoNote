@@ -147,6 +147,7 @@ export const it = {
   "shortcuts.reopenClosedTab.label": () => "Riapri l'ultima scheda chiusa",
   "shortcuts.openDateNote.label": () => "Apri/crea una nota datata",
   "shortcuts.closeTab.label": () => "Chiudi scheda corrente / chiudi una scheda",
+  "shortcuts.extra.middleClick": () => "clic centrale",
   "shortcuts.cycleTab.label": () => "Scheda successiva / precedente",
   "shortcuts.indentDedent.label": () => "Aumenta / riduci rientro (nell'editor)",
   "shortcuts.undoRedo.label": () => "Annulla / ripristina (per scheda)",
@@ -307,7 +308,7 @@ export const it = {
   "actionDrawer.modal.ariaLabel": () => "Azioni",
   "actionDrawer.filterPlaceholder": () => "Filtra azioni…",
   "actionDrawer.counter": ({ open, listed }) => `${open} aperte / ${listed} elencate`,
-  "actionDrawer.counterShort": ({ open, listed }) => `${open} aperte · ${listed}`,
+  "actionDrawer.counterShort": ({ open, listed }) => `${open} apert${open === 1 ? "a" : "e"} · ${listed} mostrat${listed === 1 ? "a" : "e"}`,
   "actionDrawer.group.expand": () => "Espandi",
   "actionDrawer.group.collapse": () => "Comprimi",
   "actionDrawer.group.progressTitle": ({ resolved, total }) => `${resolved} di ${total} fatte`,
@@ -590,14 +591,13 @@ export const it = {
 
   "common.cancel": () => "Annulla",
 
-  "safetyModal.ariaLabel": () => "Avviso azioni non risolte",
-  "safetyModal.title": () => "Avviso azioni non risolte",
-  "safetyModal.reason.dueOpen": ({ count }) => `ha ${count} azione/i aperta/e non risolta/e`,
+  "safetyModal.ariaLabel": () => "Chiudere con azioni aperte?",
+  "safetyModal.title": () => "Chiudere con azioni aperte?",
+  "safetyModal.reason.dueOpen": ({ count }) => (count === 1 ? "ha 1 azione aperta" : `ha ${count} azioni aperte`),
   "safetyModal.reason.scratchpad": () =>
-    "è una bozza — chiuderla eliminerà definitivamente il contenuto, poiché le bozze non vengono mai salvate su disco",
+    "è una bozza — chiuderla ne eliminerà definitivamente il contenuto, poiché le bozze non vengono mai salvate su disco",
   "safetyModal.reasonJoiner": () => " e ",
-  "safetyModal.message": ({ filename, reasons }) =>
-    `La scheda "${filename}" ${reasons}. Sei sicuro di volerla chiudere?`,
+  "safetyModal.message": ({ filename, reasons }) => `${filename} ${reasons}.`,
   "safetyModal.closeAnyway": () => "Chiudi comunque",
   "safetyModal.batchCloseMessage": ({ count }) =>
     `Chiudere ${count} schede? Alcune schede contengono attività in sospeso o bozze non salvate.`,
@@ -609,6 +609,7 @@ export const it = {
   "searchModal.noMatches": ({ query }) => `Nessuna corrispondenza per "${query}".`,
   "searchModal.emptySubtitle": () =>
     "Controlla l'ortografia o usa operatori di ricerca come is:open, due: o #tag.",
+  "searchModal.emptyHint": () => "Cerca parole, @nome, is:open, due:",
   "searchModal.footer.open": () => "Apri",
   "searchModal.footer.select": () => "Seleziona",
   "searchModal.saveSearch": () => "Salva questa ricerca",
@@ -642,9 +643,7 @@ export const it = {
   "conflictModal.title": ({ filename }) => `"${filename}" modificata sul disco`,
   "conflictModal.explanation.part1": () =>
     "Questa nota è stata modificata all'esterno di ChronoNote (un altro editor o un client di sincronizzazione) mentre avevi modifiche non salvate qui. Scegli quale versione conservare — l'altra non andrà persa a meno che tu non scelga ",
-  "conflictModal.explanation.keepDiskRef": () => "Mantieni del disco",
   "conflictModal.explanation.part2": () => " o ",
-  "conflictModal.explanation.keepMineRef": () => "Mantieni la mia",
   "conflictModal.explanation.part3": () => " senza salvare una copia.",
   "conflictModal.keepDiskVersion": () => "Mantieni versione del disco",
   "conflictModal.saveMineAsCopy": () => "Salva la mia come copia",
@@ -979,6 +978,10 @@ export const it = {
   "versions.restore": () => "Ripristina questa versione",
   "versions.current": () => "Attuale",
   "versions.hint": () => "Conservate 30 giorni: una versione ogni pochi minuti mentre modifichi oggi, una per ogni giorno precedente e ogni versione sostituita da un'importazione o un conflitto.",
+  "versions.ago.justNow": () => "proprio ora",
+  "versions.ago.minutes": ({ count }) => `${count} min fa`,
+  "versions.ago.hours": ({ count }) => `${count} h fa`,
+  "versions.ago.days": ({ count }) => `${count} g fa`,
   "toast.versions.restored": () => "Versione ripristinata",
   "a11y.glyph.open": () => "Azione aperta",
   "a11y.glyph.done": () => "Fatto",
@@ -1031,6 +1034,7 @@ export const it = {
   "weekReview.nextWeekLabel": ({ week }) => `settimana ${week} ›`,
   "weekReview.count.openAction": ({ count }) => `${count} azione aperta`,
   "weekReview.count.openActions": ({ count }) => `${count} azioni aperte`,
+  "weekReview.count.open": ({ count }) => `${count} apert${count === 1 ? "a" : "e"}`,
   "weekReview.count.overdue": ({ count }) => `${count} scadute`,
   "weekReview.showDone.label": () => "Mostra completati",
   "weekReview.showDone.title": () => "Mostra elementi completati e annullati",
@@ -1120,6 +1124,7 @@ export const it = {
   "rename.modal.to": () => "A",
   "rename.modal.summary": ({ lines, notes }) =>
     `${lines === 1 ? "1 riga" : `${lines} righe`} in ${notes === 1 ? "1 nota" : `${notes} note`}`,
+  "rename.modal.underlinesUpdated": () => "Le sottolineature vengono aggiornate con i rispettivi titoli.",
   "rename.modal.confirm": ({ count }) => (count === 1 ? "Rinomina in 1 nota" : `Rinomina in ${count} note`),
   "rename.invalid.name": () => "Usa solo lettere, cifre, _ o - per il nome.",
   "rename.invalid.topic": () => "Inserisci un argomento senza spazi né parentesi.",

@@ -43,12 +43,17 @@ export function treeConnectors(roots: ActionNode[], lines?: readonly string[]): 
   function visit(node: ActionNode) {
     const lineChildren = node.children.filter((c) => c.kind === "line");
     if (lineChildren.length > 0) {
-      connectors.push({
-        parentLineIdx: node.lineIdx,
-        parentCol: nodeCol(node, lines),
-        children: lineChildren.map((c) => ({ lineIdx: c.lineIdx, col: nodeCol(c, lines) })),
-        resolved: isNodeResolved(node),
-      });
+      const parentCol = nodeCol(node, lines);
+      const children = lineChildren.map((c) => ({ lineIdx: c.lineIdx, col: nodeCol(c, lines) }));
+      // Skip the connector when every child is a same-indent arrow line (no indented child).
+      if (children.some((c) => c.col > parentCol)) {
+        connectors.push({
+          parentLineIdx: node.lineIdx,
+          parentCol,
+          children,
+          resolved: isNodeResolved(node),
+        });
+      }
     }
     for (const child of lineChildren) {
       visit(child);

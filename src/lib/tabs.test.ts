@@ -1,6 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { get } from "svelte/store";
-import { closeTab } from "./tabs";
+import { closeTab, formatSafetyCloseMessage } from "./tabs";
+import { en } from "./i18n/locales/en";
+import { nl } from "./i18n/locales/nl";
+import type { Dictionary, TranslationKey, TranslationParams } from "./i18n/schema";
 import { writeNoteAndInvalidateCache } from "./persistence";
 import {
   activeTabId,
@@ -244,5 +247,17 @@ describe("Rule 3: Closing a tab never overwrites a newer file", () => {
 
     expect(apiMock.writeNote).not.toHaveBeenCalled();
     expect(apiMock.writeConflictCopy).not.toHaveBeenCalled();
+  });
+});
+
+describe("formatSafetyCloseMessage (F15)", () => {
+  const tr = (dict: object) => <K extends TranslationKey>(key: K, params: TranslationParams[K]) =>
+    (dict as Dictionary)[key](params as never);
+
+  it("drops .txt and uses singular and plural for open actions in en and nl", () => {
+    expect(formatSafetyCloseMessage("2026-09-07.txt", 1, false, tr(en))).toBe("2026-09-07 has 1 open action.");
+    expect(formatSafetyCloseMessage("2026-09-07.txt", 3, false, tr(en))).toBe("2026-09-07 has 3 open actions.");
+    expect(formatSafetyCloseMessage("2026-09-07.txt", 1, false, tr(nl))).toBe("2026-09-07 heeft 1 open actie.");
+    expect(formatSafetyCloseMessage("2026-09-07.txt", 3, false, tr(nl))).toBe("2026-09-07 heeft 3 open acties.");
   });
 });

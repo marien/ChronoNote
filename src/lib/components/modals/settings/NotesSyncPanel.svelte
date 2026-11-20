@@ -476,7 +476,7 @@
     {/snippet}
     <input
       type="text"
-      class="s-input minutes-name-input"
+      class="find-input s-input minutes-name-input"
       aria-label={$t("settings.minutesName.label")}
       value={minutesNameDraft}
       onfocus={() => (minutesNameFocused = true)}
@@ -789,5 +789,14 @@
   max-width: 100%;
   height: 32px;
   box-sizing: border-box;
+  border-color: var(--edge-strong);
+  font-family: var(--font-ui);
+  font-size: var(--type-body);
+  padding: 0 10px;
+}
+
+.minutes-name-input:focus,
+.minutes-name-input:focus-visible {
+  border-color: var(--tab-active-border);
 }
 </style>

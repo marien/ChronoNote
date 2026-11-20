@@ -149,6 +149,7 @@ export const de = {
   "shortcuts.reopenClosedTab.label": () => "Zuletzt geschlossenen Tab wieder öffnen",
   "shortcuts.openDateNote.label": () => "Datierte Notiz öffnen/erstellen",
   "shortcuts.closeTab.label": () => "Aktuellen Tab schließen / einen Tab schließen",
+  "shortcuts.extra.middleClick": () => "Mittelklick",
   "shortcuts.cycleTab.label": () => "Nächster / vorheriger Tab",
   "shortcuts.indentDedent.label": () => "Einrücken / Ausrücken (im Editor)",
   "shortcuts.undoRedo.label": () => "Rückgängig / Wiederholen (pro Tab gespeichert)",
@@ -308,7 +309,7 @@ export const de = {
   "actionDrawer.modal.ariaLabel": () => "Aktionen",
   "actionDrawer.filterPlaceholder": () => "Aktionen filtern…",
   "actionDrawer.counter": ({ open, listed }) => `${open} offen / ${listed} angezeigt`,
-  "actionDrawer.counterShort": ({ open, listed }) => `${open} offen · ${listed}`,
+  "actionDrawer.counterShort": ({ open, listed }) => `${open} offen · ${listed} angezeigt`,
   "actionDrawer.group.expand": () => "Ausklappen",
   "actionDrawer.group.collapse": () => "Einklappen",
   "actionDrawer.group.progressTitle": ({ resolved, total }) => `${resolved} von ${total} erledigt`,
@@ -585,13 +586,13 @@ export const de = {
 
   "common.cancel": () => "Abbrechen",
 
-  "safetyModal.ariaLabel": () => "Warnung: nicht abgeschlossene Aktionen",
-  "safetyModal.title": () => "Warnung: Nicht abgeschlossene Aktionen",
-  "safetyModal.reason.dueOpen": ({ count }) => `hat ${count} ungelöste offene Aktion(en)`,
+  "safetyModal.ariaLabel": () => "Mit offenen Aktionen schließen?",
+  "safetyModal.title": () => "Mit offenen Aktionen schließen?",
+  "safetyModal.reason.dueOpen": ({ count }) => (count === 1 ? "hat 1 offene Aktion" : `hat ${count} offene Aktionen`),
   "safetyModal.reason.scratchpad": () =>
     "ist ein Notizblock — beim Schließen geht der Inhalt dauerhaft verloren, da Notizblöcke nie auf der Festplatte gespeichert werden",
   "safetyModal.reasonJoiner": () => " und ",
-  "safetyModal.message": ({ filename, reasons }) => `Tab "${filename}" ${reasons}. Möchtest du ihn wirklich schließen?`,
+  "safetyModal.message": ({ filename, reasons }) => `${filename} ${reasons}.`,
   "safetyModal.closeAnyway": () => "Trotzdem schließen",
   "safetyModal.batchCloseMessage": ({ count }) =>
     `${count} Tabs schließen? Einige Tabs enthalten unerledigte Aktionen oder ungesicherte Notizzettel.`,
@@ -603,6 +604,7 @@ export const de = {
   "searchModal.noMatches": ({ query }) => `Keine Treffer für "${query}".`,
   "searchModal.emptySubtitle": () =>
     "Überprüfe die Schreibweise oder verwende Suchoperatoren wie is:open, due: oder #tag.",
+  "searchModal.emptyHint": () => "Suche nach Wörtern, @name, is:open, due:",
   "searchModal.footer.open": () => "Öffnen",
   "searchModal.footer.select": () => "Auswählen",
   "searchModal.saveSearch": () => "Diese Suche speichern",
@@ -636,12 +638,10 @@ export const de = {
   "conflictModal.title": ({ filename }) => `"${filename}" wurde auf der Festplatte geändert`,
   "conflictModal.explanation.part1": () =>
     "Diese Notiz wurde außerhalb von ChronoNote geändert (ein anderer Editor oder ein Sync-Client), während du hier noch ungespeicherte Änderungen hattest. Wähle, welche Version behalten werden soll — die andere geht nicht verloren, es sei denn, du wählst ",
-  "conflictModal.explanation.keepDiskRef": () => "Festplatte behalten",
   "conflictModal.explanation.part2": () => " oder ",
-  "conflictModal.explanation.keepMineRef": () => "Meine Version",
   "conflictModal.explanation.part3": () => " ohne eine Kopie zu speichern.",
   "conflictModal.keepDiskVersion": () => "Festplattenversion behalten",
-  "conflictModal.saveMineAsCopy": () => "Meine Version als Kopie speichern",
+  "conflictModal.saveMineAsCopy": () => "Als Kopie speichern",
   "conflictModal.keepMyVersion": () => "Meine Version behalten",
 
   "unsavedScratchpads.ariaLabel": () => "Nicht gespeicherter Notizblock-Inhalt",
@@ -968,6 +968,10 @@ export const de = {
   "versions.restore": () => "Diese Version wiederherstellen",
   "versions.current": () => "Aktuell",
   "versions.hint": () => "30 Tage aufbewahrt: alle paar Minuten eine Version, während du heute bearbeitest, eine pro früherem Tag und jede durch Import oder Konfliktwahl ersetzte Version.",
+  "versions.ago.justNow": () => "gerade eben",
+  "versions.ago.minutes": ({ count }) => `vor ${count} Min.`,
+  "versions.ago.hours": ({ count }) => `vor ${count} Std.`,
+  "versions.ago.days": ({ count }) => `vor ${count} T.`,
   "toast.versions.restored": () => "Version wiederhergestellt",
   "a11y.glyph.open": () => "Offene Aktion",
   "a11y.glyph.done": () => "Erledigt",
@@ -1020,6 +1024,7 @@ export const de = {
   "weekReview.nextWeekLabel": ({ week }) => `Woche ${week} ›`,
   "weekReview.count.openAction": ({ count }) => `${count} offene Aktion`,
   "weekReview.count.openActions": ({ count }) => `${count} offene Aktionen`,
+  "weekReview.count.open": ({ count }) => `${count} offen`,
   "weekReview.count.overdue": ({ count }) => `${count} überfällig`,
   "weekReview.showDone.label": () => "Erledigte anzeigen",
   "weekReview.showDone.title": () => "Erledigte und verworfene Punkte anzeigen",
@@ -1109,6 +1114,7 @@ export const de = {
   "rename.modal.to": () => "Nach",
   "rename.modal.summary": ({ lines, notes }) =>
     `${lines === 1 ? "1 Zeile" : `${lines} Zeilen`} in ${notes === 1 ? "1 Notiz" : `${notes} Notizen`}`,
+  "rename.modal.underlinesUpdated": () => "Unterstreichungen werden mit ihren Titeln angepasst.",
   "rename.modal.confirm": ({ count }) => (count === 1 ? "In 1 Notiz umbenennen" : `In ${count} Notizen umbenennen`),
   "rename.invalid.name": () => "Name darf nur Buchstaben, Ziffern, _ oder - enthalten.",
   "rename.invalid.topic": () => "Thema darf nicht leer sein und keine Leerzeichen oder Klammern enthalten.",

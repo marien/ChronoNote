@@ -271,7 +271,7 @@
       />
       {#if searching}
         <span class="modal-spinner" aria-label={$t("searchModal.searchingAriaLabel")}>⟳</span>
-      {:else}
+      {:else if query.trim()}
         <span class="modal-counter">{$t("searchModal.matchCount", { count: flatList.length })}</span>
       {/if}
       {#if query.trim()}
@@ -377,6 +377,10 @@
         />
       </div>
     </div>
+    {#if !query.trim() && !searching}
+      <!-- Outside the listbox: a listbox may only hold options (axe aria-required-children). -->
+      <div class="search-empty-hint">{$t("searchModal.emptyHint")}</div>
+    {/if}
     <div
       class="modal-list"
       role="listbox"
@@ -479,3 +483,11 @@
     {/if}
   </div>
 </div>
+
+<style>
+  .search-empty-hint {
+    padding: 12px 14px;
+    font-size: var(--type-caption);
+    color: var(--muted);
+  }
+</style>

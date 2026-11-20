@@ -218,7 +218,7 @@ export const MODAL_LABELS = {
   actions: "Actions",
   history: "Section history",
   search: "Cross-tab search",
-  safety: "Unresolved actions warning",
+  safety: "Close with open actions?",
   settings: "Settings",
   shortcuts: "Keyboard shortcuts",
   about: "About ChronoNote",

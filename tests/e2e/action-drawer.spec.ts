@@ -38,10 +38,10 @@ test.describe("action drawer (Ctrl/Cmd+Shift+A)", () => {
     const d = await openViaShortcut(page, "ControlOrMeta+Shift+A", "actions");
 
     // The list is virtualized (only ~10 rows in the DOM at once) — read the
-    // "N open · M" counter rather than counting elements.
+    // counter's last number ("N open" when open === listed, else "N open · M listed").
     const listed = async () => {
       const t = (await d.locator(".modal-counter").textContent()) ?? "";
-      return Number(t.match(/·\s*(\d+)/)?.[1] ?? 0);
+      return Number(t.match(/(\d+)\D*$/)?.[1] ?? 0);
     };
     const openScope = await listed();
     await d.getByRole("radio", { name: "All" }).click();

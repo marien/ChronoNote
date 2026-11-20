@@ -17,9 +17,9 @@
       <div class="dialog-body">
         <h2 class="dialog-title">{$t("conflictModal.title", { filename: info.filename })}</h2>
         <div>
-          {$t("conflictModal.explanation.part1")}<em>{$t("conflictModal.explanation.keepDiskRef")}</em>{$t(
+          {$t("conflictModal.explanation.part1")}<em>{$t("conflictModal.keepDiskVersion")}</em>{$t(
             "conflictModal.explanation.part2",
-          )}<em>{$t("conflictModal.explanation.keepMineRef")}</em>{$t("conflictModal.explanation.part3")}
+          )}<em>{$t("conflictModal.keepMyVersion")}</em>{$t("conflictModal.explanation.part3")}
         </div>
       </div>
       <div class="dialog-buttons">

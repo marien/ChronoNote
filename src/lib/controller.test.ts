@@ -247,7 +247,7 @@ describe("tab lifecycle", () => {
     controller.tabs.set([tab({ id: "a", content: "# still open" })]);
     controller.requestTabClose("a");
     expect(get(controller.modal)).toBe("safety");
-    expect(get(controller.safetyMessage)).toMatch(/unresolved open action/);
+    expect(get(controller.safetyMessage)).toMatch(/has 1 open action/);
     // The tab is untouched until the user actually confirms.
     expect(get(controller.tabs)).toHaveLength(1);
   });
@@ -273,7 +273,7 @@ describe("tab lifecycle", () => {
     controller.tabs.set([tab({ id: "a", isScratchpad: true, filename: "Scratchpad 1", content: "# todo" })]);
     controller.requestTabClose("a");
     expect(get(controller.modal)).toBe("safety");
-    expect(get(controller.safetyMessage)).toMatch(/unresolved open action/);
+    expect(get(controller.safetyMessage)).toMatch(/has 1 open action/);
   });
 
   it("requestTabClose blocks on a non-empty scratchpad (content would be lost forever)", () => {

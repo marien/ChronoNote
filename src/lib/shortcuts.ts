@@ -26,6 +26,8 @@
  *     Mac limitation (mouse click still always works) rather than
  *     risking a regression to fix it under this same pass.
  */
+import { get } from "svelte/store";
+import { t } from "./i18n";
 import { isMac } from "./platform";
 import type { TranslationKey } from "./i18n/schema";
 
@@ -47,8 +49,8 @@ export interface ComboSpec {
 export interface ShortcutDef {
   id: string;
   combos: ComboSpec[];
-  /** Non-keyboard text appended after the formatted combo(s), e.g. "middle-click". */
-  extra?: string;
+  /** Non-keyboard text key appended after the formatted combo(s), e.g. "middle-click". */
+  extraKey?: TranslationKey;
 }
 
 export const SHORTCUTS: ShortcutDef[] = [
@@ -91,7 +93,7 @@ export const SHORTCUTS: ShortcutDef[] = [
   {
     id: "closeTab",
     combos: [{ mod: true, code: "KeyW" }],
-    extra: "middle-click",
+    extraKey: "shortcuts.extra.middleClick",
   },
   {
     id: "cycleTab",
@@ -371,7 +373,9 @@ const KEY_LABELS: Record<string, string> = {
   ArrowUp: "↑",
   ArrowDown: "↓",
   ArrowLeft: "Left",
+  ArrowRight: "Right",
   BracketLeft: "[",
+  BracketRight: "]",
 };
 
 function keyLabel(code: string): string {
@@ -395,12 +399,17 @@ export function formatCombo(combo: ComboSpec): string {
  * Mac-restricted entry. Empty string if this platform has no working
  * combo for it at all (`caretLineNav` on Mac) — callers should skip
  * rendering the row entirely in that case. */
-export function formatShortcut(idOrDef: string | ShortcutDef): string {
+export function formatShortcut(
+  idOrDef: string | ShortcutDef,
+  translate?: (key: TranslationKey) => string,
+): string {
   const def = typeof idOrDef === "string" ? shortcutById(idOrDef) : idOrDef;
   const combos = combosForPlatform(def);
   if (combos.length === 0) return "";
   const text = combos.map(formatCombo).join(" / ");
-  return def.extra ? `${text} / ${def.extra}` : text;
+  if (!def.extraKey) return text;
+  const tr = translate ?? ((k: TranslationKey) => get(t)(k, undefined as never));
+  return `${text} / ${tr(def.extraKey)}`;
 }
 
 export function matchesCombo(e: KeyboardEvent, combo: ComboSpec): boolean {

@@ -1,6 +1,7 @@
 /** The Action Drawer's row model (§423): turns the snapshot's tree items into the rows the drawer shows — nesting,
  *  context rows, collapse, group progress and the due view by group. Pure, so it can be unit-tested. */
 import type { ActionSnapshotItem } from "./types";
+import type { TranslationKey, TranslationParams } from "./i18n/schema";
 import { groupByDue, itemDueDate, type DueGroupKey } from "./dueOverview";
 import { dueItems, innermostActionSymbol, stripLeadingToken } from "./tokens";
 import {
@@ -417,4 +418,17 @@ export function buildDueDrawerRows<T extends ActionSnapshotItem>(
     if (rows.length > 0) result.push({ key: group.key, rows });
   }
   return result;
+}
+
+/** Compact header counter for the Action Drawer: omits the repeated total when open === listed. */
+export function formatActionDrawerCounter(
+  open: number,
+  listed: number,
+  narrow: boolean,
+  translate: <K extends TranslationKey>(key: K, params?: TranslationParams[K]) => string,
+): string {
+  if (open === listed) {
+    return narrow ? String(open) : translate("statusBar.labelOpen", { count: open });
+  }
+  return narrow ? `${open} · ${listed}` : translate("actionDrawer.counterShort", { open, listed });
 }

@@ -148,6 +148,7 @@ export const pl = {
   "shortcuts.reopenClosedTab.label": () => "Otwórz ponownie ostatnio zamkniętą kartę",
   "shortcuts.openDateNote.label": () => "Otwórz/utwórz notatkę z datą",
   "shortcuts.closeTab.label": () => "Zamknij bieżącą kartę / zamknij kartę",
+  "shortcuts.extra.middleClick": () => "środkowy przycisk",
   "shortcuts.cycleTab.label": () => "Następna / poprzednia karta",
   "shortcuts.indentDedent.label": () => "Zwiększ / zmniejsz wcięcie (w edytorze)",
   "shortcuts.undoRedo.label": () => "Cofnij / ponów (oddzielnie dla każdej karty)",
@@ -307,7 +308,7 @@ export const pl = {
   "actionDrawer.modal.ariaLabel": () => "Zadania",
   "actionDrawer.filterPlaceholder": () => "Filtruj zadania…",
   "actionDrawer.counter": ({ open, listed }) => `${open} otwartych / ${listed} na liście`,
-  "actionDrawer.counterShort": ({ open, listed }) => `${open} otwartych · ${listed}`,
+  "actionDrawer.counterShort": ({ open, listed }) => `${open} otwartych · ${listed} pokazanych`,
   "actionDrawer.group.expand": () => "Rozwiń",
   "actionDrawer.group.collapse": () => "Zwiń",
   "actionDrawer.group.progressTitle": ({ resolved, total }) => `${resolved} z ${total} gotowe`,
@@ -592,15 +593,18 @@ export const pl = {
 
   "common.cancel": () => "Anuluj",
 
-  "safetyModal.ariaLabel": () => "Ostrzeżenie o nierozwiązanych zadaniach",
-  "safetyModal.title": () => "Ostrzeżenie o otwartych zadaniach",
+  "safetyModal.ariaLabel": () => "Zamknąć z otwartymi zadaniami?",
+  "safetyModal.title": () => "Zamknąć z otwartymi zadaniami?",
   "safetyModal.reason.dueOpen": ({ count }) =>
-    count === 1 ? "ma 1 nierozwiązane otwarte zadanie" : `ma ${count} nierozwiązane otwarte zadania`,
+    count === 1
+      ? "ma 1 otwarte zadanie"
+      : count % 10 >= 2 && count % 10 <= 4 && (count % 100 < 10 || count % 100 >= 20)
+        ? `ma ${count} otwarte zadania`
+        : `ma ${count} otwartych zadań`,
   "safetyModal.reason.scratchpad": () =>
     "to brudnopis — jego zamknięcie bezpowrotnie usunie zawartość, ponieważ brudnopisy nie są zapisywane na dysku",
   "safetyModal.reasonJoiner": () => " oraz ",
-  "safetyModal.message": ({ filename, reasons }) =>
-    `Karta „${filename}” ${reasons}. Czy na pewno chcesz ją zamknąć?`,
+  "safetyModal.message": ({ filename, reasons }) => `${filename} ${reasons}.`,
   "safetyModal.closeAnyway": () => "Zamknij mimo to",
   "safetyModal.batchCloseMessage": ({ count }) =>
     `Zamknąć ${count} kart? Niektóre karty zawierają otwarte zadania lub niezapisane wersje robocze.`,
@@ -613,6 +617,7 @@ export const pl = {
   "searchModal.noMatches": ({ query }) => `Brak wyników dla „${query}”.`,
   "searchModal.emptySubtitle": () =>
     "Sprawdź pisownię lub użyj operatorów wyszukiwania, takich jak is:open, due: lub #tag.",
+  "searchModal.emptyHint": () => "Szukaj słów, @nazwa, is:open, due:",
   "searchModal.footer.open": () => "Otwórz",
   "searchModal.footer.select": () => "Wybierz",
   "searchModal.saveSearch": () => "Zapisz to wyszukiwanie",
@@ -646,12 +651,10 @@ export const pl = {
   "conflictModal.title": ({ filename }) => `„${filename}” zmieniona na dysku`,
   "conflictModal.explanation.part1": () =>
     "Ta notatka została zmodyfikowana poza ChronoNote (w innym edytorze lub przez klienta synchronizacji), podczas gdy miałeś tutaj niezapisane zmiany. Wybierz wersję do zachowania — druga nie zostanie utracona, chyba że wybierzesz ",
-  "conflictModal.explanation.keepDiskRef": () => "Zachowaj z dysku",
   "conflictModal.explanation.part2": () => " lub ",
-  "conflictModal.explanation.keepMineRef": () => "Zachowaj moją",
   "conflictModal.explanation.part3": () => " bez zapisywania kopii.",
   "conflictModal.keepDiskVersion": () => "Zachowaj wersję z dysku",
-  "conflictModal.saveMineAsCopy": () => "Zapisz moją wersję jako kopię",
+  "conflictModal.saveMineAsCopy": () => "Zapisz moją jako kopię",
   "conflictModal.keepMyVersion": () => "Zachowaj moją wersję",
 
   "unsavedScratchpads.ariaLabel": () => "Niezapisana zawartość brudnopisu",
@@ -997,6 +1000,10 @@ export const pl = {
   "versions.restore": () => "Przywróć tę wersję",
   "versions.current": () => "Bieżąca",
   "versions.hint": () => "Przechowywane 30 dni: wersja co kilka minut podczas dzisiejszej edycji, jedna na każdy wcześniejszy dzień i każda wersja zastąpiona importem lub wyborem w konflikcie.",
+  "versions.ago.justNow": () => "przed chwilą",
+  "versions.ago.minutes": ({ count }) => `${count} min temu`,
+  "versions.ago.hours": ({ count }) => `${count} godz. temu`,
+  "versions.ago.days": ({ count }) => `${count} d. temu`,
   "toast.versions.restored": () => "Przywrócono wersję",
   "a11y.glyph.open": () => "Otwarte zadanie",
   "a11y.glyph.done": () => "Zrobione",
@@ -1049,6 +1056,7 @@ export const pl = {
   "weekReview.nextWeekLabel": ({ week }) => `tydzień ${week} ›`,
   "weekReview.count.openAction": ({ count }) => `${count} otwarta akcja`,
   "weekReview.count.openActions": ({ count }) => `${count} otwartych akcji`,
+  "weekReview.count.open": ({ count }) => `${count} otwarte`,
   "weekReview.count.overdue": ({ count }) => `${count} zaległych`,
   "weekReview.showDone.label": () => "Pokaż ukończone",
   "weekReview.showDone.title": () => "Pokaż ukończone i anulowane elementy",
@@ -1161,6 +1169,7 @@ export const pl = {
     const n = notes === 1 ? "1 notatce" : `${notes} notatkach`;
     return `${l} w ${n}`;
   },
+  "rename.modal.underlinesUpdated": () => "Podkreślenia są aktualizowane razem z tytułami.",
   "rename.modal.confirm": ({ count }) => (count === 1 ? "Zmień w 1 notatce" : `Zmień w ${count} notatkach`),
   "rename.invalid.name": () => "Nazwa może zawierać tylko litery, cyfry, _ lub -.",
   "rename.invalid.topic": () => "Temat nie może być pusty ani zawierać spacji czy nawiasów.",

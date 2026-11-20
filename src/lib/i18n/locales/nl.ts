@@ -146,6 +146,7 @@ export const nl = {
   "shortcuts.reopenClosedTab.label": () => "Meest recent gesloten tab heropenen",
   "shortcuts.openDateNote.label": () => "Gedateerde notitie openen/aanmaken",
   "shortcuts.closeTab.label": () => "Huidige tab sluiten / een tab sluiten",
+  "shortcuts.extra.middleClick": () => "middelklik",
   "shortcuts.cycleTab.label": () => "Volgende / vorige tab",
   "shortcuts.indentDedent.label": () => "Inspringen / uitspringen (in editor)",
   "shortcuts.undoRedo.label": () => "Ongedaan maken / opnieuw (per tab bewaard)",
@@ -305,7 +306,7 @@ export const nl = {
   "actionDrawer.modal.ariaLabel": () => "Acties",
   "actionDrawer.filterPlaceholder": () => "Filter acties…",
   "actionDrawer.counter": ({ open, listed }) => `${open} open / ${listed} weergegeven`,
-  "actionDrawer.counterShort": ({ open, listed }) => `${open} open · ${listed}`,
+  "actionDrawer.counterShort": ({ open, listed }) => `${open} open · ${listed} getoond`,
   "actionDrawer.group.expand": () => "Uitklappen",
   "actionDrawer.group.collapse": () => "Inklappen",
   "actionDrawer.group.progressTitle": ({ resolved, total }) => `${resolved} van ${total} klaar`,
@@ -580,14 +581,14 @@ export const nl = {
 
   "common.cancel": () => "Annuleren",
 
-  "safetyModal.ariaLabel": () => "Waarschuwing niet-afgehandelde acties",
-  "safetyModal.title": () => "Waarschuwing: Niet-afgehandelde Acties",
-  "safetyModal.reason.dueOpen": ({ count }) => `heeft ${count} onopgeloste open actie(s)`,
+  "safetyModal.ariaLabel": () => "Sluiten met open acties?",
+  "safetyModal.title": () => "Sluiten met open acties?",
+  "safetyModal.reason.dueOpen": ({ count }) => (count === 1 ? "heeft 1 open actie" : `heeft ${count} open acties`),
   "safetyModal.reason.scratchpad": () =>
     "is een kladblok — het sluiten ervan verwijdert de inhoud permanent, omdat kladblokken nooit op schijf worden opgeslagen",
   "safetyModal.reasonJoiner": () => " en ",
-  "safetyModal.message": ({ filename, reasons }) => `Tab "${filename}" ${reasons}. Weet je zeker dat je hem wilt sluiten?`,
-  "safetyModal.closeAnyway": () => "Toch Sluiten",
+  "safetyModal.message": ({ filename, reasons }) => `${filename} ${reasons}.`,
+  "safetyModal.closeAnyway": () => "Toch sluiten",
   "safetyModal.batchCloseMessage": ({ count }) =>
     `${count} tabbladen sluiten? Sommige tabbladen bevatten openstaande acties of niet-opgeslagen kladblokken.`,
 
@@ -598,6 +599,7 @@ export const nl = {
   "searchModal.noMatches": ({ query }) => `Geen overeenkomsten voor "${query}".`,
   "searchModal.emptySubtitle": () =>
     "Controleer de spelling of gebruik zoekoperators zoals is:open, due: of #tag.",
+  "searchModal.emptyHint": () => "Zoek op woorden, @naam, is:open, due:",
   "searchModal.footer.open": () => "Openen",
   "searchModal.footer.select": () => "Selecteren",
   "searchModal.saveSearch": () => "Deze zoekopdracht bewaren",
@@ -631,12 +633,10 @@ export const nl = {
   "conflictModal.title": ({ filename }) => `"${filename}" is gewijzigd op schijf`,
   "conflictModal.explanation.part1": () =>
     "Deze notitie is buiten ChronoNote gewijzigd (een andere editor, of een synchronisatieclient) terwijl je hier nog niet-opgeslagen wijzigingen had. Kies welke versie je wilt behouden — de andere gaat niet verloren, tenzij je ",
-  "conflictModal.explanation.keepDiskRef": () => "Schijf behouden",
   "conflictModal.explanation.part2": () => " of ",
-  "conflictModal.explanation.keepMineRef": () => "Mijn versie",
   "conflictModal.explanation.part3": () => " kiest zonder een kopie op te slaan.",
   "conflictModal.keepDiskVersion": () => "Schijfversie behouden",
-  "conflictModal.saveMineAsCopy": () => "Mijn versie als kopie opslaan",
+  "conflictModal.saveMineAsCopy": () => "Mijn versie als kopie",
   "conflictModal.keepMyVersion": () => "Mijn versie behouden",
 
   "unsavedScratchpads.ariaLabel": () => "Niet-opgeslagen kladblokinhoud",
@@ -963,6 +963,10 @@ export const nl = {
   "versions.restore": () => "Deze versie terugzetten",
   "versions.current": () => "Huidig",
   "versions.hint": () => "30 dagen bewaard: elke paar minuten een versie terwijl je vandaag bewerkt, één per eerdere dag, en elke versie die door een import of conflictkeuze is vervangen.",
+  "versions.ago.justNow": () => "zojuist",
+  "versions.ago.minutes": ({ count }) => `${count} min geleden`,
+  "versions.ago.hours": ({ count }) => `${count} uur geleden`,
+  "versions.ago.days": ({ count }) => (count === 1 ? "1 dag geleden" : `${count} dagen geleden`),
   "toast.versions.restored": () => "Versie teruggezet",
   "a11y.glyph.open": () => "Open actie",
   "a11y.glyph.done": () => "Voltooid",
@@ -1015,6 +1019,7 @@ export const nl = {
   "weekReview.nextWeekLabel": ({ week }) => `week ${week} ›`,
   "weekReview.count.openAction": ({ count }) => `${count} open actie`,
   "weekReview.count.openActions": ({ count }) => `${count} open acties`,
+  "weekReview.count.open": ({ count }) => `${count} open`,
   "weekReview.count.overdue": ({ count }) => (count === 1 ? "1 te laat" : `${count} te laat`),
   "weekReview.showDone.label": () => "Toon voltooid",
   "weekReview.showDone.title": () => "Toon voltooide en vervallen items",
@@ -1104,6 +1109,7 @@ export const nl = {
   "rename.modal.to": () => "Naar",
   "rename.modal.summary": ({ lines, notes }) =>
     `${lines === 1 ? "1 regel" : `${lines} regels`} in ${notes === 1 ? "1 notitie" : `${notes} notities`}`,
+  "rename.modal.underlinesUpdated": () => "Onderstrepingen worden met hun titel aangepast.",
   "rename.modal.confirm": ({ count }) => (count === 1 ? "Hernoemen in 1 notitie" : `Hernoemen in ${count} notities`),
   "rename.invalid.name": () => "Gebruik alleen letters, cijfers, _ of - voor een naam.",
   "rename.invalid.topic": () => "Een onderwerp mag geen spaties of haakjes bevatten.",

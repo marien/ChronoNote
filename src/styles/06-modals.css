@@ -555,6 +555,38 @@ textarea.modal-input.import-textarea {
 .modal-item.selected .palette-match {
   color: var(--selected-fg);
 }
+.modal-item.selected:not(.action-row) :is(.glyph-open, .glyph-done, .glyph-cancelled, .glyph-progress) {
+  --glyph-box-color: var(--selected-fg);
+}
+.modal-item.selected:not(.action-row) :is(.glyph-topic-open, .glyph-topic-done, .glyph-topic-skipped) {
+  border-color: var(--selected-fg);
+}
+.modal-item.selected:not(.action-row) .glyph-topic-done {
+  --glyph-dot-color: var(--selected-fg);
+}
+.modal-item.selected:not(.action-row) :is(.glyph-followup, .glyph-bullet, .glyph-emphasis-line, .glyph-escape) {
+  color: var(--selected-fg);
+}
+.modal-item.selected:not(.action-row) .glyph-assignee {
+  color: var(--selected-fg);
+  background: color-mix(in srgb, var(--selected-fg) 14%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--selected-fg) 38%, transparent);
+}
+.modal-item.selected:not(.action-row) .glyph-topic {
+  color: var(--selected-fg);
+  background: color-mix(in srgb, var(--selected-fg) 14%, transparent);
+  border-color: color-mix(in srgb, var(--selected-fg) 38%, transparent);
+}
+.modal-item.selected:not(.action-row) .cm-due {
+  --due-ink: var(--selected-fg);
+  --due-border: color-mix(in srgb, var(--selected-fg) 38%, transparent);
+  background: color-mix(in srgb, var(--selected-fg) 14%, transparent);
+}
+.modal-item.selected:not(.action-row) .cm-fwd-link {
+  color: var(--selected-fg);
+  background: color-mix(in srgb, var(--selected-fg) 14%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--selected-fg) 38%, transparent);
+}
 
 /* Area 8: Search filter chips */
 .search-chips-row {

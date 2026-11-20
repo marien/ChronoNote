@@ -5,12 +5,16 @@ import {
   buildDueDrawerRows,
   collapseKey,
   drawerTreeGuides,
+  formatActionDrawerCounter,
   hasActiveFilter,
   nodeMatchesQuery,
   nodeState,
   nodeText,
   type DrawerFilter,
 } from "./actionDrawerRows";
+import { en } from "./i18n/locales/en";
+import { nl } from "./i18n/locales/nl";
+import type { Dictionary, TranslationKey, TranslationParams } from "./i18n/schema";
 import { cycleActionSymbolAt } from "./tokens";
 import { parseSearchQuery } from "./search";
 import type { ActionSnapshotItem } from "./types";
@@ -610,5 +614,24 @@ describe("buildDueDrawerRows with operators", () => {
       collapsed: new Set(),
     });
     expect(groups).toEqual([]);
+  });
+});
+
+describe("formatActionDrawerCounter", () => {
+  const tr = (dict: object) => <K extends TranslationKey>(key: K, params?: TranslationParams[K]) =>
+    (dict as Dictionary)[key](params as never);
+
+  it("omits the repeated listed count when open equals listed", () => {
+    expect(formatActionDrawerCounter(13, 13, false, tr(en))).toBe("13 open");
+    expect(formatActionDrawerCounter(13, 13, true, tr(en))).toBe("13");
+    expect(formatActionDrawerCounter(13, 13, false, tr(nl))).toBe("13 open");
+    expect(formatActionDrawerCounter(13, 13, true, tr(nl))).toBe("13");
+  });
+
+  it("shows both open and listed when they differ", () => {
+    expect(formatActionDrawerCounter(13, 20, false, tr(en))).toBe("13 open · 20 listed");
+    expect(formatActionDrawerCounter(13, 20, true, tr(en))).toBe("13 · 20");
+    expect(formatActionDrawerCounter(13, 20, false, tr(nl))).toBe("13 open · 20 getoond");
+    expect(formatActionDrawerCounter(13, 20, true, tr(nl))).toBe("13 · 20");
   });
 });

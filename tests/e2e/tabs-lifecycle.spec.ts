@@ -73,14 +73,14 @@ test.describe("tabs — lifecycle & safe close", () => {
 
     const warn = modalCard(page, MODAL_LABELS.safety);
     await expect(warn).toBeVisible();
-    await expect(warn).toContainText("unresolved open action");
+    await expect(warn).toContainText("has 1 open action");
 
     await warn.getByRole("button", { name: "Cancel" }).click();
     await expect(activeTabLabel(page)).toHaveText(new RegExp(dateLabel(todayFilename())));
     expect(await currentModal(page)).toBe("none");
   });
 
-  test("'Close Anyway' on the warning actually closes the tab", async ({ page }) => {
+  test("'Close anyway' on the warning actually closes the tab", async ({ page }) => {
     await seedApp(page, { seed: "empty" });
     await page.keyboard.press("ControlOrMeta+n");
     await typeInEditor(page, "scratch content that would be lost");
@@ -89,7 +89,7 @@ test.describe("tabs — lifecycle & safe close", () => {
     await page.keyboard.press("ControlOrMeta+w");
     const warn = modalCard(page, MODAL_LABELS.safety);
     await expect(warn).toContainText("permanently discard");
-    await warn.getByRole("button", { name: "Close Anyway" }).click();
+    await warn.getByRole("button", { name: "Close anyway" }).click();
 
     await expect(tab(page, "Scratchpad 1")).toHaveCount(0);
   });
@@ -104,7 +104,7 @@ test.describe("tabs — lifecycle & safe close", () => {
     // A dated tab with unresolved `# ` actions asks first — confirm it.
     const warn = modalCard(page, MODAL_LABELS.safety);
     if (await warn.isVisible().catch(() => false)) {
-      await warn.getByRole("button", { name: "Close Anyway" }).click();
+      await warn.getByRole("button", { name: "Close anyway" }).click();
     }
     await expect(tab(page, victim)).toHaveCount(0);
 
@@ -137,7 +137,7 @@ test.describe("tabs — lifecycle & safe close", () => {
       await tabs.first().locator(".tab-close").click();
       const warn = modalCard(page, MODAL_LABELS.safety);
       if (await warn.isVisible().catch(() => false)) {
-        await warn.getByRole("button", { name: "Close Anyway" }).click();
+        await warn.getByRole("button", { name: "Close anyway" }).click();
       }
     }
     // Never zero tabs — a scratchpad backfills.
@@ -170,7 +170,7 @@ test.describe("close warning by date (#76)", () => {
     await seedApp(page, note("2026-08-01.txt"));
     await editor(page).click();
     await page.keyboard.press("ControlOrMeta+w");
-    await expect(modalCard(page, MODAL_LABELS.safety)).toContainText("unresolved open action");
+    await expect(modalCard(page, MODAL_LABELS.safety)).toContainText("has 1 open action");
   });
 });
 

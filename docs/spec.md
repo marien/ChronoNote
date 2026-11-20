@@ -169,7 +169,8 @@ lines after it are not picked up again. On a group line, every action part after
 its own (`=> <symbol>`, `=> @name`) is a *step*, numbered from 1. In the editor a
 thin muted tree line (a CodeMirror layer: no width, height or baseline change)
 runs from under the parent's glyph to its last child, with an elbow into each
-indented child; it dims when the whole group is resolved and the caret is not in
+indented child (skipped when a parent has only same-indent arrow children and
+no indented child); it dims when the whole group is resolved and the caret is not in
 it. Steps get no line in the editor. The status bar still counts every action on
 its own.
 

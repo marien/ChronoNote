@@ -148,6 +148,7 @@ export const fr = {
   "shortcuts.reopenClosedTab.label": () => "Rouvrir le dernier onglet fermé",
   "shortcuts.openDateNote.label": () => "Ouvrir ou créer une note datée",
   "shortcuts.closeTab.label": () => "Fermer l'onglet actif / fermer un onglet",
+  "shortcuts.extra.middleClick": () => "clic molette",
   "shortcuts.cycleTab.label": () => "Onglet suivant / précédent",
   "shortcuts.indentDedent.label": () => "Indenter / désindenter (dans l'éditeur)",
   "shortcuts.undoRedo.label": () => "Annuler / rétablir (mémorisé par onglet)",
@@ -307,7 +308,7 @@ export const fr = {
   "actionDrawer.modal.ariaLabel": () => "Actions",
   "actionDrawer.filterPlaceholder": () => "Filtrer les actions…",
   "actionDrawer.counter": ({ open, listed }) => `${open} ouverte${open === 1 ? "" : "s"} / ${listed} affichée${listed === 1 ? "" : "s"}`,
-  "actionDrawer.counterShort": ({ open, listed }) => `${open} ouverte${open === 1 ? "" : "s"} · ${listed}`,
+  "actionDrawer.counterShort": ({ open, listed }) => `${open} ouverte${open === 1 ? "" : "s"} · ${listed} affichée${listed === 1 ? "" : "s"}`,
   "actionDrawer.group.expand": () => "Déplier",
   "actionDrawer.group.collapse": () => "Replier",
   "actionDrawer.group.progressTitle": ({ resolved, total }) => `${resolved} sur ${total} terminées`,
@@ -591,15 +592,13 @@ export const fr = {
 
   "common.cancel": () => "Annuler",
 
-  "safetyModal.ariaLabel": () => "Avertissement d'actions non résolues",
-  "safetyModal.title": () => "Avertissement d'actions non résolues",
-  "safetyModal.reason.dueOpen": ({ count }) =>
-    count === 1 ? "a 1 action ouverte non résolue" : `a ${count} actions ouvertes non résolues`,
+  "safetyModal.ariaLabel": () => "Fermer avec des actions ouvertes ?",
+  "safetyModal.title": () => "Fermer avec des actions ouvertes ?",
+  "safetyModal.reason.dueOpen": ({ count }) => (count === 1 ? "a 1 action ouverte" : `a ${count} actions ouvertes`),
   "safetyModal.reason.scratchpad": () =>
     "est un brouillon — le fermer supprimera définitivement son contenu, les brouillons n'étant jamais enregistrés sur le disque",
   "safetyModal.reasonJoiner": () => " et ",
-  "safetyModal.message": ({ filename, reasons }) =>
-    `L'onglet « ${filename} » ${reasons}. Voulez-vous vraiment le fermer ?`,
+  "safetyModal.message": ({ filename, reasons }) => `${filename} ${reasons}.`,
   "safetyModal.closeAnyway": () => "Fermer quand même",
   "safetyModal.batchCloseMessage": ({ count }) =>
     `Fermer ${count} onglets ? Certains onglets contiennent des actions en attente ou des brouillons non enregistrés.`,
@@ -612,6 +611,7 @@ export const fr = {
   "searchModal.noMatches": ({ query }) => `Aucune correspondance pour « ${query} ».`,
   "searchModal.emptySubtitle": () =>
     "Vérifiez l'orthographe ou utilisez des opérateurs de recherche comme is:open, due: ou #tag.",
+  "searchModal.emptyHint": () => "Rechercher des mots, @nom, is:open, due:",
   "searchModal.footer.open": () => "Ouvrir",
   "searchModal.footer.select": () => "Sélectionner",
   "searchModal.saveSearch": () => "Enregistrer cette recherche",
@@ -645,12 +645,10 @@ export const fr = {
   "conflictModal.title": ({ filename }) => `« ${filename} » modifiée sur le disque`,
   "conflictModal.explanation.part1": () =>
     "Cette note a été modifiée en dehors de ChronoNote (un autre éditeur ou un client de synchronisation) alors que des modifications étaient en attente ici. Choisissez la version à conserver — l'autre ne sera pas perdue sauf si vous choisissez ",
-  "conflictModal.explanation.keepDiskRef": () => "Garder la version disque",
   "conflictModal.explanation.part2": () => " ou ",
-  "conflictModal.explanation.keepMineRef": () => "Garder ma version",
   "conflictModal.explanation.part3": () => " sans enregistrer de copie.",
   "conflictModal.keepDiskVersion": () => "Garder la version disque",
-  "conflictModal.saveMineAsCopy": () => "Enregistrer ma version comme copie",
+  "conflictModal.saveMineAsCopy": () => "Ma version en copie",
   "conflictModal.keepMyVersion": () => "Garder ma version",
 
   "unsavedScratchpads.ariaLabel": () => "Contenu de brouillon non enregistré",
@@ -984,6 +982,10 @@ export const fr = {
   "versions.restore": () => "Restaurer cette version",
   "versions.current": () => "Actuelle",
   "versions.hint": () => "Conservées 30 jours : une version toutes les quelques minutes pendant que vous modifiez aujourd'hui, une par jour précédent, et toute version remplacée par un import ou un choix de conflit.",
+  "versions.ago.justNow": () => "à l'instant",
+  "versions.ago.minutes": ({ count }) => `il y a ${count} min`,
+  "versions.ago.hours": ({ count }) => `il y a ${count} h`,
+  "versions.ago.days": ({ count }) => `il y a ${count} j`,
   "toast.versions.restored": () => "Version restaurée",
   "a11y.glyph.open": () => "Action ouverte",
   "a11y.glyph.done": () => "Terminé",
@@ -1036,6 +1038,7 @@ export const fr = {
   "weekReview.nextWeekLabel": ({ week }) => `semaine ${week} ›`,
   "weekReview.count.openAction": ({ count }) => `${count} action ouverte`,
   "weekReview.count.openActions": ({ count }) => `${count} actions ouvertes`,
+  "weekReview.count.open": ({ count }) => `${count} ouverte${count === 1 ? "" : "s"}`,
   "weekReview.count.overdue": ({ count }) => `${count} en retard`,
   "weekReview.showDone.label": () => "Afficher terminés",
   "weekReview.showDone.title": () => "Afficher les éléments terminés et annulés",
@@ -1125,6 +1128,7 @@ export const fr = {
   "rename.modal.to": () => "Vers",
   "rename.modal.summary": ({ lines, notes }) =>
     `${lines === 1 ? "1 ligne" : `${lines} lignes`} dans ${notes === 1 ? "1 note" : `${notes} notes`}`,
+  "rename.modal.underlinesUpdated": () => "Les soulignements sont mis à jour avec leurs titres.",
   "rename.modal.confirm": ({ count }) => (count === 1 ? "Renommer dans 1 note" : `Renommer dans ${count} notes`),
   "rename.invalid.name": () => "Utilisez uniquement des lettres, chiffres, _ ou -.",
   "rename.invalid.topic": () => "Saisissez un sujet sans espaces ni parenthèses.",

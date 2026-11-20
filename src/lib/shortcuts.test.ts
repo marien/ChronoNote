@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { SHORTCUTS } from "./shortcuts";
+import { SHORTCUTS, formatCombo } from "./shortcuts";
 
 /** On the US-International layout (and others) AltGr is Ctrl+Alt, and AltGr+letter types a character: p is o with a
  * diaeresis, n is n with a tilde, and so on. An in-app shortcut on Ctrl+Alt+<letter> swallows that letter in the
@@ -33,5 +33,21 @@ describe("in-app shortcuts and AltGr", () => {
       s.combos.filter((c) => c.code === "F2").map((c) => `${s.id}: ${c.code}`),
     );
     expect(usingF2).toEqual([]);
+  });
+
+  it("formatCombo formats every registered combo without raw KeyboardEvent.code prefixes", () => {
+    const rawPrefixes = ["Arrow", "Key", "Digit", "Bracket", "Comma", "Period", "Slash"];
+    for (const def of SHORTCUTS) {
+      for (const combo of def.combos) {
+        const formatted = formatCombo(combo);
+        for (const part of formatted.split("+")) {
+          for (const prefix of rawPrefixes) {
+            expect(part.startsWith(prefix), `${def.id} (${combo.code}) -> ${formatted}`).toBe(false);
+          }
+        }
+      }
+    }
+    expect(formatCombo({ mod: true, alt: true, code: "ArrowRight" })).toMatch(/\+Right$/);
+    expect(formatCombo({ mod: true, code: "BracketRight" })).toMatch(/\+\]$/);
   });
 });
