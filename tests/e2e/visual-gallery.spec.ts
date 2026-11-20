@@ -210,7 +210,7 @@ for (const v of VARIANTS) {
     test("overlays", async ({ page }) => {
       await busyWeek(page, v);
       await overlay(page, v, "ControlOrMeta+o", "date");
-      await overlay(page, v, "ControlOrMeta+Shift+a", "actions");
+      await overlay(page, v, "ControlOrMeta+Shift+A", "actions");
       await overlay(page, v, "ControlOrMeta+Shift+f", "search");
       await overlay(page, v, "ControlOrMeta+k", "commandPalette");
       await overlay(page, v, "ControlOrMeta+Comma", "settings");
@@ -451,7 +451,7 @@ for (const v of VARIANTS) {
       await busyWeek(page, v, { actionsPaneShare: 0.1 });
       await editor(page).locator(".cm-line").first().click();
       await parkMouse(page);
-      await page.keyboard.press("ControlOrMeta+Shift+a");
+      await page.keyboard.press("ControlOrMeta+Shift+A");
       const narrowPane = page.locator("aside.actions-pane");
       await expect(narrowPane).toBeVisible();
       await expect(narrowPane.locator(".actions-header-row-2.is-narrow")).toBeVisible();
@@ -460,7 +460,7 @@ for (const v of VARIANTS) {
       await busyWeek(page, v, { actionsPaneShare: 0.45 });
       await editor(page).locator(".cm-line").first().click();
       await parkMouse(page);
-      await page.keyboard.press("ControlOrMeta+Shift+a");
+      await page.keyboard.press("ControlOrMeta+Shift+A");
       const widePane = page.locator("aside.actions-pane");
       await expect(widePane).toBeVisible();
       await expect(widePane.locator(".actions-header-row-2:not(.is-narrow)")).toBeVisible();
