@@ -364,7 +364,7 @@ export const en = {
     "Moves the selected line(s) to the end of that section like Whole line, with open items marked forwarded here, and opens every agenda topic (o) there, discussed ones included.",
   "history.takeover.hint": () =>
     "Moves the selected line(s) to the end of that section — marked forwarded (») in this occurrence, not deleted.",
-  "history.takeover.none": () => "There's nowhere else to carry this over to from this occurrence.",
+  "history.takeover.none": () => "This is the only time this section appears.",
   "history.body.selectPrompt": () => "Select an occurrence to browse it.",
   "history.footer.selectLine": () => "Select line",
   "history.footer.switchDate": () => "Other date",
@@ -600,6 +600,7 @@ export const en = {
   "searchModal.unsaveSearch": () => "Remove from saved searches",
   "searchModal.savedSearchChip": ({ query }) => `Saved search: ${query}`,
   "searchModal.savedSearchesRow": () => "Saved searches",
+  "searchModal.removeSavedSearchAriaLabel": ({ query }) => `Remove saved search: ${query}`,
 
   "datePicker.ariaLabel": () => "Jump to date",
   "datePicker.jumpPlaceholder": () => "Go to: today, -2, 2026-09-05",
@@ -998,6 +999,7 @@ export const en = {
   "weekReview.modal.title": () => "Week review",
   "weekReview.modal.ariaLabel": () => "Week review",
   "weekReview.header.weekTitle": ({ week, range }) => `Week ${week} · ${range}`,
+  "weekReview.header.weekTitleCompact": ({ week, range }) => `Wk ${week} · ${range}`,
   "weekReview.prevWeek": () => "Previous week",
   "weekReview.nextWeek": () => "Next week",
   "weekReview.prevWeekLabel": ({ week }) => `‹ week ${week}`,

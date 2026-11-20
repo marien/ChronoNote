@@ -20,8 +20,11 @@ test.describe("saved searches", () => {
     await expect(saveBtn).toBeVisible();
     await saveBtn.click();
 
-    const chip = searchModal.getByRole("button", { name: "Saved search: is:open" });
+    const chip = searchModal.getByRole("button", { name: "Saved search: is:open", exact: true });
     await expect(chip).toBeVisible();
+    await expect(chip).toHaveAttribute("aria-pressed", "true");
+    await expect(searchModal.locator(".search-chips-row")).toHaveCount(1);
+    await expect(searchModal.getByRole("button", { name: "Remove saved search: is:open" })).toBeVisible();
     await expect(searchModal.getByRole("button", { name: "Remove from saved searches" })).toBeVisible();
 
     // 2. Clear the input and click the chip: the input reads is:open
@@ -81,7 +84,7 @@ test.describe("saved searches", () => {
       .toBe(true);
 
     // 4. Right-click the chip: it disappears
-    const reopenedChip = searchModal.getByRole("button", { name: "Saved search: is:open" });
+    const reopenedChip = searchModal.getByRole("button", { name: "Saved search: is:open", exact: true });
     await expect(reopenedChip).toBeVisible();
     await reopenedChip.click({ button: "right" });
     await expect(reopenedChip).toBeHidden();

@@ -30,7 +30,7 @@ import {
   titleForMatching,
   type SectionItem,
 } from "./tokens";
-import { tokenAfterArrow, tokenizeLine } from "./grammar/tokenize";
+import { isTitleLine, isTitleUnderline, tokenAfterArrow, tokenizeLine } from "./grammar/tokenize";
 import { isValidCalendarDate, parseDueWord } from "./date";
 import type { SearchResultItem } from "./types";
 
@@ -362,6 +362,18 @@ export function openCrossTabSearch(initial?: InitialSearchParams) {
   modal.set("search");
 }
 
+/** Picks the context line shown above a search hit: when the immediately preceding
+ * line is a setext underline (`===` / `---`) beneath a section title, show that
+ * section title instead of the rule; otherwise keep the line directly above. */
+export function pickContextBefore(lines: readonly string[], lineIdx: number): string | undefined {
+  if (lineIdx <= 0) return undefined;
+  const prev = lines[lineIdx - 1];
+  if (lineIdx >= 2 && isTitleUnderline(prev) && isTitleLine(lines[lineIdx - 2], prev)) {
+    return lines[lineIdx - 2];
+  }
+  return prev;
+}
+
 export function runSearch(query: string, scope: "open" | "all" = "open", ctx?: SearchContext) {
   const q = query.trim();
   if (!q) {
@@ -438,7 +450,7 @@ export function runSearch(query: string, scope: "open" | "all" = "open", ctx?: S
             tabFilename: tab.filename,
             lineIdx,
             line,
-            contextBefore: lineIdx > 0 ? lines[lineIdx - 1] : undefined,
+            contextBefore: pickContextBefore(lines, lineIdx),
             contextAfter: lineIdx < lines.length - 1 ? lines[lineIdx + 1] : undefined,
           });
         }
@@ -462,7 +474,7 @@ export function runSearch(query: string, scope: "open" | "all" = "open", ctx?: S
             tabFilename: filename,
             lineIdx,
             line,
-            contextBefore: lineIdx > 0 ? lines[lineIdx - 1] : undefined,
+            contextBefore: pickContextBefore(lines, lineIdx),
             contextAfter: lineIdx < lines.length - 1 ? lines[lineIdx + 1] : undefined,
           });
         }

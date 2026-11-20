@@ -484,6 +484,32 @@ export function formatWeekRange(locale: string, mondayISO: string, sundayISO: st
   }
 }
 
+/** Compact week range for narrow headers (< 600 px): "31 Aug – 6 Sep" (omits the
+ * year when both ends are in `currentYear`, includes it otherwise). */
+export function formatCompactWeekRange(
+  locale: string,
+  mondayISO: string,
+  sundayISO: string,
+  currentYear: number,
+): string {
+  const mon = parseISODateLocal(mondayISO);
+  const sun = parseISODateLocal(sundayISO);
+  const monYear = mon.getFullYear();
+  const sunYear = sun.getFullYear();
+
+  const monFmt = new Intl.DateTimeFormat(locale, {
+    day: "numeric",
+    month: "short",
+    ...(monYear !== sunYear ? { year: "numeric" } : {}),
+  }).format(mon);
+  const sunFmt = new Intl.DateTimeFormat(locale, {
+    day: "numeric",
+    month: "short",
+    ...(sunYear !== currentYear || monYear !== sunYear ? { year: "numeric" } : {}),
+  }).format(sun);
+  return `${monFmt} \u2013 ${sunFmt}`;
+}
+
 /** Open Week review. If target week is omitted, opens default week (decision 1b). */
 export async function openWeekReview(target?: { year: number; week: number }) {
   await ensureLoaded();

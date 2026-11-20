@@ -372,7 +372,7 @@ export const de = {
     "Verschiebt die ausgewählte(n) Zeile(n) wie Ganze Zeile an das Ende dieses Abschnitts, wobei offene Punkte hier als weitergeleitet markiert werden, und öffnet dort jeden Agendapunkt (o), auch besprochene.",
   "history.takeover.hint": () =>
     "Verschiebt die ausgewählte(n) Zeile(n) an das Ende dieses Abschnitts — in diesem Vorkommen als weitergeleitet (») markiert, nicht gelöscht.",
-  "history.takeover.none": () => "Von diesem Vorkommen aus gibt es nirgendwo anders hin zu übertragen.",
+  "history.takeover.none": () => "Dies ist das einzige Mal, dass dieser Abschnitt vorkommt.",
   "history.body.selectPrompt": () => "Wähle ein Vorkommen aus, um es anzusehen.",
   "history.footer.selectLine": () => "Zeile auswählen",
   "history.footer.switchDate": () => "Anderes Datum",
@@ -609,6 +609,7 @@ export const de = {
   "searchModal.unsaveSearch": () => "Aus gespeicherten Suchen entfernen",
   "searchModal.savedSearchChip": ({ query }) => `Gespeicherte Suche: ${query}`,
   "searchModal.savedSearchesRow": () => "Gespeicherte Suchen",
+  "searchModal.removeSavedSearchAriaLabel": ({ query }) => `Gespeicherte Suche entfernen: ${query}`,
 
   "datePicker.ariaLabel": () => "Zu einem Datum springen",
   "datePicker.jumpPlaceholder": () => "Gehe zu: heute, -2, 2026-09-05",
@@ -1012,6 +1013,7 @@ export const de = {
   "weekReview.modal.title": () => "Wochenrückblick",
   "weekReview.modal.ariaLabel": () => "Wochenrückblick",
   "weekReview.header.weekTitle": ({ week, range }) => `Woche ${week} · ${range}`,
+  "weekReview.header.weekTitleCompact": ({ week, range }) => `KW ${week} · ${range}`,
   "weekReview.prevWeek": () => "Vorherige Woche",
   "weekReview.nextWeek": () => "Nächste Woche",
   "weekReview.prevWeekLabel": ({ week }) => `‹ Woche ${week}`,

@@ -8,8 +8,9 @@ import { todayISO } from "./date";
 import type { AppConfig } from "./types";
 
 export const MOBILE_DEFAULTS_KEY = "chrononote.mobileDefaults.v1";
+export const TEXT_WIDTH_CHOSEN_KEY = "chrononote.textWidthChosen.v1";
 
-/** Pure function deciding whether to apply mobile defaults (wrap and 16px font size)
+/** Pure function deciding whether to apply mobile font-size default (16px)
  * on first web-app launch on a phone (D1).
  *
  * Applies only:
@@ -31,6 +32,40 @@ export function shouldApplyMobileDefaults(
   const isFactoryWrap = config.wordWrap === false;
   const isFactoryFontSize = config.fontSize === 13 || config.fontSize === undefined;
   return isFactoryWrap && isFactoryFontSize;
+}
+
+/** Resolves the initial editor text-width booleans (`wordWrap`, `readableLineLength`):
+ * - On a phone (`isPhone === true`), defaults to "Wrap" (`wordWrap: true`) when the user has never
+ *   explicitly chosen a text width (`!hasChosen`).
+ * - An explicit choice (`"full"`, `"wrap"`, or `"reading"`) is kept everywhere.
+ * - Desktop default stays "Full" (`wordWrap: false, readableLineLength: false`). */
+export function resolveTextWidth(
+  config: { wordWrap?: boolean; readableLineLength?: boolean } | null | undefined,
+  isPhone: boolean,
+  hasChosen: boolean,
+): { wordWrap: boolean; readableLineLength: boolean } {
+  const readable = Boolean(config?.readableLineLength);
+  if (readable) return { wordWrap: true, readableLineLength: true };
+  if (config?.wordWrap === true) return { wordWrap: true, readableLineLength: false };
+  if (hasChosen) return { wordWrap: false, readableLineLength: false };
+  if (isPhone) return { wordWrap: true, readableLineLength: false };
+  return { wordWrap: false, readableLineLength: false };
+}
+
+export function readTextWidthChosen(): boolean {
+  try {
+    return typeof localStorage !== "undefined" && localStorage.getItem(TEXT_WIDTH_CHOSEN_KEY) === "true";
+  } catch {
+    return false;
+  }
+}
+
+export function writeTextWidthChosen(): void {
+  try {
+    if (typeof localStorage !== "undefined") {
+      localStorage.setItem(TEXT_WIDTH_CHOSEN_KEY, "true");
+    }
+  } catch {}
 }
 
 export function readMobileDefaultsApplied(): boolean {

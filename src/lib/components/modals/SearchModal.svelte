@@ -298,30 +298,57 @@
     {#if $savedSearches.length > 0}
       <div class="search-chips-row saved-searches-row" aria-label={$t("searchModal.savedSearchesRow")}>
         {#each $savedSearches as saved (saved)}
-          <button
-            type="button"
-            class="search-chip saved-search-chip"
-            aria-label={$t("searchModal.savedSearchChip", { query: saved })}
-            title={saved}
-            onclick={() => applySavedSearch(saved)}
-            oncontextmenu={(e) => {
-              e.preventDefault();
-              void removeSavedSearch(saved);
-            }}
-            onkeydown={async (e) => {
-              if (e.key === "Delete") {
+          {@const isSelected = saved === normalizedQuery}
+          <span class="search-chip saved-search-chip" class:selected={isSelected}>
+            <button
+              type="button"
+              class="saved-search-run-btn"
+              aria-label={$t("searchModal.savedSearchChip", { query: saved })}
+              aria-pressed={isSelected}
+              title={saved}
+              onclick={() => applySavedSearch(saved)}
+              oncontextmenu={(e) => {
                 e.preventDefault();
+                void removeSavedSearch(saved);
+              }}
+              onkeydown={async (e) => {
+                if (e.key === "Delete") {
+                  e.preventDefault();
+                  await removeSavedSearch(saved);
+                  inputEl?.focus();
+                }
+              }}
+            >
+              <span class="saved-search-label">{saved}</span>
+            </button>
+            <button
+              type="button"
+              class="chip-remove-btn saved-search-remove-btn"
+              aria-label={$t("searchModal.removeSavedSearchAriaLabel", { query: saved })}
+              onclick={async (e) => {
+                e.stopPropagation();
                 await removeSavedSearch(saved);
                 inputEl?.focus();
-              }
-            }}
-          >
-            <span class="saved-search-label">{saved}</span>
-          </button>
+              }}
+              oncontextmenu={(e) => {
+                e.preventDefault();
+                void removeSavedSearch(saved);
+              }}
+              onkeydown={async (e) => {
+                if (e.key === "Delete") {
+                  e.preventDefault();
+                  await removeSavedSearch(saved);
+                  inputEl?.focus();
+                }
+              }}
+            >
+              ✕
+            </button>
+          </span>
         {/each}
       </div>
     {/if}
-    {#if chips.length > 0}
+    {#if chips.length > 0 && !isSaved}
       <div class="search-chips-row">
         {#each chips as chip, idx (chip.id ?? idx)}
           <span class="search-chip">

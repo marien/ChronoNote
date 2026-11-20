@@ -548,7 +548,7 @@ test.describe("section history (Ctrl/Cmd+Shift+H)", () => {
     await occRow(page, todayFilename().replace(".txt", "")).click();
     await detailLine(page, "today item").click();
     await expect(history(page).locator(".history-takeover-bar")).toHaveCount(0);
-    await expect(history(page)).toContainText("nowhere else to carry this over to");
+    await expect(history(page)).toContainText("This is the only time this section appears.");
   });
 
   test("opened from a past note, a section already exists today: 'Add to next occurrence' is never offered (Today already covers it)", async ({
@@ -581,7 +581,7 @@ test.describe("section history (Ctrl/Cmd+Shift+H)", () => {
     await occRow(page, todayFilename().replace(".txt", "")).click();
     await detailLine(page, "today item").click();
     await expect(history(page).locator(".history-takeover-bar")).toHaveCount(0);
-    await expect(history(page)).toContainText("nowhere else to carry this over to");
+    await expect(history(page)).toContainText("This is the only time this section appears.");
 
     // Browsing the future occurrence: Today is still a different file.
     await occRow(page, "2026-09-20").click();
@@ -720,7 +720,7 @@ test.describe("section history (Ctrl/Cmd+Shift+H)", () => {
 
     await detailLine(page, "today's own item").click();
     await expect(history(page).locator(".history-takeover-bar")).toHaveCount(0);
-    await expect(history(page)).toContainText("nowhere else to carry this over to");
+    await expect(history(page)).toContainText("This is the only time this section appears.");
   });
 
   test("#62: opens immediately with a spinner while the disk read is slow, then fills in", async ({ page }) => {

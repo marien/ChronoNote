@@ -371,7 +371,7 @@ export const fr = {
     "Déplace la ou les lignes sélectionnées à la fin de cette section comme Ligne entière, les éléments ouverts étant marqués comme reportés ici, et rouvre chaque point d'ordre du jour (o) à cet endroit, y compris ceux déjà traités.",
   "history.takeover.hint": () =>
     "Déplace la ou les lignes sélectionnées à la fin de cette section — marquée(s) comme reportée(s) (») ici, sans suppression.",
-  "history.takeover.none": () => "Aucun autre emplacement vers lequel reporter depuis cette occurrence.",
+  "history.takeover.none": () => "C'est la seule fois que cette section apparaît.",
   "history.body.selectPrompt": () => "Sélectionnez une occurrence pour la parcourir.",
   "history.footer.selectLine": () => "Sélectionner la ligne",
   "history.footer.switchDate": () => "Autre date",
@@ -618,6 +618,7 @@ export const fr = {
   "searchModal.unsaveSearch": () => "Retirer des recherches enregistrées",
   "searchModal.savedSearchChip": ({ query }) => `Recherche enregistrée : ${query}`,
   "searchModal.savedSearchesRow": () => "Recherches enregistrées",
+  "searchModal.removeSavedSearchAriaLabel": ({ query }) => `Supprimer la recherche enregistrée : ${query}`,
 
   "datePicker.ariaLabel": () => "Aller à la date",
   "datePicker.jumpPlaceholder": () => "Aller à : aujourd'hui, -2, 2026-09-05",
@@ -1028,6 +1029,7 @@ export const fr = {
   "weekReview.modal.title": () => "Revue de la semaine",
   "weekReview.modal.ariaLabel": () => "Revue de la semaine",
   "weekReview.header.weekTitle": ({ week, range }) => `Semaine ${week} · ${range}`,
+  "weekReview.header.weekTitleCompact": ({ week, range }) => `Sem. ${week} · ${range}`,
   "weekReview.prevWeek": () => "Semaine précédente",
   "weekReview.nextWeek": () => "Semaine suivante",
   "weekReview.prevWeekLabel": ({ week }) => `‹ semaine ${week}`,

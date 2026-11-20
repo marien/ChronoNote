@@ -41,4 +41,23 @@ describe("diffLines", () => {
     expect(changed(d.left)).toEqual(["line 7"]);
     expect(changed(d.right)).toEqual(["changed 7"]);
   });
+
+  it("ignores CRLF vs LF differences and highlights only changed lines in a note", () => {
+    const oldVer = "Top priorities\r\n==============\r\n# ask @Dana old\r\nPlain note\r\n";
+    const curVer = "Top priorities\n==============\n# ask @Dana new\n=> follow up\nPlain note\n";
+    const d = diffLines(oldVer, curVer);
+    expect(d.left).toEqual([
+      { text: "Top priorities", changed: false },
+      { text: "==============", changed: false },
+      { text: "# ask @Dana old", changed: true },
+      { text: "Plain note", changed: false },
+    ]);
+    expect(d.right).toEqual([
+      { text: "Top priorities", changed: false },
+      { text: "==============", changed: false },
+      { text: "# ask @Dana new", changed: true },
+      { text: "=> follow up", changed: true },
+      { text: "Plain note", changed: false },
+    ]);
+  });
 });

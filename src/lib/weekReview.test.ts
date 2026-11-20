@@ -3,6 +3,7 @@ import {
   buildWeekReview,
   countEarlierWeeksActionsInNote,
   defaultWeekForDate,
+  formatCompactWeekRange,
   formatWeekRange,
   isoYearAndWeek,
   isLineForwarded,
@@ -58,6 +59,13 @@ describe("weekReview pure model", () => {
       // Week 1 of 2025: 2024-12-30 to 2025-01-05
       const range = formatWeekRange("en", "2024-12-30", "2025-01-05");
       expect(range).toMatch(/2024.*2025/);
+    });
+
+    it("formats compact week range omitting current year and keeping other years", () => {
+      expect(formatCompactWeekRange("nl", "2026-08-31", "2026-09-06", 2026)).toBe("31 aug \u2013 6 sep");
+      expect(formatCompactWeekRange("en", "2026-08-31", "2026-09-06", 2026)).not.toContain("2026");
+      expect(formatCompactWeekRange("en", "2025-09-01", "2025-09-07", 2026)).toContain("2025");
+      expect(formatCompactWeekRange("en", "2024-12-30", "2025-01-05", 2026)).toMatch(/2024.*2025/);
     });
   });
 

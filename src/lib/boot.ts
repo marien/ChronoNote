@@ -58,6 +58,8 @@ import { normalizeAutoAddedMeetings } from "./sessionMeetings";
 import {
   handleWebappLaunch,
   readMobileDefaultsApplied,
+  readTextWidthChosen,
+  resolveTextWidth,
   shouldApplyMobileDefaults,
   writeMobileDefaultsApplied,
 } from "./webappLaunch";
@@ -132,13 +134,11 @@ export async function initApp() {
   if (isFromNewerApp(cfg.schemaVersion)) {
     showToast(get(t)("toast.boot.configFromNewerVersion", undefined));
   }
-  // §D1: on first launch on a phone in the web app, apply wrap and 16px font size defaults
+  // §D1: on first launch on a phone in the web app, apply 16px font size default
   const mobileDefaultsApplied = readMobileDefaultsApplied();
   if (shouldApplyMobileDefaults(cfg, get(isMobile), get(backendKind), mobileDefaultsApplied)) {
     writeMobileDefaultsApplied();
-    cfg.wordWrap = true;
     cfg.fontSize = 16;
-    await setWordWrap(true);
     await setFontSize(16);
   }
   notesDir.set(cfg.notesDir);
@@ -149,10 +149,11 @@ export async function initApp() {
   applyThemeModeToDom(cfg.themeMode);
   languageMode.set(cfg.languageMode);
   applyLocaleToDom(get(locale));
-  // §110: "limit line width" implies word-wrap. Reconcile a stale config
-  // (from the version where the two were gated the other way round).
-  readableLineLength.set(cfg.readableLineLength);
-  wordWrap.set(cfg.wordWrap || cfg.readableLineLength);
+  // §110 / F14: "limit line width" implies word-wrap; on a phone without an explicit
+  // user choice, text width defaults to "Wrap" while desktop defaults to "Full".
+  const textWidth = resolveTextWidth(cfg, get(isMobile), readTextWidthChosen());
+  readableLineLength.set(textWidth.readableLineLength);
+  wordWrap.set(textWidth.wordWrap);
   spellCheck.set(cfg.spellCheck ?? false);
   spellLanguages.set(cfg.spellLanguages ?? null);
   if (get(backendKind) !== "web") {

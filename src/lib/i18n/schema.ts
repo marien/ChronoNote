@@ -590,6 +590,7 @@ export type TranslationParams = {
   "searchModal.unsaveSearch": undefined;
   "searchModal.savedSearchChip": { query: string };
   "searchModal.savedSearchesRow": undefined;
+  "searchModal.removeSavedSearchAriaLabel": { query: string };
 
   // Date picker (`DatePickerModal.svelte`). Month/weekday names come from
   // `Intl.DateTimeFormat` (`date.ts`'s `monthName`/`weekdayAbbrev`), not
@@ -1006,6 +1007,7 @@ export type TranslationParams = {
   "weekReview.modal.title": undefined;
   "weekReview.modal.ariaLabel": undefined;
   "weekReview.header.weekTitle": { week: number; range: string };
+  "weekReview.header.weekTitleCompact": { week: number; range: string };
   "weekReview.prevWeek": undefined;
   "weekReview.nextWeek": undefined;
   "weekReview.prevWeekLabel": { week: number };

@@ -71,15 +71,13 @@
     max-height: 92dvh;
     box-sizing: border-box;
   }
-  .modal-card.modal-lg,
-  .modal-card.modal-xl,
   .modal-card.history-modal-card {
     height: 92dvh !important;
     max-height: 92dvh !important;
   }
-  .modal-card.modal-lg .modal-list,
-  .modal-card.modal-xl .modal-list {
-    flex: 1;
+  .modal-card .modal-list {
+    flex: 0 1 auto;
+    min-height: 0;
     max-height: none;
   }
   .modal-card::before {
@@ -588,10 +586,56 @@ textarea.modal-input.import-textarea {
   color: var(--text);
 }
 .saved-search-chip {
+  padding: 0;
+  gap: 0;
+}
+.saved-search-run-btn {
+  display: inline-flex;
+  align-items: center;
+  background: transparent;
+  border: none;
+  color: inherit;
+  font: inherit;
+  padding: 2px 8px;
   cursor: pointer;
+  border-radius: var(--radius-control);
+}
+.saved-search-run-btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--text);
+}
+.saved-search-chip.selected .saved-search-run-btn,
+.saved-search-chip:hover .saved-search-run-btn,
+.saved-search-chip:focus-within .saved-search-run-btn {
+  padding-right: 4px;
+}
+.saved-search-remove-btn {
+  display: none;
+  padding: 2px 6px 2px 2px;
+}
+.saved-search-chip.selected .saved-search-remove-btn,
+.saved-search-chip:hover .saved-search-remove-btn,
+.saved-search-chip:focus-within .saved-search-remove-btn {
+  display: inline-flex;
 }
 .saved-search-chip:hover {
   background: var(--surface-hover);
+}
+.saved-search-chip.selected {
+  background: var(--selected-bg);
+  color: var(--selected-fg);
+  border-color: var(--selected-bg);
+}
+.saved-search-chip.selected:hover {
+  background: var(--selected-bg);
+  color: var(--selected-fg);
+}
+.saved-search-chip.selected .chip-remove-btn {
+  color: var(--selected-fg);
+  opacity: 0.85;
+}
+.saved-search-chip.selected .chip-remove-btn:hover {
+  opacity: 1;
 }
 .saved-search-label {
   max-width: 24ch;
