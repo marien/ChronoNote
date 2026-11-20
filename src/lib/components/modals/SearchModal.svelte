@@ -350,6 +350,10 @@
         />
       </div>
     </div>
+    {#if !query.trim() && !searching}
+      <!-- Outside the listbox: a listbox may only hold options (axe aria-required-children). -->
+      <div class="search-empty-hint">{$t("searchModal.emptyHint")}</div>
+    {/if}
     <div
       class="modal-list"
       role="listbox"
@@ -359,9 +363,7 @@
       onscroll={onScroll}
       style="position: relative; overflow-y: auto;"
     >
-      {#if !query.trim() && !searching}
-        <div class="search-empty-hint">{$t("searchModal.emptyHint")}</div>
-      {:else if flatList.length === 0 && query.trim() && !searching}
+      {#if flatList.length === 0 && query.trim() && !searching}
         <EmptyState
           icon="search"
           title={$t("searchModal.noMatches", { query })}

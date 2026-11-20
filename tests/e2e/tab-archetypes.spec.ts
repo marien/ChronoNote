@@ -101,7 +101,7 @@ test.describe("tab archetypes (§103)", () => {
     // it either closes outright or (if it had open actions) raises the safety modal
     const closedOrPrompted =
       (await page.locator("#tab-bar .tab").count()) < before ||
-      (await page.locator('.modal-card[aria-label="Unresolved actions warning"]').isVisible());
+      (await page.locator('.modal-card[aria-label="Close with open actions?"]').isVisible());
     expect(closedOrPrompted).toBe(true);
   });
 });
