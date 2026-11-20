@@ -550,3 +550,5 @@ line, and this index is regenerated with `node scripts/changelog-index.mjs`.
 - §525 Start-up measured before lazy dialogs (R3a)
 - §526 Pasted tabs from other programs become two spaces
 - §527 Enter on a list item's continuation line starts the next item
+- §528 Design pass, layout (U5 batch B, F8-F14)
+- §529 Design pass, defects, wording and polish (U5 batches A, C, D)
