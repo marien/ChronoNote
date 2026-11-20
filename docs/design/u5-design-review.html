@@ -1,0 +1,411 @@
+<title>ChronoNote Design Pass</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* Layout: one reading column (~1000px): verdict, then decision cards grouped into fix batches, each with its screenshot, and a sticky decisions bar. Same system as the editor and feature reviews. */
+:root {
+  --bg: #f3f4f6; --surface: #ffffff; --fg: #1a1c20; --muted: #5a606b; --line: #dde0e5;
+  --accent: #0a6fc2; --accent-fg: #ffffff; --ok: #1f8a5b; --warn: #a8650f; --bad: #b8433b;
+  --chip: #eceef2; --shot: #0f1012;
+  --ui: "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --display: "Segoe UI Variable Display", "Segoe UI", system-ui, sans-serif;
+  --mono: "Cascadia Code", "Cascadia Mono", Consolas, ui-monospace, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #141518; --surface: #1d1f23; --fg: #e7e8eb; --muted: #a0a6b0; --line: #2f3238;
+  --accent: #4cc2ff; --accent-fg: #06223a; --ok: #4bbf87; --warn: #e0a94e; --bad: #e07b73; --chip: #272a30; --shot: #0b0c0e; color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #141518; --surface: #1d1f23; --fg: #e7e8eb; --muted: #a0a6b0; --line: #2f3238;
+  --accent: #4cc2ff; --accent-fg: #06223a; --ok: #4bbf87; --warn: #e0a94e; --bad: #e07b73; --chip: #272a30; --shot: #0b0c0e; color-scheme: dark; }
+
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--fg); font: 15px/1.55 var(--ui); }
+.wrap { max-width: 1000px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 32px 96px; }
+h1 { font: 600 32px/1.2 var(--display); margin: 0 0 8px; text-wrap: balance; letter-spacing: -.01em; }
+h2 { font: 600 22px/1.3 var(--display); margin: 56px 0 6px; text-wrap: balance; }
+h3 { font: 600 18px/1.35 var(--display); margin: 0; text-wrap: balance; }
+p { margin: 0 0 10px; max-width: 72ch; }
+.lede { font-size: 16.5px; color: var(--muted); max-width: 70ch; }
+.eyebrow { font: 600 11.5px/1 var(--ui); text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin-bottom: 10px; }
+code, kbd { font-family: var(--mono); font-size: .86em; }
+kbd { background: var(--chip); border-radius: 3px; padding: 1px 4px; }
+a { color: var(--accent); }
+ul { margin: 0 0 10px; padding-left: 20px; } li { margin: 3px 0; max-width: 72ch; }
+.st { font-size: 12.5px; color: var(--muted); }
+
+.premise { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; margin: 24px 0; }
+.premise div { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; min-width: 0; }
+.premise b { display: block; font: 600 26px/1.1 var(--display); font-variant-numeric: tabular-nums; margin-bottom: 4px; }
+.premise span { font-size: 13.5px; color: var(--muted); }
+
+.tag { display: inline-block; font: 600 11.5px/1 var(--ui); padding: 4px 7px; border-radius: 999px; background: var(--chip); color: var(--fg); white-space: nowrap; }
+.tag.rec { background: color-mix(in srgb, var(--ok) 16%, transparent); color: var(--ok); }
+.tag.opt { background: color-mix(in srgb, var(--accent) 14%, transparent); color: var(--accent); }
+.tag.call { background: color-mix(in srgb, var(--warn) 16%, transparent); color: var(--warn); }
+.tag.sev-m { background: color-mix(in srgb, var(--bad) 13%, transparent); color: var(--bad); }
+
+.bar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 10; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 10px 14px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-top: 16px; }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--bg); }
+.bar .counts { display: flex; gap: 14px; font-size: 13.5px; font-variant-numeric: tabular-nums; flex-wrap: wrap; }
+.bar .counts b { font-weight: 600; }
+.bar .spacer { flex: 1; }
+.btn { font: 600 13.5px var(--ui); border-radius: 4px; padding: 6px 12px; border: 1px solid var(--line); background: var(--surface); color: var(--fg); cursor: pointer; }
+.btn.primary { background: var(--accent); color: var(--accent-fg); border-color: transparent; }
+.btn:focus-visible, .dec button:focus-visible, textarea:focus-visible { outline: 2px solid var(--fg); outline-offset: 2px; }
+#copied { font-size: 13px; color: var(--ok); }
+
+.proposal { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 20px 20px 16px; margin: 16px 0; scroll-margin-top: 80px; }
+.phead { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: baseline; margin-bottom: 8px; }
+.pid { font: 600 13px var(--mono); color: var(--muted); }
+.meta { display: flex; gap: 6px; flex-wrap: wrap; margin-left: auto; }
+.where { font-size: 12.5px; color: var(--muted); margin: -2px 0 10px; }
+.shots { display: flex; flex-wrap: wrap; gap: 10px; margin: 6px 0 10px; }
+.shots figure { margin: 0; background: var(--shot); border: 1px solid var(--line); border-radius: 6px; padding: 6px; max-width: 100%; min-width: 0; overflow-x: auto; }
+.shots img { display: block; max-width: 100%; height: auto; }
+.shots img.phone { max-height: 420px; width: auto; }
+.shots figcaption { font: 11.5px var(--ui); color: #a0a6b0; padding: 4px 2px 0; }
+.cols { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 24px; margin: 8px 0 4px; }
+.cols > div { min-width: 0; }
+.cols h4 { font: 600 12px var(--ui); text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 0 0 4px; }
+@media (max-width: 720px) { .cols { grid-template-columns: 1fr; } }
+.why { font-size: 13.5px; color: var(--muted); border-left: 3px solid var(--line); padding-left: 12px; margin: 10px 0 0; max-width: 74ch; }
+.dec { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; border-top: 1px solid var(--line); margin-top: 14px; padding-top: 12px; }
+.dec button { font: 600 13px var(--ui); padding: 5px 12px; border-radius: 999px; border: 1px solid var(--line); background: transparent; color: var(--fg); cursor: pointer; }
+.dec button[aria-pressed="true"][data-v="approve"] { background: var(--ok); border-color: var(--ok); color: var(--surface); }
+.dec button[aria-pressed="true"][data-v="discuss"] { background: var(--warn); border-color: var(--warn); color: var(--surface); }
+.dec button[aria-pressed="true"][data-v="reject"] { background: var(--bad); border-color: var(--bad); color: var(--surface); }
+.dec textarea { flex: 1 1 260px; min-width: 0; font: 13.5px/1.4 var(--ui); border: 1px solid var(--line); border-radius: 6px; padding: 6px 9px; background: var(--bg); color: var(--fg); resize: vertical; }
+.checked { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 14px 18px 8px; }
+</style>
+
+<div class="wrap">
+  <div class="eyebrow">ChronoNote · design pass (U5) · 20 November 2026</div>
+  <h1>How do the screens look?</h1>
+  <p class="lede">The screenshot gallery now covers 30 screens in 7 setups, 203 images, including yours: dark, Dutch,
+  125 %, animations off. Gemini looked at all 203 first. I then looked at your 30 myself, 8 phone screens, and the
+  places where Gemini saw something in another setup. Each finding below has its screenshot, my proposal and your choice.</p>
+
+  <div class="premise">
+    <div><b>7</b><span>clear defects: wrong text, an unreadable row, clipped rows, a white box in the dark theme</span></div>
+    <div><b>7</b><span>layout that works but wastes or crowds space, mostly on the phone and in side panels</span></div>
+    <div><b>4</b><span>wording: Title Case, untidy Dutch, a sentence that names buttons that don't exist</span></div>
+    <div><b>3</b><span>small polish items, optional</span></div>
+  </div>
+
+  <h2>The verdict</h2>
+  <p>The editor itself holds up well in your setup. Glyphs, pills, due flags, tree lines and the status bar are crisp at
+  125 % in Dutch, and nothing in the note text overlaps or shifts. The problems are in the panels and dialogs built
+  around it. The newer side panels (person view, week review) and the phone sheets were never designed for narrow or
+  sparse content. A few strings were never translated or were translated word for word. Two are plain bugs: a
+  shortcut label and a text field that ignores the dark theme.</p>
+  <p>Batches A and C are small and safe; B needs a little design work per item. My proposal is A and C as one PR, then
+  B as a second, then a beta.</p>
+
+  <div class="bar" role="region" aria-label="Your decisions">
+    <div class="counts"><span><b id="c-approve">0</b> approved</span><span><b id="c-discuss">0</b> discuss</span><span><b id="c-reject">0</b> rejected</span><span><b id="c-open">0</b> undecided</span></div>
+    <div class="spacer"></div>
+    <span id="copied" aria-live="polite"></span>
+    <button class="btn primary" id="copy" type="button">Copy decisions</button>
+  </div>
+  <p class="st">Your choices and notes are kept in this browser. When you're done, use "Copy decisions" and paste the result into the chat.</p>
+
+  <h2>A. Defects</h2>
+  <p>Things that are wrong in any reading. All recommended.</p>
+
+  <div class="proposal" data-id="F1" data-adv="rec" data-title="Forward shortcut label reads ArrowRight">
+    <div class="phead"><span class="pid">F1</span><h3>Forward shortcut label reads "ArrowRight"</h3></div>
+    <p class="where">Command palette and Shortcuts dialog, every language and theme</p>
+    <div class="shots"><figure><img src="u5-review/f01-shortcut-label.png" alt="Shortcuts dialog: Terug Ctrl+Alt+Left, Vooruit Ctrl+Alt+ArrowRight" width="550" height="80"></figure></div>
+    <div class="cols">
+      <div><h4>Today</h4><p>Back shows <kbd>Ctrl+Alt+Left</kbd>, Forward shows <kbd>Ctrl+Alt+ArrowRight</kbd>. The label table in <code>shortcuts.ts</code> has an entry for the left arrow but not the right one.</p></div>
+      <div><h4>Proposal</h4><p><kbd>Ctrl+Alt+Right</kbd>, and a test that every key name in the registry has a readable label.</p></div>
+    </div>
+  </div>
+
+  <div class="proposal" data-id="F2" data-adv="rec" data-title="White name field in the dark theme">
+    <div class="phead"><span class="pid">F2</span><h3>White "Your name in minutes" field in the dark theme</h3></div>
+    <p class="where">Settings, Notes &amp; sync: dark, dark-150, yours, phone</p>
+    <div class="shots"><figure><img src="u5-review/f02-white-input.png" alt="A bright white text field in the dark settings page" width="890" height="98"></figure></div>
+    <div class="cols">
+      <div><h4>Today</h4><p>The field has the browser's default white background, the only white box on a dark page.</p></div>
+      <div><h4>Proposal</h4><p>Style it like the other inputs in Settings (dark fill, thin border, accent on focus).</p></div>
+    </div>
+  </div>
+
+  <div class="proposal" data-id="F3" data-adv="rec" data-title="Untranslated words">
+    <div class="phead"><span class="pid">F3</span><h3>Untranslated "ago", "middle-click" and "open"</h3></div>
+    <p class="where">Earlier versions (Dutch, German), Shortcuts dialog (Dutch, German), week review day headers (German)</p>
+    <div class="shots"><figure><img src="u5-review/f03-ago.png" alt="Earlier versions list showing 45m ago and 1h ago in a Dutch UI" width="252" height="185"></figure></div>
+    <div class="cols">
+      <div><h4>Today</h4><p>"45m ago", "1h ago", "Ctrl+W / middle-click" and German "6 open" appear in English.</p></div>
+      <div><h4>Proposal</h4><p>Translate them in all 7 languages ("45 min geleden", "middelste muisknop"), and add these strings to the dictionary test so a hard-coded English word fails it.</p></div>
+    </div>
+  </div>
+
+  <div class="proposal" data-id="F4" data-adv="rec" data-title="Pills vanish in the selected search row">
+    <div class="phead"><span class="pid">F4</span><h3>Names and arrows vanish in the selected search row</h3></div>
+    <p class="where">Search: light and light-125 (unreadable); in dark it's weak but readable</p>
+    <div class="shots"><figure><img src="u5-review/f04-search-selected-light.png" alt="Selected search result in blue; the @Dana pill and the arrow are invisible" width="718" height="100"></figure></div>
+    <div class="cols">
+      <div><h4>Today</h4><p>On the blue selection, the <code>@Dana</code> pill and the <code>=&gt;</code> arrow are blue on blue. The row reads "ask &nbsp;&nbsp;&nbsp;&nbsp; about the release checklist".</p></div>
+      <div><h4>Proposal</h4><p>Inside a selected row, pills and glyphs switch to the selection's text colour (white), with the pill keeping a faint outline. Same rule in the palette and Actions, which use the same selection.</p></div>
+    </div>
+  </div>
+
+  <div class="proposal" data-id="F5" data-adv="rec" data-title="Person view clips rows">
+    <div class="phead"><span class="pid">F5</span><h3>The person view clips its rows</h3></div>
+    <p class="where">Person view: every setup; worst on the phone</p>
+    <div class="shots">
+      <figure><img src="u5-review/f05-person-desktop.png" alt="Person view panel on the desktop with dates cut to 2026-09..." width="575" height="390"><figcaption>Yours: the dates end in "2026-09…"</figcaption></figure>
+      <figure><img class="phone" src="u5-review/f05-person-phone.png" alt="Person view on the phone; the last row ends in 1 lin" width="390" height="470"><figcaption>Phone: "· 20", "· 1 lin"</figcaption></figure>
+    </div>
+    <div class="cols">
+      <div><h4>Today</h4><p>Each row is one line: action text, then date and section. When it doesn't fit, the date is cut mid-number, and the "Last mentions" rows are cut without an ellipsis.</p></div>
+      <div><h4>Proposal</h4><p>The text gets the ellipsis, the date stays whole in its own right-aligned column. On the phone, date and section go on a second, muted line under the text.</p></div>
+    </div>
+  </div>
+
+  <div class="proposal" data-id="F6" data-adv="rec" data-title="Rename preview: dangling =">
+    <div class="phead"><span class="pid">F6</span><h3>Rename preview on the phone leaves a lone "="</h3></div>
+    <p class="where">Rename everywhere, phone</p>
+    <div class="shots"><figure><img class="phone" src="u5-review/f06-rename-phone.png" alt="Rename preview rows where the underline wraps a single = onto a third line" width="390" height="140"></figure></div>
+    <div class="cols">
+      <div><h4>Today</h4><p>The old and new underline sit side by side; the new one wraps and leaves one <code>=</code> on a line of its own in every row.</p></div>
+      <div><h4>Proposal</h4><p>Leave the underline out of the preview (it always follows the title, so it says nothing) and say "title + underline" once above the list.</p></div>
+    </div>
+  </div>
+
+  <div class="proposal" data-id="F7" data-adv="rec" data-title="Conflict dialog names buttons that don't exist">
+    <div class="phead"><span class="pid">F7</span><h3>The conflict dialog names buttons that don't exist</h3></div>
+    <p class="where">Changed-on-disk dialog, every language</p>
+    <div class="shots"><figure><img src="u5-review/f07-conflict.png" alt="Conflict dialog text mentions Schijf behouden and Mijn versie; the buttons say Schijfversie behouden and Mijn versie behouden" width="698" height="316"></figure></div>
+    <div class="cols">
+      <div><h4>Today</h4><p>The text says "unless you choose <em>Keep disk</em> or <em>Keep mine</em>", the buttons say "Keep disk version" and "Keep my version". The middle button wraps to two lines.</p></div>
+      <div><h4>Proposal</h4><p>The text quotes the exact button names. Shorter middle button: "Save mine as a copy" ("Mijn versie als kopie").</p></div>
+    </div>
+  </div>
+
+  <h2>B. Layout</h2>
+  <p>Nothing is broken here, but space is wasted or crowded. These need a small design choice each.</p>
+
+  <div class="proposal" data-id="F8" data-adv="rec" data-title="Search context line shows an underline">
+    <div class="phead"><span class="pid">F8</span><h3>Search shows a heading underline as context</h3></div>
+    <p class="where">Search results, every setup</p>
+    <div class="shots"><figure><img src="u5-review/f08-search-context.png" alt="Search results where the grey context line above a hit is just ======" width="896" height="450"></figure></div>
+    <div class="cols">
+      <div><h4>Today</h4><p>When the hit is right under a section title, the line above it (the context) is the <code>=====</code> underline: a meaningless double rule.</p></div>
+      <div><h4>Proposal</h4><p>Skip underline lines when picking context; show the section title instead ("Top priorities").</p></div>
+    </div>
+  </div>
+
+  <div class="proposal" data-id="F9" data-adv="call" data-title="Saved search chips shown twice">
+    <div class="phead"><span class="pid">F9</span><h3>Saved searches: the same chip twice</h3></div>
+    <p class="where">Search with saved searches, every setup</p>
+    <div class="shots"><figure><img src="u5-review/f09-search-chips.png" alt="Search header with chips @Dana and is:open, then a second row with is:open and a cross" width="896" height="190"></figure></div>
+    <div class="cols">
+      <div><h4>Today</h4><p>Two rows of chips: the saved searches (<code>@Dana</code>, <code>is:open</code>) and, below, the active one again with a ×. It takes 70 px and reads as a duplicate.</p></div>
+      <div><h4>Proposal</h4><p>One row: the saved chip that matches the query is highlighted, and its × removes it from the saved list. The query itself stays in the search box.</p></div>
+    </div>
+  </div>
+
+  <div class="proposal" data-id="F10" data-adv="rec" data-title="Phone sheets fill the screen when content is short">
+    <div class="phead"><span class="pid">F10</span><h3>Phone sheets fill the screen with little in them</h3></div>
+    <p class="where">Phone: calendar review, also rename, settings</p>
+    <div class="shots"><figure><img class="phone" src="u5-review/f10-phone-sheet.png" alt="Phone calendar review sheet: three rows at the top and a large empty area above the Sync button" width="390" height="740"></figure></div>
+    <div class="cols">
+      <div><h4>Today</h4><p>A bottom sheet is always nearly full height, so a three-row review has 450 px of empty space between its content and its buttons.</p></div>
+      <div><h4>Proposal</h4><p>Sheets size to their content up to the current maximum, with the buttons right under it.</p></div>
+    </div>
+  </div>
+
+  <div class="proposal" data-id="F11" data-adv="rec" data-title="Phone week review title cut off">
+    <div class="phead"><span class="pid">F11</span><h3>Phone week review: the title is cut off</h3></div>
+    <p class="where">Week review, phone</p>
+    <div class="shots"><figure><img class="phone" src="u5-review/f11-phone-week-title.png" alt="Phone week review header: Week 36 · Aug 31 - Sep 6, 2… next to four buttons" width="390" height="100"></figure></div>
+    <div class="cols">
+      <div><h4>Today</h4><p>"Week 36 · Aug 31 - Sep 6, 2…" next to four buttons.</p></div>
+      <div><h4>Proposal</h4><p>On narrow screens: "Wk 36 · 31 Aug – 6 Sep" (no year in the current year), and the Copy and Help buttons move into the sheet's footer.</p></div>
+    </div>
+  </div>
+
+  <div class="proposal" data-id="F12" data-adv="rec" data-title="Section history with one date">
+    <div class="phead"><span class="pid">F12</span><h3>Section history with one date: a big empty box</h3></div>
+    <p class="where">Section history, every setup</p>
+    <div class="shots"><figure><img src="u5-review/f12-history-one-date.png" alt="Section history panel with one date, a tall preview box holding two lines, and a sentence at the bottom" width="575" height="1000" style="max-height:520px;width:auto"></figure></div>
+    <div class="cols">
+      <div><h4>Today</h4><p>When a section has only today, the panel shows a full-height preview of two lines and "There's nowhere else to carry this over to from this occurrence" (Dutch: "Er is nergens anders heen om dit vanuit deze gelegenheid over te zetten").</p></div>
+      <div><h4>Proposal</h4><p>The preview sizes to its content, and the message reads "This is the only time this section appears." / "Deze sectie komt alleen hier voor."</p></div>
+    </div>
+  </div>
+
+  <div class="proposal" data-id="F13" data-adv="opt" data-title="Earlier versions dialog: wider, highlight only changes">
+    <div class="phead"><span class="pid">F13</span><h3>Earlier versions: cramped, and everything is highlighted</h3></div>
+    <p class="where">Earlier versions, desktop</p>
+    <div class="shots"><figure><img src="u5-review/f13-earlier-versions.png" alt="Earlier versions dialog: narrow preview where lines wrap, the whole current version highlighted yellow" width="698" height="662"></figure></div>
+    <div class="cols">
+      <div><h4>Today</h4><p>A 700 px dialog on a 1536 px window; note lines wrap in the preview. The whole current version has the yellow "changed" bar, so you can't see what changed.</p></div>
+      <div><h4>Proposal</h4><p>Up to 1100 px wide, and only the lines that differ are highlighted (old and new side by side when there's room).</p></div>
+    </div>
+  </div>
+
+  <div class="proposal" data-id="F14" data-adv="call" data-title="Phone: long lines run off the screen">
+    <div class="phead"><span class="pid">F14</span><h3>Phone: long lines run off the screen</h3></div>
+    <p class="where">Editor, phone, with text width "Full"</p>
+    <div class="shots"><figure><img class="phone" src="u5-review/f14-phone-long-lines.png" alt="Phone editor where two long lines are cut at the right edge" width="390" height="130"></figure></div>
+    <div class="cols">
+      <div><h4>Today</h4><p>The phone uses the same text-width setting as the desktop. With "Full", a long line needs sideways scrolling.</p></div>
+      <div><h4>Proposal</h4><p>On the phone, "Wrap" is the default (the setting can still be changed). Your call: you may prefer one setting everywhere.</p></div>
+    </div>
+  </div>
+
+  <h2>C. Wording</h2>
+
+  <div class="proposal" data-id="F15" data-adv="rec" data-title="Safety dialog: sentence case and plurals">
+    <div class="phead"><span class="pid">F15</span><h3>Close warning: Title Case and "actie(s)"</h3></div>
+    <p class="where">Closing a tab with open actions, every language</p>
+    <div class="shots"><figure><img src="u5-review/f15-safety.png" alt="Dialog titled Waarschuwing: Niet-afgehandelde Acties with buttons Annuleren and Toch Sluiten" width="548" height="246"></figure></div>
+    <div class="cols">
+      <div><h4>Today</h4><p>"Unresolved Actions Warning", "Close Anyway"; Dutch "Waarschuwing: Niet-afgehandelde Acties", "Toch Sluiten", "1 onopgeloste open actie(s)". Every other dialog uses sentence case.</p></div>
+      <div><h4>Proposal</h4><p>"Close with open actions?" / "Sluiten met open acties?", text "2026-09-07 has 1 open action." with a real plural, buttons "Cancel" / "Close anyway" ("Toch sluiten").</p></div>
+    </div>
+  </div>
+
+  <div class="proposal" data-id="F16" data-adv="rec" data-title="About: Versie v0.3.0">
+    <div class="phead"><span class="pid">F16</span><h3>About: "Versie v0.3.0"</h3></div>
+    <p class="where">Settings, About</p>
+    <div class="shots"><figure><img src="u5-review/f16-about-version.png" alt="About card: ChronoNote, Versie v0.3.0, Up-to-date" width="890" height="119"></figure></div>
+    <div class="cols">
+      <div><h4>Today</h4><p>"Version v0.3.0": the word and the v say the same thing.</p></div>
+      <div><h4>Proposal</h4><p>"Versie 0.39.0" (the v only on GitHub and in file names).</p></div>
+    </div>
+  </div>
+
+  <div class="proposal" data-id="F17" data-adv="rec" data-title="Actions count says the same number twice">
+    <div class="phead"><span class="pid">F17</span><h3>Actions count: "13 open · 13"</h3></div>
+    <p class="where">Actions pane, docked and drawer</p>
+    <div class="shots"><figure><img src="u5-review/f20-actions-count.png" alt="Actions pane filter row ending in 13 open · 13" width="862" height="45"></figure></div>
+    <div class="cols">
+      <div><h4>Today</h4><p>"13 open · 13" (narrow: "13 · 13"). The second number is how many rows are listed, which with "Only open" on is always the same.</p></div>
+      <div><h4>Proposal</h4><p>One number when they're equal ("13 open"); "13 open · 20 listed" when they differ.</p></div>
+    </div>
+  </div>
+
+  <div class="proposal" data-id="F18" data-adv="opt" data-title="Empty search says 0 matches">
+    <div class="phead"><span class="pid">F18</span><h3>Empty search says "0 matches"</h3></div>
+    <p class="where">Search, before you type</p>
+    <div class="shots"><figure><img src="u5-review/f21-search-empty.png" alt="Search box with placeholder Zoeken and 0 overeenkomsten" width="896" height="154"></figure></div>
+    <div class="cols">
+      <div><h4>Today</h4><p>An empty box already reports "0 overeenkomsten".</p></div>
+      <div><h4>Proposal</h4><p>No count until there's a query; the empty state shows the saved searches and a one-line hint (<code>@name</code>, <code>is:open</code>, <code>due:</code>).</p></div>
+    </div>
+  </div>
+
+  <h2>D. Polish</h2>
+  <p>Small things I noticed. Optional.</p>
+
+  <div class="proposal" data-id="F19" data-adv="opt" data-title="Tree line tick above a same-indent arrow">
+    <div class="phead"><span class="pid">F19</span><h3>A tiny tick above an arrow under an action</h3></div>
+    <p class="where">Editor, an <code>=&gt; @name</code> line right under an action at the same indent</p>
+    <div class="shots"><figure><img src="u5-review/f19-tree-tick.png" alt="Editor lines; above the blue arrow on the @Dana line is a short vertical tick" width="430" height="135"></figure></div>
+    <div class="cols">
+      <div><h4>Today</h4><p>The group's tree line runs from under the action's box to the arrow line. At the same indent it is only a few pixels long, so it looks like a stray mark above the arrow.</p></div>
+      <div><h4>Proposal</h4><p>No tree line when every child is an arrow line at the parent's indent; the line stays for indented children, where it reads well.</p></div>
+    </div>
+  </div>
+
+  <div class="proposal" data-id="F20" data-adv="opt" data-title="Settings opens with a focus box on the first tab">
+    <div class="phead"><span class="pid">F20</span><h3>Settings opens with a focus box on the first tab</h3></div>
+    <p class="where">Settings, desktop</p>
+    <div class="shots"><figure><img src="u5-review/f17-settings-tab-focus.png" alt="Settings tabs; Weergave has a rectangle around it on top of its underline" width="890" height="60"></figure></div>
+    <div class="cols">
+      <div><h4>Today</h4><p>Opening Settings with the keyboard draws the focus rectangle around "Weergave", on top of its blue underline.</p></div>
+      <div><h4>Proposal</h4><p>Focus starts on the tab but shows as the underline plus a brighter label, not a box; the box stays for Tab-key moves.</p></div>
+    </div>
+  </div>
+
+  <div class="proposal" data-id="F21" data-adv="opt" data-title="Status bar drops its words while a message shows">
+    <div class="phead"><span class="pid">F21</span><h3>Status bar drops its words while a message shows</h3></div>
+    <p class="where">Status bar, after Copy as minutes and other confirmations</p>
+    <div class="shots"><figure><img src="u5-review/f18-status-toast.png" alt="Status bar with 2, 0, 0 counts without words, Notulen gekopieerd in the middle" width="1920" height="30"></figure></div>
+    <div class="cols">
+      <div><h4>Today</h4><p>While "Notulen gekopieerd." shows, the counts shrink to bare numbers and the folder name disappears, then come back.</p></div>
+      <div><h4>Proposal</h4><p>Keep the counts as they are; the message takes the free space in the middle, and only shrinks the counts when the window is too narrow for both.</p></div>
+    </div>
+  </div>
+
+  <h2>Also checked</h2>
+  <div class="checked">
+    <ul>
+      <li><b>Note selected behind the Actions pane:</b> a test artefact. The gallery sent <kbd>Ctrl+Shift+a</kbd> with a lowercase a, which the editor reads as <kbd>Ctrl+A</kbd>. A real keyboard sends a capital A; with that, nothing is selected. Fixed in the gallery.</li>
+      <li><b>Your setup in general:</b> Dutch labels fit everywhere at 125 %, no button text is cut, and the dark theme's contrast holds except F2 and F4.</li>
+      <li><b>Not judged:</b> Peek in the gallery fills a 1536 px window, which you never see; the Peek screens need a docked-size capture before they say anything. "Settings" and "Settings, Appearance" are the same image; the gallery can drop one.</li>
+      <li><b>Translations:</b> I can judge Dutch and English. The German finding came from the model; French, Italian, Polish and Spanish are still on the native-speaker check in open checks.</li>
+    </ul>
+  </div>
+</div>
+
+<script>
+(function () {
+  var KEY = "chrononote-u5-design-pass-v1";
+  var state = {};
+  try { state = JSON.parse(localStorage.getItem(KEY) || "{}") || {}; } catch (e) { state = {}; }
+  function save() { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {} }
+  var advText = { rec: "Recommended", opt: "Optional", call: "Your call" };
+  var cards = Array.prototype.slice.call(document.querySelectorAll(".proposal"));
+  cards.forEach(function (card) {
+    var id = card.dataset.id;
+    card.id = "p-" + id;
+    var meta = document.createElement("div");
+    meta.className = "meta";
+    meta.innerHTML = (card.dataset.decision === "approved" ? '<span class="tag rec">Approved</span>' : "") +
+      '<span class="tag ' + card.dataset.adv + '">' + advText[card.dataset.adv] + "</span>";
+    card.querySelector(".phead").appendChild(meta);
+    if (card.dataset.decision) return;
+    var dec = document.createElement("div");
+    dec.className = "dec";
+    dec.innerHTML =
+      '<button type="button" data-v="approve" aria-pressed="false">Approve</button>' +
+      '<button type="button" data-v="discuss" aria-pressed="false">Discuss</button>' +
+      '<button type="button" data-v="reject" aria-pressed="false">Reject</button>' +
+      '<textarea id="note-' + id + '" rows="1" placeholder="Note for ' + id + ' (optional)" aria-label="Note for ' + id + '"></textarea>';
+    card.appendChild(dec);
+    var ta = dec.querySelector("textarea");
+    ta.value = (state[id] || {}).note || "";
+    function paint() {
+      dec.querySelectorAll("button").forEach(function (b) { b.setAttribute("aria-pressed", String((state[id] || {}).v === b.dataset.v)); });
+      count();
+    }
+    dec.querySelectorAll("button").forEach(function (b) {
+      b.addEventListener("click", function () {
+        var cur = state[id] || {};
+        cur.v = cur.v === b.dataset.v ? undefined : b.dataset.v;
+        state[id] = cur; save(); paint();
+      });
+    });
+    ta.addEventListener("input", function () { var cur = state[id] || {}; cur.note = ta.value; state[id] = cur; save(); });
+    paint();
+  });
+  function count() {
+    var c = { approve: 0, discuss: 0, reject: 0, open: 0 };
+    cards.forEach(function (card) { var v = (state[card.dataset.id] || {}).v; c[v || "open"]++; });
+    Object.keys(c).forEach(function (k) { var el = document.getElementById("c-" + k); if (el) el.textContent = c[k]; });
+  }
+  count();
+  var words = { approve: "Approve", discuss: "Discuss", reject: "Reject" };
+  document.getElementById("copy").addEventListener("click", function () {
+    var lines = ["Design pass (U5) decisions:"];
+    cards.forEach(function (card) {
+      var s = state[card.dataset.id] || {};
+      lines.push(card.dataset.id + " " + card.dataset.title + ": " + (s.v ? words[s.v] : "undecided") + (s.note ? " (" + s.note.trim() + ")" : ""));
+    });
+    var text = lines.join("\n");
+    var msg = document.getElementById("copied");
+    function fallback() {
+      var t = document.createElement("textarea"); t.value = text; document.body.appendChild(t); t.select();
+      msg.textContent = "Selected: press Ctrl+C";
+    }
+    try {
+      navigator.clipboard.writeText(text).then(function () { msg.textContent = "Copied"; }, fallback);
+    } catch (e) { fallback(); }
+  });
+})();
+</script>

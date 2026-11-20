@@ -70,3 +70,11 @@ others, and come back with a findings page like the editor review (decisions per
 - Low: "middle-click" untranslated in the Shortcuts dialog's close-tab row (german, marien).
 
 Not flagged by the model, still to check: the select-all behind the Actions pane, the phone calendar review gap.
+
+## My pass and the findings page (2026-11-20)
+
+Looked at all 30 `marien` images, 8 phone images and the flagged screens in the other setups. 21 findings in four
+batches (A defects F1-F7, B layout F8-F14, C wording F15-F18, D polish F19-F21) on
+`docs/design/u5-design-review.html` (artifact JZkCjk5eMA7wd7gR7hLxLd), crops in `docs/design/u5-review/`. The
+Actions select-all was a test artefact (lowercase `a` with Shift); the gallery now sends `Ctrl+Shift+A`. Waiting for
+Marien's decisions; then step 5.
