@@ -18,3 +18,5 @@ then gets a line in its CHANGELOG section) or found broken (it then becomes a fi
 | 2026-11-20 | New strings of §528-§529 in German, French, Polish, Spanish and Italian need a native speaker's look | `src/lib/i18n/locales/` | none (only the translations wait) |
 | 2026-11-20 | The conflict dialog's three buttons each on one line (German too); Settings, Appearance, the Peek shortcut field reads Ctrl+Alt+J | next beta | §530 |
 | 2026-11-23 | Copy a Teams message with a plain line and a bulleted list under it: both arrive, the list as `- ` items | dev build or next beta | §532 |
+| 2026-11-23 | 0.40.0 after the stable: on a phone (keyboard, sheets, long-press, symbols bar on one row) and in the installed web app on a laptop and a phone (cache `chrononote-webapp-shell-0.40.0`) | a phone and the installed web app | none (after-release check for the stable) |
+| 2026-11-23 | Type `(@Dana/@Lee)` and `=> @Ann/@Bo`: every name gets a badge; `x.y/@a/@b` stays plain; suggestions open after `@Dana/@` | dev build or next beta | §534 |
