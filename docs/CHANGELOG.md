@@ -555,3 +555,4 @@ line, and this index is regenerated with `node scripts/changelog-index.mjs`.
 - §530 Design pass leftovers: conflict buttons in German, the Peek shortcut field, the gallery's Appearance shot
 - §531 `url` 2.5.9 for RUSTSEC-2026-0592
 - §532 A plain line followed by a list, pasted from Teams, keeps the list
+- §533 `cookie` 0.18.3 for RUSTSEC-2026-0594
