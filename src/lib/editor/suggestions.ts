@@ -2,7 +2,7 @@
 import { type Extension, Prec, StateEffect, StateField } from "@codemirror/state";
 import { EditorView, keymap, showTooltip, type Tooltip, type TooltipView, ViewPlugin, type ViewUpdate } from "@codemirror/view";
 import { parseISODateLocal, todayISO } from "../date";
-import { NAME_CHAR } from "../grammar/symbols";
+import { NAME_CHAR, NAME_SLASH_CHAIN } from "../grammar/symbols";
 import { isSetextUnderline, isTitleUnderline, tokenizeLine } from "../grammar/tokenize";
 import type { Suggestion, SuggestionKind } from "../suggestions";
 import { getSectionHeaderForLine } from "../tokens";
@@ -37,7 +37,7 @@ const DEFAULT_LABELS: SuggestionsLabels = {
   listLabel: "Suggestions",
 };
 
-const NAME_PREFIX_RE = new RegExp(String.raw`(?:^|[\s(,])(@(${NAME_CHAR}+))$`, "u");
+const NAME_PREFIX_RE = new RegExp(String.raw`(?:^|[\s(,]|(?<=${NAME_SLASH_CHAIN})/)(@(${NAME_CHAR}+))$`, "u");
 const NAME_TAIL_RE = new RegExp(String.raw`^${NAME_CHAR}`, "u");
 const TOPIC_PREFIX_RE = /\(([^\s()@][^\s()]*)$/;
 

@@ -2,7 +2,7 @@
  * Pure and single pass. It reproduces exactly what the editor's `renderMatcher`
  * regex and the read-only `parseGlyphLine` recognise today; offsets are into
  * the original line. */
-import { ACTION_CLASS, BULLET_CLASS, NAME_CHAR, NAME_GLUE, TOPIC_CLASS } from "./symbols";
+import { ACTION_CLASS, BULLET_CLASS, NAME_CHAR, NAME_START, TOPIC_CLASS } from "./symbols";
 
 export type TokenKind =
   | "action" // # v > x at line start (after indentation); includes the trailing space
@@ -176,10 +176,10 @@ const LEADING_ESCAPE = new RegExp(
 const BULLET_AFTER_STATE = new RegExp(String.raw`^(${BULLET_CLASS})\s`);
 
 // Alternatives in the editor's order: `\=> ` (escaped arrow), `=> @name`, `=> <symbol> `, `=> <topic> `, `=> `,
-// bare `@name` (not glued to a word, `@` or `/`; also each name in `(@a, @b)`, which has no meaning of its own),
+// bare `@name` (not glued to a word, `@` or `/`, though `/` right after a name is fine: `@a/@b`; also each name in `(@a, @b)`, which has no meaning of its own),
 // `(word)` (never `(@…)`). Spaces between `=>` and its symbol or `@name` stay in the text; each marker stays symbol + 1 space.
 const INLINE = new RegExp(
-  String.raw`\\=>\s|=>\s+@(${NAME_CHAR}+)|=>\s+(${ACTION_CLASS})\s|=>\s+(${TOPIC_CLASS})\s|=>\s|(?<!${NAME_GLUE})@(${NAME_CHAR}+)|\((?!@)([^\s()]+)\)`,
+  String.raw`\\=>\s|=>\s+@(${NAME_CHAR}+)|=>\s+(${ACTION_CLASS})\s|=>\s+(${TOPIC_CLASS})\s|=>\s|${NAME_START}@(${NAME_CHAR}+)|\((?!@)([^\s()]+)\)`,
   "gu",
 );
 

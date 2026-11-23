@@ -58,6 +58,9 @@ describe("suggestionContext", () => {
     });
     expect(suggestionContext("# ask @", 7, null)).toBeNull();
     expect(suggestionContext("mail me at a@b", 14, null)).toBeNull();
+    // §534: a name after `/` right behind a name, not in a URL path.
+    expect(suggestionContext("o sync (@Dana/@R", 16, null)).toEqual({ kind: "name", prefix: "R", from: 14, to: 16 });
+    expect(suggestionContext("see x.y/@R", 10, null)).toBeNull();
     expect(suggestionContext("# (b", 4, null)).toEqual({
       kind: "topic",
       prefix: "b",

@@ -96,7 +96,7 @@ Each `=> ` (at line start, indented, or mid-line) produces an `arrow` token cove
 
 ### N6. Delegated actions (`=> @name`) and `@name` mentions
 
-An `@name` (including hyphens and non-ASCII letters) produces an `assignee` token after `=> `, mid-sentence, in prose, on action or topic lines, or inside parentheses (`(@a, @b, @c)`), while `@` glued to a word, after `@`, after `/`, or alone stays plain text.
+An `@name` (including hyphens and non-ASCII letters) produces an `assignee` token after `=> `, mid-sentence, in prose, on action or topic lines, or inside parentheses (`(@a, @b, @c)`), also when names are joined by `/` (`(@a/@b)`, §534), while `@` glued to a word, after `@`, after a `/` that does not follow a name, or alone stays plain text.
 
 | Line | Tokens |
 | :--- | :--- |
@@ -106,8 +106,12 @@ An `@name` (including hyphens and non-ASCII letters) produces an `assignee` toke
 | `ask @René` | `assignee 4-9` |
 | `o sync (@a, @b, @c)` | `topic:o 0-2 · assignee 8-10 · assignee 12-14 · assignee 16-18` |
 | `(@dana)` | `assignee 1-6` |
+| `(@a/@b)` | `assignee 1-3 · assignee 4-6` |
+| `=> @a/@b/@c` | `arrow 0-3 · assignee 3-5 · assignee 6-8 · assignee 9-11` |
 | `mail dana@example.com` | — |
 | `see https://x.y/@dana` | — |
+| `see https://x.y/@a/@b` | — |
+| `and/@dana` | — |
 | `ping @@dana` | — |
 | `at @ end` | — |
 

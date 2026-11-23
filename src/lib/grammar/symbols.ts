@@ -17,3 +17,8 @@ export const BULLET_CLASS = `[${BULLET_SYMBOLS}]`;
 export const NAME_CHAR = String.raw`[\p{L}\p{M}\p{N}_-]`;
 /** What may not stand right before a name's `@`: a word character (an email address) or `@`/`/` (a URL path). */
 export const NAME_GLUE = String.raw`[\p{L}\p{M}\p{N}_@/]`;
+/** §534: one or more names joined by `/` (`@a`, `@a/@b`), the first not glued; ends right before the next `/`. */
+export const NAME_SLASH_CHAIN = String.raw`(?<!${NAME_GLUE})@${NAME_CHAR}+(?:/@${NAME_CHAR}+)*`;
+/** Zero-width: where a name's `@` may start. Not after a word, `@` or `/`, except a `/` right after a name, so
+ * `(@a/@b)` is two names while a URL path (`x.y/@dana`) stays plain text. */
+export const NAME_START = String.raw`(?:(?<!${NAME_GLUE})|(?<=${NAME_SLASH_CHAIN}/))`;
