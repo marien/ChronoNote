@@ -17,3 +17,4 @@ then gets a line in its CHANGELOG section) or found broken (it then becomes a fi
 | 2026-11-20 | The defects, wording and polish of the design pass: Forward's label, the name field in dark themes, person view, rename preview, conflict and close-warning wording, Actions count, empty-search hint, tree line, Settings focus, status-bar message | next beta | §529 |
 | 2026-11-20 | New strings of §528-§529 in German, French, Polish, Spanish and Italian need a native speaker's look | `src/lib/i18n/locales/` | none (only the translations wait) |
 | 2026-11-20 | The conflict dialog's three buttons each on one line (German too); Settings, Appearance, the Peek shortcut field reads Ctrl+Alt+J | next beta | §530 |
+| 2026-11-23 | Copy a Teams message with a plain line and a bulleted list under it: both arrive, the list as `- ` items | dev build or next beta | §532 |

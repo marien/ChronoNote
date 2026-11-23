@@ -487,4 +487,21 @@ describe("richClipboard", () => {
       expect(htmlToNoteText(wrapped)).toBeNull();
     });
   });
+
+  describe("a list inside inline wrappers (Teams, §532)", () => {
+    it("keeps a list whose block holds it only inside a span, after a plain line", () => {
+      const html = `<div><span>Plain line</span><span><ul><li>One</li><li>Two</li></ul></span></div>`;
+      expect(htmlToNoteText(html)).toBe("Plain line\n- One\n- Two");
+    });
+
+    it("keeps a run of inline text on one line before such a list", () => {
+      const html = `<div>Hello <b>world</b> today<span><ul><li>One</li></ul></span>After</div>`;
+      expect(htmlToNoteText(html)).toBe("Hello world today\n- One\nAfter");
+    });
+
+    it("keeps a numbered list nested two spans deep", () => {
+      const html = `<div><span>Agenda:</span><span><span><ol><li>Budget</li><li>Plan</li></ol></span></span></div>`;
+      expect(htmlToNoteText(html)).toBe("Agenda:\n1. Budget\n2. Plan");
+    });
+  });
 });

@@ -149,6 +149,10 @@ Non-list blocks become lines with runs of spaces, tabs, and newlines collapsed t
 | `&lt;![if !supportLists]&gt;text&lt;![endif]&gt;<ul><li>Item</li></ul>` | `text↵- Item` |
 | `<table><tr><td>Name</td><td><ul><li>a</li><li>b</li></ul></td></tr></table>` | `Name↵- a↵- b` |
 | `<ul><li>x</li></ul><div>a<br>b</div>` | `- x↵a↵b` |
+| `<div><span>Plain line</span><span><ul><li>One</li><li>Two</li></ul></span></div>` | `Plain line↵- One↵- Two` |
+| `<div>Hello <b>world</b><span><ul><li>One</li></ul></span>After</div>` | `Hello world↵- One↵After` |
+
+A list is found anywhere inside a block, also when inline wrappers hold it (Teams, §532); the inline content around it stays together as lines.
 
 ### P8. Converted pastes go through the standard plain-text paste handling
 

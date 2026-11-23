@@ -180,6 +180,17 @@ function isBlockElement(el: Element): boolean {
   return BLOCK_TAGS.has(el.tagName.toUpperCase());
 }
 
+const BLOCK_OR_LIST_SELECTOR = [...BLOCK_TAGS, "UL", "OL"].map(t => t.toLowerCase()).join(",");
+
+/** True when `el` is, or holds anywhere inside it, a block element, a list or a Word list paragraph. */
+function containsBlockOrList(el: Element): boolean {
+  const tag = el.tagName.toUpperCase();
+  if (isBlockElement(el) || tag === "UL" || tag === "OL") return true;
+  if (/mso-list:[^;"']*level\d+/i.test(el.getAttribute("style") || "")) return true;
+  if (el.querySelector(BLOCK_OR_LIST_SELECTOR)) return true;
+  return Array.from(el.querySelectorAll("[style]")).some(d => /mso-list:[^;"']*level\d+/i.test(d.getAttribute("style") || ""));
+}
+
 function hasList(doc: Document): boolean {
   if (doc.querySelector("li")) return true;
   const elements = doc.querySelectorAll("[style]");
@@ -610,14 +621,36 @@ export function htmlToNoteText(html: string): string | null {
       return;
     }
 
-    const hasBlockChildren = Array.from(el.children).some(child =>
-      isBlockElement(child) || child.tagName === "UL" || child.tagName === "OL"
-    );
+    // A list or block anywhere inside (not only as a direct child: Teams wraps a message's parts in inline
+    // spans, `<div><span>line</span><span><ul>…</ul></span></div>`) means the children are walked one by
+    // one, so the list is not flattened away by `extractLines`. Runs of inline children between them stay
+    // together as one block of lines.
+    const hasBlockChildren = Array.from(el.children).some(containsBlockOrList);
 
     if (hasBlockChildren) {
+      let inlineRun: Node[] = [];
+      const flushInlineRun = () => {
+        const run = inlineRun;
+        inlineRun = [];
+        if (run.every(n => (n.nodeType === Node.TEXT_NODE && !(n.nodeValue || "").trim()) || n.nodeType === Node.COMMENT_NODE)) {
+          return;
+        }
+        wordCounters = [];
+        wordParents = [];
+        ariaParents = [];
+        for (const l of extractLines(run)) {
+          addLine(l);
+        }
+      };
       for (const child of Array.from(el.childNodes)) {
-        walkNode(child);
+        if (child.nodeType === Node.ELEMENT_NODE && (containsBlockOrList(child as Element) || (child as Element).tagName === "BR")) {
+          flushInlineRun();
+          walkNode(child);
+        } else {
+          inlineRun.push(child);
+        }
       }
+      flushInlineRun();
     } else {
       wordCounters = [];
       wordParents = [];
