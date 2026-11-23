@@ -553,3 +553,4 @@ line, and this index is regenerated with `node scripts/changelog-index.mjs`.
 - §528 Design pass, layout (U5 batch B, F8-F14)
 - §529 Design pass, defects, wording and polish (U5 batches A, C, D)
 - §530 Design pass leftovers: conflict buttons in German, the Peek shortcut field, the gallery's Appearance shot
+- §531 `url` 2.5.9 for RUSTSEC-2026-0592
