@@ -68,54 +68,106 @@
   function nextDow(dow) { var d = new Date(today); d.setDate(d.getDate() + ((((dow - d.getDay()) + 7) % 7) || 7)); return d; }
   document.querySelectorAll("[data-today]").forEach(function (el) { el.textContent = el.dataset.today.replace("{today}", iso(today)); });
 
-  /* ---- the marks, drawn the way the app draws them --------------------------------------------------------------------
-     Not the app's tokenizer: enough of it for the site's own examples and the playground. Every glyph keeps the width
-     of the characters it replaces (the app's footprint rule), so text after it never moves. */
+  /* ---- the marks, drawn the way the app draws them (§535) -------------------------------------------------------------
+     Not the app's tokenizer (src/lib/grammar/tokenize.ts), but its rules for everything the site shows, and the app's
+     look (src/styles/03-editor.css): boxes and circles drawn in CSS, `(topic)` and due dates as grey pills, forward links
+     as pills with an arrow, an emphasised line bold in the emphasis colour, resolved lines muted. As in the app, every
+     character stays in the text (transparent where a glyph covers it), so a line is exactly as wide as its raw text. */
   function esc(s) { return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
-  var LEAD = [
-    ["=> ", "➔", "g-follow", "g3"], ["# ", "☐", "g-open", "g2"], ["v ", "☑", "g-done", "g2"], ["> ", "☐", "g-defer", "g2"],
-    ["x ", "☒", "g-cancel", "g2"], ["- ", "•", "", "g2"], ["* ", "•", "", "g2"], ["o ", "○", "g-topic", "g2"],
-    [". ", "◉", "g-topic", "g2"], [", ", "◌", "g-topic", "g2"],
-  ];
-  var DIM = { "v ": 1, "> ": 1, "x ": 1, ". ": 1 };
-  function glyph(L) { return '<span class="g ' + L[3] + " " + L[2] + '">' + L[1] + "</span>"; }
-  function inline(s) {
-    return esc(s)
-      .replace(/\((&gt;|&lt;)(\d{4}-\d{2}-\d{2}#[^)]*)\)/g, function (_, dir, target) {
-        return '<span class="link">(' + (dir === "&gt;" ? "→" : "←") + target + ")</span>";
-      })
-      .replace(/\((@[\w-]+(?:, @[\w-]+)*)\)/g, function (_, names) {
-        return '<span class="par">(</span>' + names.replace(/@[\w-]+/g, '<span class="badge">$&</span>') + '<span class="par">)</span>';
-      })
-      .replace(/(^|\s)(@[\w-]+)(?![^<]*<\/span>)/g, '$1<span class="badge">$2</span>')
-      .replace(/ =&gt; # /g, " " + glyph(LEAD[0]) + glyph(LEAD[1]))
-      .replace(/by:(\d{4}-\d{2}-\d{2})/g, '<span class="due"><span class="g g3">⚑</span>$1</span>');
+  var BOX = { "#": "g-open", v: "g-done", ">": "g-defer", x: "g-cancel" };
+  var RING = { o: "g-topic-open", ".": "g-topic-done", ",": "g-topic-skipped" };
+  var RESOLVED = { v: 1, ">": 1, x: 1, ".": 1, ",": 1 };
+  // `symbol + space` drawn as a 2ch glyph; the symbol stays in the DOM, transparent.
+  function mark(sym) {
+    if (BOX[sym]) return '<span class="g g2 ' + BOX[sym] + '"><span class="ink">' + esc(sym) + "</span> </span>";
+    if (RING[sym]) return '<span class="g g2 ' + RING[sym] + '"><span class="ink">' + esc(sym) + "</span> </span>";
+    return '<span class="g g2 g-bullet">• </span>';
+  }
+  // `=>` and its spaces (n characters): the first three become the 3ch arrow, any further spaces stay text.
+  function arrow(n) { return '<span class="g g3 g-follow">➔</span>' + " ".repeat(Math.max(0, n - 3)); }
+  // A name's `@` may not follow a word character, `@` or `/`, except a `/` right after a name (`@a/@b`, §534).
+  var NAME = "[\\p{L}\\p{M}\\p{N}_-]", GLUE = "[\\p{L}\\p{M}\\p{N}_@/]";
+  var INLINE = new RegExp(
+    "(=>\\s+)(?:@(" + NAME + "+)|([#vx>])\\s|([o.,])\\s)?" +
+      "|(?:(?<!" + GLUE + ")|(?<=(?<!" + GLUE + ")@" + NAME + "+(?:/@" + NAME + "+)*/))@(" + NAME + "+)" +
+      "|\\(([<>])(\\d{4}-\\d{2}-\\d{2})(?:#([^)]*))?\\)" +
+      "|(?<!\\S)by:(\\d{4}-\\d{2}-\\d{2})(?!\\S)",
+    "gu"
+  );
+  function due(date, resolved) {
+    var t = iso(today), status = resolved ? "resolved" : date < t ? "overdue" : date === t ? "today" : "later";
+    return '<span class="due due-' + status + '"><span class="due-flag">by:</span>' + date + "</span>";
+  }
+  // The text after a line's leading marks: arrows, names, forward links and due dates, as tokenize.ts finds them.
+  // `state` is the symbol of the action part being read (it changes at `=> # `): a due date belongs to an action only.
+  function inline(s, state) {
+    var out = "", at = 0, m;
+    INLINE.lastIndex = 0;
+    while ((m = INLINE.exec(s)) !== null) {
+      out += esc(s.slice(at, m.index));
+      if (m[1] !== undefined) {
+        out += arrow(m[1].length);
+        state = m[3] || m[4];
+        if (m[2] !== undefined) out += '<span class="badge">@' + esc(m[2]) + "</span>";
+        else if (state) out += mark(state);
+      } else if (m[9] !== undefined && !BOX[state]) {
+        out += esc(m[0]);
+      } else if (m[5] !== undefined) {
+        out += '<span class="badge">@' + esc(m[5]) + "</span>";
+      } else if (m[6] !== undefined) {
+        out += '<span class="fwd"><span class="fwd-dir fwd-' + (m[6] === ">" ? "to" : "from") + '">(' + esc(m[6]) + "</span>" + m[7] +
+          (m[8] !== undefined ? '<span class="fwd-sep">#</span>' + esc(m[8]) : "") + '<span class="fwd-paren">)</span></span>';
+      } else {
+        out += due(m[9], state !== "#");
+      }
+      at = m.index + m[0].length;
+    }
+    return out + esc(s.slice(at));
+  }
+  // `(topic)` right after an action or topic mark: a pill, the parentheses transparent.
+  function tag(rest) {
+    var t = rest.match(/^\(([^\s()@][^\s()]*)\)/);
+    return t ? ['<span class="tag"><span class="par">(</span>' + esc(t[1]) + '<span class="par">)</span></span>', rest.slice(t[0].length)] : ["", rest];
   }
   function render(line) {
     var indent = (line.match(/^ +/) || [""])[0];
-    var rest = line.slice(indent.length), out = esc(indent), lead = null, i;
-    if (rest.indexOf("! ") === 0) return out + '<span class="g g2 emph-mark">!</span><span class="emph">' + inline(rest.slice(2)) + "</span>";
-    for (i = 0; i < LEAD.length; i++) if (rest.indexOf(LEAD[i][0]) === 0) { lead = LEAD[i]; break; }
-    if (!lead) {
-      var m = rest.match(/^(\d+(?:\.\d+)*[.)] )/);
-      return out + (m ? '<span class="dim">' + esc(m[1]) + "</span>" + inline(rest.slice(m[1].length)) : inline(rest));
+    var rest = line.slice(indent.length), out = esc(indent), m;
+    if (/^\\[#vx>o.,!*-]/.test(rest)) return out + '<span class="esc">\\</span>' + inline(rest.slice(1));
+    if (rest.indexOf("! ") === 0) {
+      rest = rest.slice(2);
+      var bullet = /^[-*] /.test(rest) ? '<span class="g g2 g-bullet">• </span>' : "";
+      if (bullet) rest = rest.slice(2);
+      return out + '<span class="emph">! ' + bullet + inline(rest) + "</span>";
     }
-    out += glyph(lead);
-    rest = rest.slice(lead[0].length);
-    if (lead[0] === "=> ") for (i = 1; i < 5; i++) if (rest.indexOf(LEAD[i][0]) === 0) { out += glyph(LEAD[i]); rest = rest.slice(2); break; }
-    var t = rest.match(/^\(([\w -]+)\) /);
-    if (t && lead[0] !== "- " && lead[0] !== "* ") {
-      out += '<span class="tag"><span class="par">(</span>' + esc(t[1]) + '<span class="par">)</span></span> ';
-      rest = rest.slice(t[0].length);
+    var sym, head;
+    if ((m = rest.match(/^=>\s+([#vx>o.,])\s/))) {
+      // `=> # ` leading a line: a consequence, with a state of its own.
+      sym = m[1]; head = arrow(m[0].length - 2) + mark(sym); rest = rest.slice(m[0].length);
+    } else if ((m = rest.match(/^([#vx>o.,]) /))) {
+      sym = m[1]; head = mark(sym); rest = rest.slice(2);
+    } else if ((m = rest.match(/^[-*] /))) {
+      return out + mark("-") + inline(rest.slice(2));
+    } else {
+      return out + inline(rest); // a follow-up (`=> `, `=> @name`), a numbered item or plain text
     }
-    var body = inline(rest);
-    return out + (DIM[lead[0]] ? '<span class="dim">' + body + "</span>" : body);
+    if (/^[-*] /.test(rest)) { head += mark("-"); rest = rest.slice(2); } // `# - item`: a bullet after the mark
+    var emph = rest.indexOf("! ") === 0;
+    if (emph) rest = rest.slice(2);
+    var tg = tag(rest);
+    var body = tg[0] + inline(tg[1], sym);
+    if (emph) body = '<span class="emph">! ' + body + "</span>";
+    if (!RESOLVED[sym]) return out + head + body;
+    // A resolved line is muted, as in the app; a resolved topic with an open action after its arrow mutes only the topic.
+    var split = body.search(/<span class="g g3 g-follow">➔<\/span> *<span class="g g2 g-(open|topic-open)">/);
+    return split < 0 ? out + '<span class="resolved">' + head + body + "</span>"
+      : out + '<span class="resolved">' + head + body.slice(0, split) + "</span>" + body.slice(split);
   }
   function renderNote(text) {
     var lines = text.split("\n");
     return lines.map(function (l, i) {
-      if (/^=+$/.test(l) && i > 0 && lines[i - 1].trim()) return '<span class="ln rule">' + esc(l) + "</span>";
-      if (lines[i + 1] && /^=+$/.test(lines[i + 1]) && l.trim()) return '<span class="ln hd">' + esc(l) + "</span>";
+      // A section title stays plain text; its `===` underline is a double rule over exactly those characters.
+      if (/^=+$/.test(l) && i > 0 && lines[i - 1].trim()) return '<span class="ln"><span class="rule">' + esc(l) + "</span></span>";
+      if (lines[i + 1] && /^=+$/.test(lines[i + 1]) && l.trim()) return '<span class="ln">' + esc(l) + "</span>";
       return '<span class="ln">' + (render(l) || " ") + "</span>";
     }).join("");
   }

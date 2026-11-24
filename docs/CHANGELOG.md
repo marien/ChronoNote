@@ -557,3 +557,4 @@ line, and this index is regenerated with `node scripts/changelog-index.mjs`.
 - §532 A plain line followed by a list, pasted from Teams, keeps the list
 - §533 `cookie` 0.18.3 for RUSTSEC-2026-0594
 - §534 Names joined by a slash: `(@a/@b)`
+- §535 The website's previews look like the app

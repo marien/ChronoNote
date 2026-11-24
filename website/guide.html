@@ -23,8 +23,8 @@
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
   <meta name="twitter:card" content="summary_large_image" />
-  <link rel="stylesheet" href="style.css?v=442" />
-  <script src="site.js?v=440" defer></script>
+  <link rel="stylesheet" href="style.css?v=535" />
+  <script src="site.js?v=535" defer></script>
   <script src="docs.js?v=440" defer></script>
   <script type="application/ld+json">
   {
@@ -138,7 +138,7 @@ o Christmas market
           <h3>Follow-ups and people <button class="try" type="button" data-try="search">Try it</button></h3>
           <div class="vrow"><span class="type"><code>=&gt; </code></span><pre class="see" data-note="render">=&gt; they agreed on May</pre><span class="what"><strong>Follow-up.</strong> A note or outcome leading from the line above.</span></div>
           <div class="vrow"><span class="type"><code>=&gt; @name</code></span><pre class="see" data-note="render">=&gt; @Joan finds referees</pre><span class="what"><strong>Handed off.</strong> Someone else owns it; no action state of its own. <code>@name</code> stays real text you can edit, names may contain a hyphen, and any <code>@name</code> anywhere on a line gets the same badge (an email address is left alone).</span></div>
-          <div class="vrow"><span class="type"><code>(@a, @b)</code> <code>(@a/@b)</code></span><pre class="see" data-note="render">o coffee rota (@Ruth, @Ben)</pre><span class="what"><strong>Several people.</strong> Each name gets its own badge, on any line, agenda topics included, also when names are joined by a slash: <code>(@Ruth/@Ben)</code>.</span></div>
+          <div class="vrow"><span class="type"><code>(@a, @b)</code></span><pre class="see" data-note="render">o coffee rota (@Ruth, @Ben)</pre><span class="what"><strong>Several people.</strong> Each name gets its own badge, on any line, agenda topics included, also when names are joined by a slash: <code>(@Ruth/@Ben)</code>.</span></div>
           <div class="vrow"><span class="type"><code>=&gt; # </code></span><pre class="see" data-note="render">=&gt; # send the minutes</pre><span class="what"><strong>Consequence action.</strong> A follow-up that is itself an action, closed by clicking its glyph like any other. Also <code>=&gt; v</code>, <code>=&gt; &gt;</code> and <code>=&gt; x</code>.</span></div>
         </div>
         <div class="vgroup">
@@ -162,7 +162,7 @@ Committee
           <div class="vrow"><span class="type"><code>- </code> <code>* </code></span><pre class="see" data-note="render">- bring the keys</pre><span class="what"><strong>Bullet.</strong> Purely structure, not an action. Indent two spaces to nest.</span></div>
           <div class="vrow"><span class="type"><code>1. </code> <code>2) </code> <code>1.1. </code></span><pre class="see" data-note="render">1. welcome and agenda</pre><span class="what"><strong>Numbered item.</strong> Plain text. <kbd>Enter</kbd> continues the numbering, an empty item ends the list, <kbd>Tab</kbd> nests it under the text and starts it at 1 (at <code>2.1.</code> in a list that already has <code>1.1.</code> sub-items). It must be the first thing on the line: <code>3.5 hours</code> is just text.</span></div>
           <div class="vrow"><span class="type"><code>\</code></span><pre class="see">\# not an action</pre><span class="what"><strong>Keep it text.</strong> A backslash in front of a symbol keeps the line as plain text: <code>\# config</code> is not an action, <code>\1. </code> not a list. The backslash stays in the file and is shown dimmed.</span></div>
-          <div class="vrow"><span class="type"><code>(&gt;date#Section)</code></span><pre class="see" data-note="render">&gt; call Sam (&gt;{today+7}#Committee)</pre><span class="what"><strong>Link.</strong> Added when you forward an action; <kbd>Ctrl</kbd>+click to follow it. Any date in brackets works, so you can type one yourself.</span></div>
+          <div class="vrow"><span class="type"><code>(&gt;date#Section)</code></span><pre class="see" data-note="render">&gt; call Sam (&gt;{today+7}#Board)</pre><span class="what"><strong>Link.</strong> Added when you forward an action; <kbd>Ctrl</kbd>+click to follow it. Any date in brackets works, so you can type one yourself.</span></div>
         </div>
       </div>
       <p class="intro" style="margin-top: 24px">Click a glyph to close an open action, or to reopen one that is done, deferred or won't-do. On a line with several actions (<code># call Sam =&gt; # book a room</code>) a click changes exactly the glyph you clicked. From the keyboard, the action nearest to the left of the caret changes; on a line without one, <kbd>Ctrl+1</kbd> to <kbd>Ctrl+4</kbd> turn the whole line into that action.</p>

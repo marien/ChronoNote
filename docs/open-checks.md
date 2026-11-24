@@ -20,3 +20,4 @@ then gets a line in its CHANGELOG section) or found broken (it then becomes a fi
 | 2026-11-23 | Copy a Teams message with a plain line and a bulleted list under it: both arrive, the list as `- ` items | dev build or next beta | §532 |
 | 2026-11-23 | 0.40.0 after the stable: on a phone (keyboard, sheets, long-press, symbols bar on one row) and in the installed web app on a laptop and a phone (cache `chrononote-webapp-shell-0.40.0`) | a phone and the installed web app | none (after-release check for the stable) |
 | 2026-11-23 | Type `(@Dana/@Lee)` and `=> @Ann/@Bo`: every name gets a badge; `x.y/@a/@b` stays plain; suggestions open after `@Dana/@` | dev build or next beta | §534 |
+| 2026-11-24 | The website's previews look like the app: the guide's marks table, the home page hero and "Type a line", in light and dark (boxes, circles, grey topic and due pills, a fully yellow emphasised line) | the website after the next release, or `website/` served locally | §535 |

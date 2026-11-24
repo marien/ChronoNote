@@ -62,7 +62,12 @@
   --g-follow: #0066b8;
   --g-badge-bg: rgba(0, 102, 184, 0.12);
   --g-emph: #f08c00;
-  --g-topic: #6741d9;
+  --g-assignee: #0066b8;
+  --g-warn: #b5771f;
+  --ed-muted: #5f5f5f;
+  --ed-edge-soft: rgba(0, 0, 0, 0.09);
+  --ed-edge-strong: rgba(0, 0, 0, 0.16);
+  --ed-tertiary: #757575;
 
   --shadow: 0 1px 2px rgba(20, 24, 29, 0.06), 0 12px 32px -12px rgba(20, 24, 29, 0.18);
 
@@ -94,9 +99,14 @@
     --g-defer: #e5a50a;
     --g-cancel: #868e96;
     --g-follow: #0098ff;
-    --g-badge-bg: rgba(0, 122, 204, 0.18);
+    --g-badge-bg: rgba(0, 122, 204, 0.15);
     --g-emph: #ffd43b;
-    --g-topic: #b197fc;
+    --g-assignee: #29a8ff;
+    --g-warn: #d8a24a;
+    --ed-muted: #a6a6a6;
+    --ed-edge-soft: rgba(255, 255, 255, 0.07);
+    --ed-edge-strong: rgba(255, 255, 255, 0.13);
+    --ed-tertiary: #949494;
     --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 16px 40px -16px rgba(0, 0, 0, 0.7);
     color-scheme: dark;
   }
@@ -121,9 +131,14 @@
   --g-defer: #e5a50a;
   --g-cancel: #868e96;
   --g-follow: #0098ff;
-  --g-badge-bg: rgba(0, 122, 204, 0.18);
+  --g-badge-bg: rgba(0, 122, 204, 0.15);
   --g-emph: #ffd43b;
-  --g-topic: #b197fc;
+  --g-assignee: #29a8ff;
+  --g-warn: #d8a24a;
+  --ed-muted: #a6a6a6;
+  --ed-edge-soft: rgba(255, 255, 255, 0.07);
+  --ed-edge-strong: rgba(255, 255, 255, 0.13);
+  --ed-tertiary: #949494;
   --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 16px 40px -16px rgba(0, 0, 0, 0.7);
   color-scheme: dark;
 }
@@ -256,21 +271,66 @@ section { padding-block: clamp(56px, 8vw, 112px); }
 .note .ln { display: block; min-height: 1.75em; }
 .win .note { overflow-x: auto; }
 
-/* glyphs: the same width in ch as the marks they replace, like the app's editor */
-.g { display: inline-block; text-align: left; font-weight: 700; }
+/* glyphs: the same width in ch as the marks they replace, drawn as the app draws them (src/styles/03-editor.css, §535) */
+.g { display: inline-block; text-align: left; font-weight: 700; white-space: pre; }
 .g2 { width: 2ch; } .g3 { width: 3ch; }
-.g-open { color: var(--g-open); } .g-done { color: var(--g-done); } .g-defer { color: var(--g-defer); }
-.g-cancel { color: var(--g-cancel); } .g-follow { color: var(--g-follow); } .g-topic { color: var(--g-topic); }
-.dim { color: var(--ed-dim); }
-.emph { font-weight: 700; color: var(--ed-ink); }
-.emph-mark { color: var(--g-emph); }
-.badge { background: var(--g-badge-bg); color: var(--g-follow); border-radius: 3px; }
-.tag { color: var(--g-topic); }
-.tag .par { opacity: 0; }
-.due { box-shadow: inset 0 0 0 1px var(--g-defer); border-radius: 3px; color: var(--g-defer); }
-.link { color: var(--ed-dim); border-bottom: 1px dotted currentColor; }
-.hd { font-weight: 700; }
-.rule { color: transparent; background: linear-gradient(var(--ed-rule), var(--ed-rule)) left 45% / 100% 1px no-repeat; }
+.g-follow { color: var(--g-follow); }
+.g-bullet { color: var(--ed-ink); font-weight: 400; }
+/* Boxes (# v > x) and circles (o . ,): the symbol stays in the text, transparent, inside a square or ring standing on
+   the baseline; done, deferred and won't-do carry a mark drawn as a mask. */
+.g .ink {
+  display: inline-block; position: relative; width: 0.7em; height: 0.7em; box-sizing: border-box; overflow: hidden;
+  vertical-align: baseline; line-height: 1; color: transparent; border: 1.4px solid var(--box); border-radius: 1.5px;
+}
+.g .ink::before { content: ""; position: absolute; inset: 0; background-color: var(--box); -webkit-mask: var(--mark) center / contain no-repeat; mask: var(--mark) center / contain no-repeat; }
+.g-open { --box: var(--g-open); --mark: none; }
+.g-done { --box: var(--g-done); --mark: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='3.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 8.6l3.4 3.4 6.6-8'/%3E%3C/svg%3E"); }
+.g-cancel { --box: var(--g-cancel); --mark: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3.6 3.6l8.8 8.8M12.4 3.6l-8.8 8.8'/%3E%3C/svg%3E"); }
+.g-defer { --box: var(--g-defer); --mark: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='3.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5.6 2.8l5.2 5.2-5.2 5.2'/%3E%3C/svg%3E"); }
+[class*="g-topic-"] .ink { width: 0.66em; height: 0.66em; border-radius: 50%; }
+.g-open .ink::before, [class*="g-topic-"] .ink::before { content: none; }
+.g-topic-open { --box: var(--g-open); }
+.g-topic-done { --box: var(--g-done); }
+.g-topic-done .ink { background: radial-gradient(circle closest-side, var(--g-done) 52%, transparent 66%); }
+.g-topic-skipped { --box: var(--g-defer); }
+.g-topic-skipped .ink { border-style: dashed; }
+.resolved { opacity: 0.72; }
+.emph { font-weight: 700; color: var(--g-emph); }
+.emph .g-bullet { color: inherit; }
+.esc { color: var(--ed-muted); opacity: 0.65; }
+/* @name: the pill's inset is cancelled by a negative margin, so the text after it keeps its column. */
+.badge { background: var(--g-badge-bg); color: var(--g-assignee); border-radius: 3px; padding: 0 3px; margin: 0 -3px; font-weight: 600; }
+/* (topic): a grey pill; the parentheses stay as transparent text and are its padding. */
+.tag {
+  border: 1px solid var(--ed-edge-strong); border-radius: 4px; margin: 0 -1px; font-weight: 500; color: var(--ed-ink);
+  background: color-mix(in srgb, var(--ed-ink) 6%, transparent);
+}
+.tag .par { color: transparent; }
+/* by:date: a pill, a flag drawn over the transparent `by:`; amber on the day, red once passed, grey when resolved. */
+.due {
+  --due-ink: var(--ed-muted); --due-border: var(--ed-edge-strong); color: var(--due-ink); box-shadow: 0 0 0 1px var(--due-border);
+  border-radius: 4px; margin-right: -0.3ch; padding-right: 0.3ch; background: color-mix(in srgb, var(--ed-ink) 6%, transparent);
+}
+.due-flag {
+  color: transparent; background-color: var(--due-ink);
+  -webkit-mask: var(--flag) no-repeat 0.55ch 50% / 1em 1em; mask: var(--flag) no-repeat 0.55ch 50% / 1em 1em;
+  --flag: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='1.6' stroke-linejoin='round'%3E%3Cpath d='M3.5 14.5V2M3.5 2.5h8.5l-2 3 2 3H3.5'/%3E%3C/svg%3E");
+}
+.due-today { --due-ink: var(--g-warn); --due-border: color-mix(in srgb, var(--g-warn) 45%, transparent); background: color-mix(in srgb, var(--g-warn) 10%, transparent); }
+.due-overdue { --due-ink: var(--g-open); --due-border: color-mix(in srgb, var(--g-open) 45%, transparent); background: color-mix(in srgb, var(--g-open) 10%, transparent); }
+.due-resolved { --due-border: var(--ed-edge-soft); background: transparent; }
+/* (>date#Section): a pill, an arrow over `(>`, a dot for `#`, the `)` transparent. */
+.fwd { color: var(--ed-muted); box-shadow: 0 0 0 1px var(--ed-edge-soft); border-radius: 4px; background: color-mix(in srgb, var(--ed-ink) 4%, transparent); }
+.fwd-dir { color: transparent; background-color: var(--ed-muted); -webkit-mask: var(--arrow) no-repeat 0.3ch 50% / 0.85em 0.85em; mask: var(--arrow) no-repeat 0.3ch 50% / 0.85em 0.85em; }
+.fwd-to { --arrow: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M2.5 8h11M9.5 4l4 4-4 4'/%3E%3C/svg%3E"); }
+.fwd-from { --arrow: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M13.5 8h-11M6.5 4l-4 4 4 4'/%3E%3C/svg%3E"); }
+.fwd-sep { color: transparent; background: radial-gradient(circle, var(--ed-muted) 0.09em, transparent 0.1em) no-repeat 50% 50%; }
+.fwd-paren { color: transparent; }
+/* A section's `===` underline: two thin lines over exactly its characters, as in the app. */
+.rule {
+  color: transparent; background-image: linear-gradient(var(--ed-tertiary), var(--ed-tertiary)), linear-gradient(var(--ed-tertiary), var(--ed-tertiary));
+  background-size: 100% 1px; background-repeat: no-repeat; background-position: 0 calc(51% - 0.09em), 0 calc(51% + 0.09em);
+}
 
 /* app fragments drawn inside the illustrations */
 .split { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); }
@@ -454,7 +514,7 @@ section { padding-block: clamp(56px, 8vw, 112px); }
 .vocab { display: grid; gap: 36px; }
 .vgroup h3 { font-size: 1.05rem; display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding-bottom: 10px; border-bottom: 1px solid var(--rule); }
 .vgroup h3 .try { font-size: 0.85rem; }
-.vrow { display: grid; grid-template-columns: 9.5rem 14rem minmax(0, 1fr); gap: 4px 20px; padding: 14px 0; border-bottom: 1px solid var(--rule); align-items: baseline; }
+.vrow { display: grid; grid-template-columns: 9.5rem 18rem minmax(0, 1fr); gap: 4px 20px; padding: 14px 0; border-bottom: 1px solid var(--rule); align-items: baseline; }
 .vrow .type, .vrow .see { font: 0.92rem/1.5 var(--f-mono); white-space: pre; }
 .vrow .type { color: var(--ink); }
 .vrow .type code { background: var(--blue-wash); padding: 1px 4px; font-size: 1em; }
@@ -462,7 +522,8 @@ section { padding-block: clamp(56px, 8vw, 112px); }
 .vrow .see .ln { display: block; }
 .vrow .what { color: var(--ink-2); font-size: 0.97rem; }
 .vrow .what strong { color: var(--ink); }
-@media (max-width: 760px) {
+/* Below this the meaning column would get too narrow next to a preview wide enough for the longest example. */
+@media (max-width: 1100px) {
   .vrow { grid-template-columns: auto minmax(0, 1fr); }
   .vrow .what { grid-column: 1 / -1; }
 }
