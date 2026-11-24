@@ -558,3 +558,4 @@ line, and this index is regenerated with `node scripts/changelog-index.mjs`.
 - §533 `cookie` 0.18.3 for RUSTSEC-2026-0594
 - §534 Names joined by a slash: `(@a/@b)`
 - §535 The website's previews look like the app
+- §536 Dependency batch: Tauri 2.12.7, Svelte 5.59.1, Vitest 5.1.1
