@@ -6,7 +6,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 import { tokenizeLine } from "./grammar/tokenize";
 import siteScript from "../../website/site.js?raw";
 
-type Render = (line: string) => string;
+type Render = (line: string) => DocumentFragment;
 let render: Render;
 
 beforeAll(() => {
@@ -46,7 +46,7 @@ function appMarks(line: string): string[] {
 /** The marks the website draws, in document order. */
 function siteMarks(line: string): string[] {
   const host = document.createElement("div");
-  host.innerHTML = render(line);
+  host.append(render(line));
   const out: string[] = [];
   host.querySelectorAll("*").forEach((el) => {
     const c = el.classList;
@@ -114,6 +114,13 @@ describe("website preview renderer (§535)", () => {
     expect(siteMarks(line)).toEqual(appMarks(line));
   });
 
+  it("keeps markup typed into a line as text: the lines are built as DOM nodes, never parsed as HTML", () => {
+    const host = document.createElement("div");
+    host.append(render('# <img src=x onerror="alert(1)"> & <b>bold</b> @a'));
+    expect(host.querySelector("img, b")).toBeNull();
+    expect(host.textContent).toContain('<img src=x onerror="alert(1)"> & <b>bold</b>');
+  });
+
   it("colours a due date as the app does: later, today, overdue, and grey once its action is resolved", () => {
     const iso = (n: number) => {
       const d = new Date();
@@ -122,7 +129,7 @@ describe("website preview renderer (§535)", () => {
     };
     const status = (line: string) => {
       const host = document.createElement("div");
-      host.innerHTML = render(line);
+      host.append(render(line));
       return [...host.querySelectorAll(".due")].map((el) => [...el.classList].find((c) => c !== "due"));
     };
     expect(status(`# a by:${iso(3)}`)).toEqual(["due-later"]);

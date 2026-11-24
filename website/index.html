@@ -489,7 +489,8 @@ document.addEventListener("DOMContentLoaded", function () {
   var input = $("#line"), chips = $("#chips");
   function update() {
     var saved = normalise(input.value);
-    $("#seeOut").innerHTML = CN.render(saved) || " ";
+    var seen = CN.render(saved);
+    $("#seeOut").replaceChildren(seen.textContent ? seen : " ");
     $("#fileOut").textContent = saved || " ";
     var m = "Plain text. Start the line with a mark to make it something.";
     for (var i = 0; i < MEANING.length; i++) if (saved.indexOf(MEANING[i][0]) === 0) { m = MEANING[i][1]; break; }
